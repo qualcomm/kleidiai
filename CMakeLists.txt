@@ -243,6 +243,11 @@ set(KLEIDIAI_FILES_SME
 	kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/kai_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa.c
 	kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/helper_macros_imatmul_clamp_qai8_qai8p_qsi8cxp.S
 
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa.c
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/helper_macros_matmul_clamp_f16_f16p_f16p.S
+
+    kai/ukernels/matmul/imatmul_clamp_f16_f16p_f16p/kai_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa.c
+    kai/ukernels/matmul/imatmul_clamp_f16_f16p_f16p/helper_macros_imatmul_clamp_f16_f16p_f16p.S
 
     kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/kai_matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_sme1_mopa.c
     kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/helper_macros_matmul_clamp_f32_f32p_f32p.S
@@ -325,7 +330,8 @@ target_include_directories(kleidiai PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/>
-
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/imatmul_clamp_f16_f16p_f16p/>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/imatmul_clamp_f32_f32p_f32p/>
 
