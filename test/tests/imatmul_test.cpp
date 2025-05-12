@@ -13,8 +13,10 @@
 #include <unordered_map>
 
 #include "kai/ukernels/matmul/imatmul_clamp_f16_f16p_f16p/kai_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme2_mopa.h"
+#include "kai/ukernels/matmul/imatmul_clamp_f16_f16p_f16p/kai_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa.h"
 #include "kai/ukernels/matmul/imatmul_clamp_f16_f16p_f16p/kai_imatmul_clamp_f16_f16p_f16p_interface.h"
 #include "kai/ukernels/matmul/imatmul_clamp_f32_f32p_f32p/kai_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme2_mopa.h"
+#include "kai/ukernels/matmul/imatmul_clamp_f32_f32p_f32p/kai_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa.h"
 #include "kai/ukernels/matmul/imatmul_clamp_f32_f32p_f32p/kai_imatmul_clamp_f32_f32p_f32p_interface.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_imatmul_pack_x16p2vlx2_x16p_sme.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_imatmul_pack_x32p2vlx1_x32p_sme.h"
@@ -146,6 +148,18 @@ const kai_imatmul_clamp_f16_f16p_f16p_ukernel& get_imatmul_clamp_f16_f16p2vlx2_f
     return ukernel;
 }
 
+const kai_imatmul_clamp_f16_f16p_f16p_ukernel& get_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa() {
+    static kai_imatmul_clamp_f16_f16p_f16p_ukernel ukernel;
+    ukernel.get_m_step = kai_get_m_step_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa;
+    ukernel.get_n_step = kai_get_n_step_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa;
+    ukernel.get_lhs_packed_offset = kai_get_lhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa;
+    ukernel.get_rhs_packed_offset = kai_get_rhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa;
+    ukernel.get_dst_offset = kai_get_dst_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa;
+    ukernel.get_dst_size = kai_get_dst_size_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa;
+    ukernel.run_imatmul = kai_run_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa;
+    return ukernel;
+}
+
 /// Use interface for matmul kernel
 const kai_imatmul_clamp_f32_f32p_f32p_ukernel& get_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme2_mopa() {
     static kai_imatmul_clamp_f32_f32p_f32p_ukernel ukernel;
@@ -159,8 +173,24 @@ const kai_imatmul_clamp_f32_f32p_f32p_ukernel& get_imatmul_clamp_f32_f32p2vlx1_f
     return ukernel;
 }
 
+
+/// Use interface for matmul kernel
+const kai_imatmul_clamp_f32_f32p_f32p_ukernel& get_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa() {
+    static kai_imatmul_clamp_f32_f32p_f32p_ukernel ukernel;
+    ukernel.get_m_step = kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa;
+    ukernel.get_n_step = kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa;
+    ukernel.get_lhs_packed_offset = kai_get_lhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa;
+    ukernel.get_rhs_packed_offset = kai_get_rhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa;
+    ukernel.get_dst_offset = kai_get_dst_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa;
+    ukernel.get_dst_size = kai_get_dst_size_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa;
+    ukernel.run_imatmul = kai_run_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa;
+    return ukernel;
+}
+
+
+
 /// Retreive the test list
-const IndirectMatMulArray& get_indirect_matmul_methods() {
+const IndirectMatMulArray& get_fp16_indirect_matmul_methods() {
     static IndirectMatMulArray indirect_matmul_methods{};
 
     // F16 IMATMUL ////////////////////////////////////////////////////////////
@@ -202,9 +232,105 @@ const IndirectMatMulArray& get_indirect_matmul_methods() {
     indirect_matmul_methods[0].imatmul.get_dst_size = ukernel_f16.get_dst_size;
     indirect_matmul_methods[0].imatmul.imatmul = ukernel_f16.run_imatmul;
 
+
+
+    // F16 IMATMUL ////////////////////////////////////////////////////////////
+    indirect_matmul_methods[1].name = "indirect_matmul_f16_f16p_f16p_2vlx2vl_sme1_mopa";
+    indirect_matmul_methods[1].is_supported = cpu_has_sme;
+    indirect_matmul_methods[1].pack_shape.m = 2 * get_sme_vector_length<int32_t>();
+    indirect_matmul_methods[1].pack_shape.n = 2 * get_sme_vector_length<int32_t>();
+    indirect_matmul_methods[1].pack_shape.k = sizeof(int32_t);
+    indirect_matmul_methods[1].format.lhs = DataFormat(DataType::FP16);
+    indirect_matmul_methods[1].format.rhs = DataFormat(DataType::FP16);
+    indirect_matmul_methods[1].format.bias = DataFormat(DataType::FP16);
+    indirect_matmul_methods[1].format.out = DataFormat(DataType::FP16);
+
+    // LHS
+    indirect_matmul_methods[1].lhs.get_m_step = kai_get_m_step_lhs_imatmul_pack_x16p2vlx2_x16p_sme;
+    indirect_matmul_methods[1].lhs.get_lhs_packed_offset =
+        kai_get_lhs_packed_offset_lhs_imatmul_pack_x16p2vlx2_x16p_sme;
+    indirect_matmul_methods[1].lhs.get_lhs_packed_size = kai_get_lhs_packed_size_lhs_imatmul_pack_x16p2vlx2_x16p_sme;
+    indirect_matmul_methods[1].lhs.pack = kai_run_lhs_imatmul_pack_x16p2vlx2_x16p_sme;
+
+    // RHS
+    indirect_matmul_methods[1].rhs.get_n_step = kai_get_n_step_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme;
+    indirect_matmul_methods[1].rhs.get_rhs_offset = kai_get_rhs_offset_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme;
+    indirect_matmul_methods[1].rhs.get_bias_offset = kai_get_bias_offset_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme;
+    indirect_matmul_methods[1].rhs.get_rhs_packed_offset =
+        kai_get_rhs_packed_offset_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme;
+    indirect_matmul_methods[1].rhs.get_rhs_packed_size =
+        kai_get_rhs_packed_size_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme;
+    indirect_matmul_methods[1].rhs.pack = kai_run_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme;
+
+    // IMATMUL
+    const kai_imatmul_clamp_f16_f16p_f16p_ukernel& ukernel_f16_1 =
+        get_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa();
+    indirect_matmul_methods[1].imatmul.get_m_step = ukernel_f16_1.get_m_step;
+    indirect_matmul_methods[1].imatmul.get_n_step = ukernel_f16_1.get_n_step;
+    indirect_matmul_methods[1].imatmul.get_lhs_packed_offset = ukernel_f16_1.get_lhs_packed_offset;
+    indirect_matmul_methods[1].imatmul.get_rhs_packed_offset = ukernel_f16_1.get_rhs_packed_offset;
+    indirect_matmul_methods[1].imatmul.get_dst_offset = ukernel_f16_1.get_dst_offset;
+    indirect_matmul_methods[1].imatmul.get_dst_size = ukernel_f16_1.get_dst_size;
+    indirect_matmul_methods[1].imatmul.imatmul = ukernel_f16_1.run_imatmul;
+
+
+
+ 
+
+    return indirect_matmul_methods;
+}
+
+/// Retreive the test list
+const IndirectMatMulArray& get_fp32_indirect_matmul_methods() {
+    static IndirectMatMulArray indirect_matmul_methods{};
+
+
+
     // F32 IMATMUL ////////////////////////////////////////////////////////////
-    indirect_matmul_methods[1].name = "indirect_matmul_f32_f32p_f32p_2vlx2vl_sme2_mopa";
-    indirect_matmul_methods[1].is_supported = cpu_has_sme2;
+    indirect_matmul_methods[0].name = "indirect_matmul_f32_f32p_f32p_2vlx2vl_sme2_mopa";
+    indirect_matmul_methods[0].is_supported = cpu_has_sme2;
+    indirect_matmul_methods[0].pack_shape.m = 2 * get_sme_vector_length<int32_t>();
+    indirect_matmul_methods[0].pack_shape.n = 2 * get_sme_vector_length<int32_t>();
+    indirect_matmul_methods[0].pack_shape.k = sizeof(int32_t);
+    indirect_matmul_methods[0].format.lhs = DataFormat(DataType::FP32);
+    indirect_matmul_methods[0].format.rhs = DataFormat(DataType::FP32);
+    indirect_matmul_methods[0].format.bias = DataFormat(DataType::FP32);
+    indirect_matmul_methods[0].format.out = DataFormat(DataType::FP32);
+
+    // LHS
+    indirect_matmul_methods[0].lhs.get_m_step = kai_get_m_step_lhs_imatmul_pack_x32p2vlx1_x32p_sme;
+    indirect_matmul_methods[0].lhs.get_lhs_packed_offset =
+        kai_get_lhs_packed_offset_lhs_imatmul_pack_x32p2vlx1_x32p_sme;
+    indirect_matmul_methods[0].lhs.get_lhs_packed_size = kai_get_lhs_packed_size_lhs_imatmul_pack_x32p2vlx1_x32p_sme;
+    indirect_matmul_methods[0].lhs.pack = kai_run_lhs_imatmul_pack_x32p2vlx1_x32p_sme;
+
+    // RHS
+    indirect_matmul_methods[0].rhs.get_n_step = kai_get_n_step_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
+    indirect_matmul_methods[0].rhs.get_rhs_offset = kai_get_rhs_offset_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
+    indirect_matmul_methods[0].rhs.get_bias_offset = kai_get_bias_offset_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
+    indirect_matmul_methods[0].rhs.get_rhs_packed_offset =
+        kai_get_rhs_packed_offset_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
+    indirect_matmul_methods[0].rhs.get_rhs_packed_size =
+        kai_get_rhs_packed_size_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
+    indirect_matmul_methods[0].rhs.pack = kai_run_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
+
+    // IMATMUL
+    const kai_imatmul_clamp_f32_f32p_f32p_ukernel& ukernel_f32 =
+        get_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme2_mopa();
+    indirect_matmul_methods[0].imatmul.get_m_step = ukernel_f32.get_m_step;
+    indirect_matmul_methods[0].imatmul.get_n_step = ukernel_f32.get_n_step;
+    indirect_matmul_methods[0].imatmul.get_lhs_packed_offset = ukernel_f32.get_lhs_packed_offset;
+    indirect_matmul_methods[0].imatmul.get_rhs_packed_offset = ukernel_f32.get_rhs_packed_offset;
+    indirect_matmul_methods[0].imatmul.get_dst_offset = ukernel_f32.get_dst_offset;
+    indirect_matmul_methods[0].imatmul.get_dst_size = ukernel_f32.get_dst_size;
+    indirect_matmul_methods[0].imatmul.imatmul = ukernel_f32.run_imatmul;
+	
+	
+	
+
+    // F32 IMATMUL ////////////////////////////////////////////////////////////
+    indirect_matmul_methods[1].name = "indirect_matmul_f32_f32p_f32p_2vlx2vl_sme1_mopa";
+    indirect_matmul_methods[1].is_supported = cpu_has_sme;
     indirect_matmul_methods[1].pack_shape.m = 2 * get_sme_vector_length<int32_t>();
     indirect_matmul_methods[1].pack_shape.n = 2 * get_sme_vector_length<int32_t>();
     indirect_matmul_methods[1].pack_shape.k = sizeof(int32_t);
@@ -231,18 +357,19 @@ const IndirectMatMulArray& get_indirect_matmul_methods() {
     indirect_matmul_methods[1].rhs.pack = kai_run_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
 
     // IMATMUL
-    const kai_imatmul_clamp_f32_f32p_f32p_ukernel& ukernel_f32 =
-        get_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme2_mopa();
-    indirect_matmul_methods[1].imatmul.get_m_step = ukernel_f32.get_m_step;
-    indirect_matmul_methods[1].imatmul.get_n_step = ukernel_f32.get_n_step;
-    indirect_matmul_methods[1].imatmul.get_lhs_packed_offset = ukernel_f32.get_lhs_packed_offset;
-    indirect_matmul_methods[1].imatmul.get_rhs_packed_offset = ukernel_f32.get_rhs_packed_offset;
-    indirect_matmul_methods[1].imatmul.get_dst_offset = ukernel_f32.get_dst_offset;
-    indirect_matmul_methods[1].imatmul.get_dst_size = ukernel_f32.get_dst_size;
-    indirect_matmul_methods[1].imatmul.imatmul = ukernel_f32.run_imatmul;
+    const kai_imatmul_clamp_f32_f32p_f32p_ukernel& ukernel_f32_1 =
+        get_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa();
+    indirect_matmul_methods[1].imatmul.get_m_step = ukernel_f32_1.get_m_step;
+    indirect_matmul_methods[1].imatmul.get_n_step = ukernel_f32_1.get_n_step;
+    indirect_matmul_methods[1].imatmul.get_lhs_packed_offset = ukernel_f32_1.get_lhs_packed_offset;
+    indirect_matmul_methods[1].imatmul.get_rhs_packed_offset = ukernel_f32_1.get_rhs_packed_offset;
+    indirect_matmul_methods[1].imatmul.get_dst_offset = ukernel_f32_1.get_dst_offset;
+    indirect_matmul_methods[1].imatmul.get_dst_size = ukernel_f32_1.get_dst_size;
+    indirect_matmul_methods[1].imatmul.imatmul = ukernel_f32_1.run_imatmul;
 
     return indirect_matmul_methods;
 }
+
 
 /// Test reference identification
 struct TestDataId {
@@ -500,9 +627,68 @@ TEST_P(IndirectMatMulTest, Output) {
 
 ///  Test parameter listing
 INSTANTIATE_TEST_SUITE_P(
-    IndirectMatMul, IndirectMatMulTest,
+    IndirectMatMul_fp16, IndirectMatMulTest,
     testing::Combine(
-        testing::ValuesIn(get_indirect_matmul_methods()),  //
+        testing::ValuesIn(get_fp16_indirect_matmul_methods()),  //
+        testing::ValuesIn({
+            // clang-format off
+            MatMulShape{  1,    1,   1}, //
+            MatMulShape{  1,   17,   4}, //
+            MatMulShape{  1,   19,  24}, //
+            MatMulShape{  1,   32,   4}, //
+            MatMulShape{  1,   32,  32}, //
+            MatMulShape{  1,   33, 200}, //
+            MatMulShape{  1,   49,  21}, //
+            MatMulShape{  1,   64,   4}, //
+            MatMulShape{  1,   65,   4}, //
+            MatMulShape{  3,    6,   6}, //
+            MatMulShape{  3,   28,  25}, //
+            MatMulShape{  4,   16,   4}, //
+            MatMulShape{  4,   16,  27}, //
+            MatMulShape{  6,   18,  31}, //
+            MatMulShape{  6,   28,   1}, //
+            MatMulShape{  6,   29,  24}, //
+            MatMulShape{  8,   16,  16}, //
+            MatMulShape{ 16,   16,   4}, //
+            MatMulShape{ 16,   16,  16}, //
+            MatMulShape{ 20,   30,  40}, //
+            MatMulShape{ 23,    1,  43}, //
+            MatMulShape{ 32,   14,   1}, //
+            MatMulShape{ 32,   16,  27}, //
+            MatMulShape{ 32,   32,   3}, //
+            MatMulShape{ 32,   32,   4}, //
+            MatMulShape{ 33,   29,  24}, //
+            MatMulShape{ 64,   64,   3}, //
+            MatMulShape{ 64,   64,   4}, //
+            MatMulShape{ 96,   96,   3}, //
+            MatMulShape{ 96,   97,   3}, //
+            MatMulShape{ 97,   96,   3}, //
+            MatMulShape{123,   85,  45}, //
+            MatMulShape{128,  128,   3}, //
+            MatMulShape{130,  130,   6}, //
+            // clang-format on
+        }),
+        testing::ValuesIn(std::initializer_list<size_t>{1, 2, 3, 4, 8, 11, 16, 32, 33, 64, 65}),  //
+        testing::ValuesIn({
+            // clang-format off
+            //       (Start row , start col , height , width)
+            MatrixPortion(   0  , 0         , 1      , 1   ), // Full matrix.
+            MatrixPortion(   0  , 0         , 1      , 0.5 ), // Left half
+            MatrixPortion(   0  , 0         , 0.5    , 1   ), // Upper half
+            MatrixPortion(   0  , 0.5       , 1      , 0.5 ), // Right half
+            MatrixPortion( 0.5  , 0         , 0.5    , 1   ), // Bottom half
+            MatrixPortion( 0.4  , 0.4       , 0.3    , 0.3 ), // Center ninth
+            // clang-format on
+        }),
+        testing::ValuesIn(std::initializer_list<float>{0.0F, 0.1F, 0.5F})),  //
+    testing::PrintToStringParamName());
+	
+	
+///  Test parameter listing
+INSTANTIATE_TEST_SUITE_P(
+    IndirectMatMul_fp32, IndirectMatMulTest,
+    testing::Combine(
+        testing::ValuesIn(get_fp32_indirect_matmul_methods()),  //
         testing::ValuesIn({
             // clang-format off
             MatMulShape{  1,    1,   1}, //

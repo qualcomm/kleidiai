@@ -237,6 +237,20 @@ set(KLEIDIAI_FILES_SME
     kai/ukernels/matmul/pack/kai_rhs_pack_kxn_x16p2vlx2b_x16_x16_sme.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_f32p2vlx1biasf32_f32_f32_sme.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_x16p2vlx2b_x16_x16_sme.c
+	kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa.c
+	kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/helper_macros_matmul_clamp_qai8_qai8p_qsi8cxp.S
+
+	kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/kai_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa.c
+	kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/helper_macros_imatmul_clamp_qai8_qai8p_qsi8cxp.S
+
+
+    kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/kai_matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_sme1_mopa.c
+    kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/helper_macros_matmul_clamp_f32_f32p_f32p.S
+
+    kai/ukernels/matmul/imatmul_clamp_f32_f32p_f32p/kai_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa.c
+    kai/ukernels/matmul/imatmul_clamp_f32_f32p_f32p/helper_macros_imatmul_clamp_f32_f32p_f32p.S
+
+
 )
 
 set(KLEIDIAI_FILES_SME2
@@ -288,7 +302,7 @@ if(NOT MSVC)
     set_source_files_properties(${KLEIDIAI_FILES_NEON_I8MM}         PROPERTIES COMPILE_OPTIONS -march=armv8.2-a+i8mm${KLEIDIAI_INTERNAL_EXTRA_ARCH})
 
     # Use -fno-tree-vectorize option to disable compiler based vectorization
-    set_source_files_properties(${KLEIDIAI_FILES_SME}          PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
+    set_source_files_properties(${KLEIDIAI_FILES_SME}          PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2+sme${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
     set_source_files_properties(${KLEIDIAI_FILES_SME2}         PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
 else()
     target_sources(kleidiai PRIVATE ${KLEIDIAI_FILES_NEON_DOTPROD_ASM})
@@ -309,6 +323,12 @@ endif()
 target_include_directories(kleidiai PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/>
+
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/ukernels/matmul/imatmul_clamp_f32_f32p_f32p/>
+
 )
 
 target_compile_options(kleidiai
