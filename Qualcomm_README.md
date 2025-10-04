@@ -33,14 +33,14 @@ Ensure the following tools are installed and properly configured:
 ## ⚙️ Build Instructions
 ### Cross-compiling on Linux
 1) Ensure the toolchain file is located at:
- 
-      cmake/toolchains/aarch64-none-linux-gnu.toolchain.cmake
+
+       cmake/toolchains/aarch64-none-linux-gnu.toolchain.cmake
 
 2) Set the environment variable to point to the Clang toolchain path:
-   
-      CMakeset(CROSS_COMPILE_LLVM_PATH /prj/qct/chips/swarch/tools/clang-16.0.0)Show more lines
 
-3) Run the build script:
-     
-     ./run.sh
+       CMakeset(CROSS_COMPILE_LLVM_PATH /prj/qct/chips/swarch/tools/clang-16.0.0)Show more lines
+
+2) Run the build script:
+
+       ./run.sh
 
