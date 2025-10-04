@@ -1,3 +1,16 @@
+#
+# SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+# + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# + SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
+# The Arm GNU Toolchain is available for download from Arm Developer.
+# https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads
+
 
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm)

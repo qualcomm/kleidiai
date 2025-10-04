@@ -1,3 +1,6 @@
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
 
 .macro ld1b_4, reg1, reg2, reg3, reg4, pred, addr
 ld1b \reg1, \pred/Z, [\addr]

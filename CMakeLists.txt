@@ -3,6 +3,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+# + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+# + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# + SPDX-License-Identifier: BSD-3-Clause-Clear
+#
+
 cmake_minimum_required(VERSION 3.16)
 
 project(KleidiAI
@@ -421,6 +426,7 @@ endif()
 target_include_directories(kleidiai PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kai/>
 )
 
 target_compile_options(kleidiai
