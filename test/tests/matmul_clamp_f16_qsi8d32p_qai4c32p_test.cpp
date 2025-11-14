@@ -16,6 +16,8 @@
 
 #include "kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_sme2_dot.h"
+#include "kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme1_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_sme1_dot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1x4_qai4c32p4x4_1x4_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1x8_qai4c32p4x8_1x4_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p4x4_qai4c32p4x4_8x4_neon_dotprod.h"
@@ -76,7 +78,7 @@ struct kai_qsi8d32p_f16_pack_functions {
 static const std::array<
     UkernelMatmulPackVariant<
         kai_matmul_clamp_f16_qsi8d32p_qai4c32p_ukernel, kai_qsi8d32p_f16_pack_functions, kai_qai4c32p_pack_functions>,
-    8>
+    12>
     variants_kai_matmul_clamp_f16_qsi8d32p_qai4c32p = {
         {UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f16_qsi8d32p1x8_qai4c32p4x8_1x4_neon_dotprod, cpu_has_dotprod,
@@ -102,6 +104,20 @@ static const std::array<
              rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon, true),
          UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa, cpu_has_sme2,
+             lhs_quant_pack_qsi8d32pscalef32_f16_neon, rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon,
+             true),
+         UKERNEL_MATMUL_PACK_VARIANT(
+             clamp_f16_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_sme1_dot, cpu_has_sme, lhs_quant_pack_qsi8d32pscalef32_f16_neon,
+             rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon, false),
+         UKERNEL_MATMUL_PACK_VARIANT(
+             clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme1_mopa, cpu_has_sme,
+             lhs_quant_pack_qsi8d32pscalef32_f16_neon, rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon,
+             false),
+         UKERNEL_MATMUL_PACK_VARIANT(
+             clamp_f16_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_sme1_dot, cpu_has_sme, lhs_quant_pack_qsi8d32pscalef32_f16_neon,
+             rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon, true),
+         UKERNEL_MATMUL_PACK_VARIANT(
+             clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme1_mopa, cpu_has_sme,
              lhs_quant_pack_qsi8d32pscalef32_f16_neon, rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon,
              true)}};
 
