@@ -39,6 +39,13 @@ ld1w \reg4, \pred/Z, [\addr, #3, MUL VL]
 addvl \addr, \addr, #4
 .endm
 
+.macro ld1w_4d, reg1, reg2, reg3, reg4, pred, addr
+ld1w \reg1, \pred/Z, [\addr]
+ld1w \reg2, \pred/Z, [\addr, #1, MUL VL]
+ld1w \reg3, \pred/Z, [\addr, #2, MUL VL]
+ld1w \reg4, \pred/Z, [\addr, #3, MUL VL]
+.endm
+
 .macro ld1w_2, reg1, reg2, pred, addr
 ld1w \reg1, \pred/Z, [\addr]
 ld1w \reg2, \pred/Z, [\addr, #1, MUL VL]
