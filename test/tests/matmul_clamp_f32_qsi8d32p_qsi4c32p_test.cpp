@@ -20,7 +20,9 @@
 #include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p4vlx4_1x4vl_sme1_sdot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p4vlx4_1x4vl_sme2_sdot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p4x4_1x4_neon_dotprod.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p4x4_1x4_sve128b_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p8x4_1x8_sve_dotprod.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p16x4_1x16_ssve512b_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x8_qsi4c32p4x8_1x4x32_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x8_qsi4c32p8x8_1x8_sve_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p4x4_qsi4c32p4x4_16x4_neon_dotprod.h"
@@ -87,7 +89,7 @@ struct UKernelVariants {
 
 // clang-format off
 static const int num_non_clamping_kernels = 4;
-static const std::array<UKernelVariants, 13>
+static const std::array<UKernelVariants, 15>
     variants_kai_matmul_clamp_f32_qsi8d32p_qsi4c32p = {
         {
          // NOTE: The following kernels do not support clamping despite their names.
@@ -124,6 +126,9 @@ static const std::array<UKernelVariants, 13>
              clamp_f32_qsi8d32p1x8_qsi4c32p4x8_1x4x32_neon_dotprod, cpu_has_dotprod, lhs_quant_pack_qsi8d32p_f32,
              rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0, false), true},
          {UKERNEL_MATMUL_PACK_VARIANT(
+             clamp_f32_qsi8d32p1x4_qsi4c32p4x4_1x4_sve128b_dotprod, (cpu_check<cpu_has_sve_vl128, cpu_has_dotprod>), lhs_quant_pack_qsi8d32p_f32,
+             rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0, false), true},
+         {UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f32_qsi8d32p1x4_qsi4c32p8x4_1x8_sve_dotprod, (cpu_check<cpu_has_sve_vl256, cpu_has_dotprod>), lhs_quant_pack_qsi8d32p_f32,
              rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0, false), true},
          {UKERNEL_MATMUL_PACK_VARIANT(
@@ -131,6 +136,9 @@ static const std::array<UKernelVariants, 13>
              rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0, false), true},
          {UKERNEL_MATMUL_PACK_VARIANT(
               clamp_f32_qsi8d32p4x8_qsi4c32p8x8_16x8_sve_i8mm, (cpu_check<cpu_has_sve_vl256, cpu_has_i8mm>), lhs_quant_pack_qsi8d32p_f32,
+              rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0, false), true},
+         {UKERNEL_MATMUL_PACK_VARIANT(
+              clamp_f32_qsi8d32p1x4_qsi4c32p16x4_1x16_ssve512b_dotprod, (cpu_check<cpu_has_ssve_vl512, cpu_has_dotprod>), lhs_quant_pack_qsi8d32p_f32,
               rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0, false), true}}};
 // clang-format on
 

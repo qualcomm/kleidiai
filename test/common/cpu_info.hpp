@@ -32,8 +32,14 @@ bool cpu_has_bf16();
 /// Returns a value indicating whether the current CPU supports FEAT_SVE.
 bool cpu_has_sve();
 
+/// Returns a value indicating whether the current CPU supports FEAT_SVE with 128-bit vector lengths.
+bool cpu_has_sve_vl128();
+
 /// Returns a value indicating whether the current CPU supports FEAT_SVE with 256-bit vector lengths.
 bool cpu_has_sve_vl256();
+
+/// Returns a value indicating whether the current CPU supports FEAT_SME with 512-bit vector lengths.
+bool cpu_has_ssve_vl512();
 
 /// Returns a value indicating whether the current CPU supports FEAT_SVE2.
 bool cpu_has_sve2();

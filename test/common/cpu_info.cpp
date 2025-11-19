@@ -267,9 +267,23 @@ bool cpu_has_sve() {
     return CpuInfo::current().has_sve;
 }
 
+bool cpu_has_sve_vl128() {
+    if (CpuInfo::current().has_sve) {
+        return (kai_get_sve_vector_length_u8() == 16);
+    }
+    return false;
+}
+
 bool cpu_has_sve_vl256() {
     if (CpuInfo::current().has_sve) {
         return (kai_get_sve_vector_length_u8() == 32);
+    }
+    return false;
+}
+
+bool cpu_has_ssve_vl512() {
+    if (CpuInfo::current().has_sme) {
+        return (kai_get_sme_vector_length_u8() == 64);
     }
     return false;
 }
