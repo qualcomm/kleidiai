@@ -240,7 +240,7 @@ Buffer indirect_matmul_nt_t_quantized(
 
     for (size_t i_m = 0; i_m < m; ++i_m) {
         for (size_t i_n = 0; i_n < n; ++i_n) {
-            DstData acc = 0;
+            DstData acc{0.0f};
 
             for (size_t i_k_chunk = 0; i_k_chunk < k_chunk_count; ++i_k_chunk) {
                 // Calculate the K chunk pointer. Apply offset if this is not padding
@@ -322,7 +322,7 @@ Buffer matmul_nt_t_quantized(
 
     for (size_t row = 0; row < m; ++row) {
         for (size_t col = 0; col < n; ++col) {
-            DstData acc = 0;
+            DstData acc{0.0f};
 
             for (size_t i = 0; i < k; ++i) {
                 const auto lhs_data_index = row * k + i;
@@ -402,6 +402,24 @@ matmul_nt_t_quantized<int8_t, float, int32_t, Int4, BFloat16<false>, int32_t, fl
     size_t rhs_quant_width,  //
     const void* bias_data, const void* bias_scales, const void* bias_zero_points, size_t bias_quant_width);
 
+template Buffer matmul_nt_t_quantized<Float16, float, int32_t, Int4, Float16, int32_t, float, float, int32_t, float>(
+    size_t m, size_t n, size_t k,  //
+    const void* lhs_data, const void* lhs_scales, const void* lhs_zero_points, size_t lhs_quant_height,
+    size_t lhs_quant_width,  //
+    const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_height,
+    size_t rhs_quant_width,  //
+    const void* bias_data, const void* bias_scales, const void* bias_zero_points, size_t bias_quant_width);
+
+
+
+template Buffer matmul_nt_t_quantized<Float16, float, int32_t, Int4, float, int32_t, float, float, int32_t, float>(
+    size_t m, size_t n, size_t k,  //
+    const void* lhs_data, const void* lhs_scales, const void* lhs_zero_points, size_t lhs_quant_height,
+    size_t lhs_quant_width,  //
+    const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_height,
+    size_t rhs_quant_width,  //
+    const void* bias_data, const void* bias_scales, const void* bias_zero_points, size_t bias_quant_width);
+
 template <
     typename LhsData, typename LhsScale, typename LhsZeroPoint, typename RhsData, typename RhsScale,
     typename RhsZeroPoint, typename BiasData, typename BiasScale, typename BiasZeroPoint, typename DstData>
@@ -426,7 +444,7 @@ Buffer matmul_nt_nt_quantized(
 
     for (size_t row = 0; row < m; ++row) {
         for (size_t col = 0; col < n; ++col) {
-            DstData acc = 0;
+            DstData acc{0.0f};
 
             for (size_t i = 0; i < k; ++i) {
                 const auto lhs_data_index = row * k + i;
@@ -525,7 +543,7 @@ Buffer matmul_clamp_nt_t(
 
     for (size_t y = 0; y < m; ++y) {
         for (size_t x = 0; x < n; ++x) {
-            DstData acc = 0;
+            DstData acc{0.0f};
 
             for (size_t i = 0; i < k; ++i) {
                 const auto lhs_value = read_array<LhsData>(lhs_data, y * k + i);
@@ -611,7 +629,7 @@ Buffer matmul_clamp_nt_nt(
 
     for (size_t y = 0; y < m; ++y) {
         for (size_t x = 0; x < n; ++x) {
-            DstData acc = 0;
+            DstData acc{0.0f};
 
             for (size_t i = 0; i < k; ++i) {
                 const auto lhs_value = read_array<LhsData>(lhs_data, y * k + i);

@@ -207,6 +207,7 @@ set(KLEIDIAI_FILES_NEON_ASM
     kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_asm.S
     kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_cortexa55.c
     kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_cortexa55_asm.S
+    kai/ukernels/matmul/pack/kai_lhs_pack_f16pmrx2_f32_neon.c
     kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_bf16_neon.c
     kai/ukernels/matmul/pack/kai_lhs_quant_pack_qsi8d32p_f32_neon.c
     kai/ukernels/matmul/pack/kai_lhs_quant_pack_qsi8d32p4x8sb_f32_neon.c
@@ -435,6 +436,8 @@ set(KLEIDIAI_FILES_SME2_ASM
     kai/ukernels/matmul/matmul_clamp_f16_f16_f16p/kai_matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_sme2_dot_asm.S
     kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme2_mopa.c
     kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme2_mopa_asm.S
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_qai4c32p/kai_matmul_clamp_f16_f16p1vlx2_qai4c32p4vlx2_1vlx4vl_sme2_mopa.c
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_qai4c32p/kai_matmul_clamp_f16_f16p1vlx2_qai4c32p4vlx2_1vlx4vl_sme2_mopa_asm.S
     kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa.c
     kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa_asm.S
     kai/ukernels/matmul/matmul_clamp_f16_qsi8d32p_qai4c32p/kai_matmul_clamp_f16_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_sme2_dot.c
@@ -467,7 +470,8 @@ set(KLEIDIAI_FILES_SME2
     kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_sme2_sdot.c
     kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_sme2_mopa.c
     kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p4vlx4_1x4vl_sme2_sdot.c
-
+    kai/ukernels/matmul/pack/kai_lhs_pack_bf16p2vlx2_f32_sme.c
+    kai/ukernels/matmul/pack/kai_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme.c
 )
 
 add_library(kleidiai)
@@ -510,7 +514,7 @@ if(NOT MSVC)
     set_source_files_properties(${KLEIDIAI_FILES_SVE_DOTPROD}  PROPERTIES COMPILE_OPTIONS "-march=armv8.2-a+sve+dotprod${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
     set_source_files_properties(${KLEIDIAI_FILES_SVE_I8MM}     PROPERTIES COMPILE_OPTIONS "-march=armv8.2-a+sve+i8mm${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
     set_source_files_properties(${KLEIDIAI_FILES_SME}          PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2+sme${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
-    set_source_files_properties(${KLEIDIAI_FILES_SME2}         PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
+    set_source_files_properties(${KLEIDIAI_FILES_SME2}         PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2+sme2${KLEIDIAI_INTERNAL_EXTRA_ARCH}")
 else()
     target_sources(kleidiai PRIVATE ${KLEIDIAI_FILES_NEON_ASM})
     target_sources(kleidiai PRIVATE ${KLEIDIAI_FILES_NEON_DOTPROD_ASM})
@@ -662,6 +666,7 @@ if(KLEIDIAI_BUILD_TESTS)
             test/tests/matmul_clamp_bf16_qai8dxp_qsi4cxp_test.cpp
             test/tests/matmul_clamp_f16_bf16p_bf16p_test.cpp
             test/tests/matmul_clamp_f32_bf16p_bf16p_test.cpp
+            test/tests/matmul_clamp_f16_f16p_qai4c32p_test.cpp
             test/tests/matmul_clamp_f32_qai8dxp_qsi4cxp_test.cpp
             test/tests/matmul_clamp_f32_qai8dxp_qsi8cxp_test.cpp
             test/tests/matmul_clamp_f32_qsi8d32p_qsi4c32p_test.cpp

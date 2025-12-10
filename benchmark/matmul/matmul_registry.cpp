@@ -46,6 +46,9 @@
 
 #include "kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa.h"
 
+// matmul_clamp_f16_f16p_qai4c32p
+#include "kai/ukernels/matmul/matmul_clamp_f16_f16p_qai4c32p/kai_matmul_clamp_f16_f16p1vlx2_qai4c32p4vlx2_1vlx4vl_sme2_mopa.h"
+
 // matmul_clamp_f32_bf16p_bf16p
 #include "kai/ukernels/matmul/matmul_clamp_f32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p1x4_bf16p12x4b_1x36_neon_dot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p8x4_bf16p12x4b_8x12_neon_mmla.h"
@@ -200,6 +203,12 @@ inline constexpr MatMulBaseInterface kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2v
 inline constexpr MatMulBaseInterface kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa_interface{
     .run_matmul = kai_run_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa,
 };
+
+// matmul_clamp_f16_f16p_qai4c32p
+inline constexpr MatMulBlockwiseDynamicQuantGenericDstInterface
+    kai_matmul_clamp_f16_f16p1vlx2_qai4c32p4vlx2_1vlx4vl_sme2_mopa_interface{
+        .run_matmul = kai_run_matmul_clamp_f16_f16p1vlx2_qai4c32p4vlx2_1vlx4vl_sme2_mopa,
+    };
 
 // matmul_clamp_f32_bf16p_bf16p
 inline constexpr MatMulBaseInterface kai_matmul_clamp_f32_bf16p1x4_bf16p12x4b_1x36_neon_dot_interface{
@@ -612,6 +621,12 @@ inline const std::array matmul_benchmarks{
     RegisterBenchmark(
         "kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa", kai_benchmark_matmul<MatMulBaseInterface>,
         kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa_interface, DataType::FP16, MatMulOp::GEMM,
+        test::cpu_has_sme),
+    // matmul_clamp_f16_f16p_qai4c32p
+    RegisterBenchmark(
+        "kai_matmul_clamp_f16_f16p1vlx2_qai4c32p4vlx2_1vlx4vl_sme2_mopa",
+        kai_benchmark_matmul<MatMulBlockwiseDynamicQuantGenericDstInterface>,
+        kai_matmul_clamp_f16_f16p1vlx2_qai4c32p4vlx2_1vlx4vl_sme2_mopa_interface, DataType::FP16, MatMulOp::GEMM,
         test::cpu_has_sme),
     // matmul_clamp_f32_bf16p_bf16p
     RegisterBenchmark(
