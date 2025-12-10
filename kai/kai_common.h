@@ -125,7 +125,7 @@ extern "C" {
 ///
 /// @return Project version as a string literal.
 inline const char* kai_get_version(void) {
-    return "1.18.0";
+    return "1.17.0";
 }
 
 /// KleidiAI data types
@@ -228,16 +228,6 @@ void kai_commit_za(void);
 /// Gets the SVE vector length for 8-bit elements.
 uint64_t kai_get_sve_vector_length_u8(void);
 
-/// Gets the SVE vector length for 16-bit elements.
-inline static uint64_t kai_get_sve_vector_length_u16(void) {
-    return kai_get_sve_vector_length_u8() / 2;
-}
-
-/// Gets the SVE vector length for 32-bit elements.
-inline static uint64_t kai_get_sve_vector_length_u32(void) {
-    return kai_get_sve_vector_length_u8() / 4;
-}
-
 /// Extends the sign bit of int 4-bit value (stored in int8_t variable)
 /// @param[in] value The 4-bit int value
 ///
@@ -258,6 +248,13 @@ struct kai_rhs_pack_qsi8cx_params {
 /// Parameter struct for RHS matrix packing (Quantized Symmetric Integer 4-bit with per-block quantizatio and s1s0
 /// nibble ordering)
 struct kai_rhs_pack_nxk_qsi4c32p_qsu4c32s1s0_params {
+    int8_t lhs_zero_point;
+    uint8_t rhs_zero_point;
+    enum kai_datatype scale_dt;
+};
+
+/// Parameter struct for RHS matrix packing (KxN variant for int4 qsi4c32p_qsu4c32s1s0)
+struct kai_rhs_pack_kxn_qsi4c32p_qsu4c32s1s0_params {
     int8_t lhs_zero_point;
     uint8_t rhs_zero_point;
     enum kai_datatype scale_dt;

@@ -27,10 +27,8 @@
 #include "test/common/matmul_test_common.hpp"
 #include "test/common/matrix_portion.hpp"
 #include "test/common/sme.hpp"
-#include "test/common/sve.hpp"
 #include "test/reference/clamp.hpp"
 #include "test/reference/fill.hpp"
-#include "test/reference/generators.hpp"
 #include "test/reference/pack.hpp"
 #include "test/reference/transpose.hpp"
 
@@ -56,12 +54,10 @@
 #include "kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_cortexa55.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p2vlx1b_1x8vl_sme_mla.h"
-#include "kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p8x1biasf32_6x8x4_neon_mla.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_f32p16vlx1b_f32_f32_sme.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_f32p8x1biasf32_f32_f32_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_x32p16x1b_x32_x32_neon.h"
-#include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_x32p4vlx1b_x32_x32_sve.h"
 
 // matmul_clamp_f32_f32p_f32p
 #include "kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/kai_matmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme_mopa.h"
@@ -74,7 +70,7 @@ namespace kai::test {
 
 static const auto& get_matmul_methods() {
     // List of supported matrix multiplication methods.
-    static std::array<MatMulMethod, 7> matmul_methods{};
+    static std::array<MatMulMethod, 6> matmul_methods{};
 
     matmul_methods[0].name = "matmul_clamp_f16_f16_f16p16x1biasf16_6x16x8_neon_mla";
     matmul_methods[0].m0 = 6;
@@ -86,9 +82,6 @@ static const auto& get_matmul_methods() {
     matmul_methods[0].packed_rhs_format = DataFormat(
         DataType::FP16, 16, 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP16, DataType::UNKNOWN, 16, 1);
     matmul_methods[0].bias_format = DataFormat(DataType::FP16);
-    matmul_methods[0].fn_generate_lhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
-    matmul_methods[0].fn_generate_rhs = NormalRandomGenerator<Float16>(-1.0, 1.0, 1);
-    matmul_methods[0].fn_generate_bias = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
     matmul_methods[0].fn_is_supported = cpu_has_fp16;
     matmul_methods[0].fn_get_nr = kai_get_nr_matmul_clamp_f16_f16_f16p16x1biasf16_6x16x8_neon_mla;
     matmul_methods[0].fn_get_kr = kai_get_kr_matmul_clamp_f16_f16_f16p16x1biasf16_6x16x8_neon_mla;
@@ -124,9 +117,6 @@ static const auto& get_matmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     matmul_methods[1].bias_format = DataFormat(DataType::FP16);
-    matmul_methods[1].fn_generate_lhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
-    matmul_methods[1].fn_generate_rhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 1);
-    matmul_methods[1].fn_generate_bias = SequentialGenerator<Float16>(-1.0, 1.0);
     matmul_methods[1].fn_is_supported = cpu_has_sme2;
     matmul_methods[1].fn_get_mr = kai_get_mr_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme2_mopa;
     matmul_methods[1].fn_get_nr = kai_get_nr_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme2_mopa;
@@ -168,9 +158,6 @@ static const auto& get_matmul_methods() {
     matmul_methods[2].packed_rhs_format =
         DataFormat(DataType::FP32, 8, 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP32, DataType::UNKNOWN, 8, 1);
     matmul_methods[2].bias_format = DataFormat(DataType::FP32);
-    matmul_methods[2].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    matmul_methods[2].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    matmul_methods[2].fn_generate_bias = UniformRandomGenerator<float>(-1.0, 1.0, 3);
     matmul_methods[2].fn_is_supported = cpu_has_advsimd;
     matmul_methods[2].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32_f32p8x1biasf32_6x8x4_neon_mla;
     matmul_methods[2].fn_get_kr = kai_get_kr_matmul_clamp_f32_f32_f32p8x1biasf32_6x8x4_neon_mla;
@@ -202,9 +189,6 @@ static const auto& get_matmul_methods() {
         DataType::FP32, 2 * get_sme_vector_length<float>(), 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP32,
         DataType::UNKNOWN, 2 * get_sme_vector_length<float>(), 1);
     matmul_methods[3].bias_format = DataFormat(DataType::FP32);
-    matmul_methods[3].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    matmul_methods[3].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    matmul_methods[3].fn_generate_bias = UniformRandomGenerator<float>(-1.0, 1.0, 3);
     matmul_methods[3].fn_is_supported = cpu_has_sme2;
     matmul_methods[3].fn_get_mr = kai_get_mr_matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_sme2_mopa;
     matmul_methods[3].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_sme2_mopa;
@@ -249,9 +233,6 @@ static const auto& get_matmul_methods() {
         DataType::FP32, 2 * get_sme_vector_length<float>(), 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP32,
         DataType::UNKNOWN, 2 * get_sme_vector_length<float>(), 1);
     matmul_methods[4].bias_format = DataFormat(DataType::FP32);
-    matmul_methods[4].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    matmul_methods[4].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    matmul_methods[4].fn_generate_bias = UniformRandomGenerator<float>(-1.0, 1.0, 3);
     matmul_methods[4].fn_is_supported = cpu_has_sme;
     matmul_methods[4].fn_get_mr = kai_get_mr_matmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme_mopa;
     matmul_methods[4].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme_mopa;
@@ -300,9 +281,6 @@ static const auto& get_matmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     matmul_methods[5].bias_format = DataFormat(DataType::FP16);
-    matmul_methods[5].fn_generate_lhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
-    matmul_methods[5].fn_generate_rhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 1);
-    matmul_methods[5].fn_generate_bias = UniformRandomGenerator<Float16>(-1.0, 1.0, 3);
     matmul_methods[5].fn_is_supported = cpu_has_sme;
     matmul_methods[5].fn_get_mr = kai_get_mr_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa;
     matmul_methods[5].fn_get_nr = kai_get_nr_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa;
@@ -334,39 +312,6 @@ static const auto& get_matmul_methods() {
     matmul_methods[5].fn_get_dst_size = kai_get_dst_size_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa;
     matmul_methods[5].fn_matmul_f16_f16p_f16p = kai_run_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa;
 
-    matmul_methods[6].name = "matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla";
-    matmul_methods[6].m0 = 1;
-    matmul_methods[6].n0 = 4 * get_sve_vector_length<float>();
-    matmul_methods[6].dst_format = DataFormat(DataType::FP32);
-    matmul_methods[6].lhs_format = DataFormat(DataType::FP32);
-    matmul_methods[6].packed_lhs_format = DataFormat(DataType::UNKNOWN);
-    matmul_methods[6].rhs_format = DataFormat(DataType::FP32);
-    matmul_methods[6].packed_rhs_format = DataFormat(
-        DataType::FP32, 4 * get_sve_vector_length<float>(), 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP32,
-        DataType::UNKNOWN, 4 * get_sve_vector_length<float>(), 1);
-    matmul_methods[6].bias_format = DataFormat(DataType::FP32);
-    matmul_methods[6].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    matmul_methods[6].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    matmul_methods[6].fn_generate_bias = UniformRandomGenerator<float>(-1.0, 1.0, 3);
-    matmul_methods[6].fn_is_supported = cpu_has_sve;
-    matmul_methods[6].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_get_kr = kai_get_kr_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_get_sr = kai_get_sr_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_get_main_m_step = kai_get_m_step_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_get_pack_rhs_n_step = kai_get_n_step_rhs_pack_kxn_x32p4vlx1b_x32_x32_sve;
-    matmul_methods[6].fn_get_main_n_step = kai_get_n_step_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_get_lhs_offset = kai_get_lhs_offset_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_get_rhs_offset = kai_get_rhs_offset_rhs_pack_kxn_x32p4vlx1b_x32_x32_sve;
-    matmul_methods[6].fn_get_packed_rhs_size = kai_get_rhs_packed_size_rhs_pack_kxn_x32p4vlx1b_x32_x32_sve;
-    matmul_methods[6].fn_get_pack_rhs_packed_rhs_offset = kai_get_rhs_packed_offset_rhs_pack_kxn_x32p4vlx1b_x32_x32_sve;
-    matmul_methods[6].fn_get_main_packed_rhs_offset =
-        kai_get_rhs_packed_offset_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_pack_rhs = kai_run_rhs_pack_kxn_x32p4vlx1b_x32_x32_sve;
-    matmul_methods[6].fn_get_bias_offset = kai_get_bias_offset_rhs_pack_kxn_x32p4vlx1b_x32_x32_sve;
-    matmul_methods[6].fn_get_dst_offset = kai_get_dst_offset_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_get_dst_size = kai_get_dst_size_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-    matmul_methods[6].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
-
     return matmul_methods;
 }
 
@@ -389,9 +334,6 @@ static const auto& get_vecmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     vecmul_methods[0].bias_format = DataFormat(DataType::FP16);
-    vecmul_methods[0].fn_generate_lhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
-    vecmul_methods[0].fn_generate_rhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 1);
-    vecmul_methods[0].fn_generate_bias = UniformRandomGenerator<Float16>(-1.0, 1.0, 3);
     vecmul_methods[0].fn_is_supported = cpu_has_sme2;
     vecmul_methods[0].fn_get_nr = kai_get_nr_matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_sme2_dot;
     vecmul_methods[0].fn_get_kr = kai_get_kr_matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_sme2_dot;
@@ -426,9 +368,6 @@ static const auto& get_vecmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     vecmul_methods[1].bias_format = DataFormat(DataType::FP16);
-    vecmul_methods[1].fn_generate_lhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
-    vecmul_methods[1].fn_generate_rhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 1);
-    vecmul_methods[1].fn_generate_bias = UniformRandomGenerator<Float16>(-1.0, 1.0, 3);
     vecmul_methods[1].fn_is_supported = cpu_has_sme;
     vecmul_methods[1].fn_get_nr = kai_get_nr_matmul_clamp_f16_f16_f16p2vlx2b_1x8vl_sme_mla;
     vecmul_methods[1].fn_get_kr = kai_get_kr_matmul_clamp_f16_f16_f16p2vlx2b_1x8vl_sme_mla;
@@ -463,9 +402,6 @@ static const auto& get_vecmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 1);  // Sub-block
     vecmul_methods[2].bias_format = DataFormat(DataType::FP32);
-    vecmul_methods[2].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    vecmul_methods[2].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    vecmul_methods[2].fn_generate_bias = UniformRandomGenerator<float>(-1.0, 1.0, 3);
     vecmul_methods[2].fn_is_supported = cpu_has_sme;
     vecmul_methods[2].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32_f32p2vlx1b_1x8vl_sme_mla;
     vecmul_methods[2].fn_get_kr = kai_get_kr_matmul_clamp_f32_f32_f32p2vlx1b_1x8vl_sme_mla;
@@ -501,9 +437,6 @@ static const auto& get_vecmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 1);  // Sub-block
     vecmul_methods[3].bias_format = DataFormat(DataType::FP32);
-    vecmul_methods[3].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    vecmul_methods[3].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    vecmul_methods[3].fn_generate_bias = UniformRandomGenerator<float>(-1.0, 1.0, 3);
     vecmul_methods[3].fn_is_supported = cpu_has_sme2;
     vecmul_methods[3].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla;
     vecmul_methods[3].fn_get_kr = kai_get_kr_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla;
@@ -539,9 +472,6 @@ static const auto& get_vecmul_methods() {
         DataType::UNKNOWN,                        // Scaling type
         16 * get_sme_vector_length<float>(), 1);  // Sub-block
     vecmul_methods[4].bias_format = DataFormat(DataType::FP32);
-    vecmul_methods[4].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    vecmul_methods[4].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    vecmul_methods[4].fn_generate_bias = UniformRandomGenerator<float>(-1.0, 1.0, 3);
     vecmul_methods[4].fn_is_supported = cpu_has_sme2;
     vecmul_methods[4].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla;
     vecmul_methods[4].fn_get_kr = kai_get_kr_matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla;
@@ -579,9 +509,6 @@ static const auto& get_nullbias_matmul_methods() {
     nullbias_matmul_methods[0].packed_rhs_format = DataFormat(
         DataType::FP32, 16, 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP32, DataType::UNKNOWN, 16, 1);
     nullbias_matmul_methods[0].bias_format = DataFormat(DataType::FP32);
-    nullbias_matmul_methods[0].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    nullbias_matmul_methods[0].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    nullbias_matmul_methods[0].fn_generate_bias = ConstantGenerator<float>(0.0);
     nullbias_matmul_methods[0].fn_is_supported = cpu_has_advsimd;
     nullbias_matmul_methods[0].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla;
     nullbias_matmul_methods[0].fn_get_kr = kai_get_kr_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla;
@@ -612,9 +539,6 @@ static const auto& get_nullbias_matmul_methods() {
     nullbias_matmul_methods[1].packed_rhs_format = DataFormat(
         DataType::FP32, 16, 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP32, DataType::UNKNOWN, 16, 1);
     nullbias_matmul_methods[1].bias_format = DataFormat(DataType::FP32);
-    nullbias_matmul_methods[1].fn_generate_lhs = UniformRandomGenerator<float>(-1.0, 1.0, 0);
-    nullbias_matmul_methods[1].fn_generate_rhs = UniformRandomGenerator<float>(-1.0, 1.0, 1);
-    nullbias_matmul_methods[1].fn_generate_bias = ConstantGenerator<float>(0.0);
     nullbias_matmul_methods[1].fn_is_supported = cpu_has_advsimd;
     nullbias_matmul_methods[1].fn_get_nr = kai_get_nr_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_cortexa55;
     nullbias_matmul_methods[1].fn_get_kr = kai_get_kr_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_cortexa55;
@@ -650,9 +574,6 @@ static const auto& get_nullbias_matmul_methods() {
     nullbias_matmul_methods[2].packed_rhs_format = DataFormat(
         DataType::FP16, 32, 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP16, DataType::UNKNOWN, 32, 1);
     nullbias_matmul_methods[2].bias_format = DataFormat(DataType::FP16);
-    nullbias_matmul_methods[2].fn_generate_lhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
-    nullbias_matmul_methods[2].fn_generate_rhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 1);
-    nullbias_matmul_methods[2].fn_generate_bias = ConstantGenerator<Float16>(0.0);
     nullbias_matmul_methods[2].fn_is_supported = cpu_has_fp16;
     nullbias_matmul_methods[2].fn_get_nr = kai_get_nr_matmul_clamp_f16_f16_f16p32x1b_6x32_neon_mla;
     nullbias_matmul_methods[2].fn_get_kr = kai_get_kr_matmul_clamp_f16_f16_f16p32x1b_6x32_neon_mla;
@@ -683,9 +604,6 @@ static const auto& get_nullbias_matmul_methods() {
     nullbias_matmul_methods[3].packed_rhs_format = DataFormat(
         DataType::FP16, 32, 0, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP16, DataType::UNKNOWN, 32, 1);
     nullbias_matmul_methods[3].bias_format = DataFormat(DataType::FP16);
-    nullbias_matmul_methods[3].fn_generate_lhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 0);
-    nullbias_matmul_methods[3].fn_generate_rhs = UniformRandomGenerator<Float16>(-1.0, 1.0, 1);
-    nullbias_matmul_methods[3].fn_generate_bias = ConstantGenerator<Float16>(0.0);
     nullbias_matmul_methods[3].fn_is_supported = cpu_has_fp16;
     nullbias_matmul_methods[3].fn_get_nr = kai_get_nr_matmul_clamp_f16_f16_f16p32x1b_6x32_neon_mla_cortexa55;
     nullbias_matmul_methods[3].fn_get_kr = kai_get_kr_matmul_clamp_f16_f16_f16p32x1b_6x32_neon_mla_cortexa55;
@@ -751,10 +669,11 @@ protected:
         const auto has_lhs_pack = method.packed_lhs_format.data_type() != DataType::UNKNOWN;
         const auto has_rhs_pack = method.packed_rhs_format.data_type() != DataType::UNKNOWN;
         const auto has_bias = method.bias_format.data_type() != DataType::UNKNOWN;
+        const auto null_bias_mode = bias_mode == BiasMode::INTERNAL;
 
         const auto lhs_h = info.m;
         const auto lhs_w = info.k;
-        auto lhs = method.fn_generate_lhs(lhs_h, lhs_w);
+        auto lhs = fill_matrix_random(lhs_h, lhs_w, method.lhs_format, 0);
         Buffer ref_packed_lhs;
 
         if (has_lhs_pack) {
@@ -764,7 +683,7 @@ protected:
 
         const auto rhs_h = info.k;
         const auto rhs_w = info.n;
-        auto rhs = method.fn_generate_rhs(rhs_h, rhs_w);
+        auto rhs = fill_matrix_random(rhs_h, rhs_w, method.rhs_format, 1);
 
         KAI_ASSUME_ALWAYS(method.rhs_format.is_raw());
         auto rhs_t = transpose(rhs.data(), method.rhs_format.data_type(), rhs_h, rhs_w);
@@ -772,16 +691,22 @@ protected:
         Buffer rhs_scales;
         if (data_type_is_quantized(method.rhs_format.data_type()) &&
             method.rhs_format.pack_format() == DataFormat::PackFormat::NONE) {
-            const auto rhs_scales_gen = UniformRandomGenerator<float>(0.0, 1.0, 2);
-            rhs_scales = rhs_scales_gen(rhs_h, 1);
+            rhs_scales = fill_matrix_random(rhs_h, 1, DataFormat(DataType::FP32), 2);
         }
 
         const auto bias_h = 1;
         const auto bias_w = info.n;
         Buffer bias;
 
-        if (has_bias) {
-            bias = method.fn_generate_bias(bias_h, bias_w);
+        if (null_bias_mode) {
+            if (method.rhs_format == DataType::FP16) {
+                bias = fill_matrix_raw<Float16>(
+                    bias_h, bias_w, [&](size_t, size_t) { return static_cast<Float16>(0.0F); });
+            } else {
+                bias = fill_matrix_raw<float>(bias_h, bias_w, [&](size_t, size_t) { return static_cast<float>(0.0F); });
+            }
+        } else if (has_bias) {
+            bias = fill_matrix_random(bias_h, bias_w, method.bias_format, 3);
         }
 
         Buffer packed_rhs;
