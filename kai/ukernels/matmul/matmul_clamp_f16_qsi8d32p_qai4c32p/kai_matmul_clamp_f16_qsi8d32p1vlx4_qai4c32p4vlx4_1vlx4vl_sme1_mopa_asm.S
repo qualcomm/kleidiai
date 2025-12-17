@@ -109,11 +109,11 @@ KAI_ASM_LABEL(label_4)              // BL Loop
     b.gt label_4
     mov w12, #0
     mov x25, x24
+    ld1w z20.s, p0/Z, [x26]
+    ld1w z21.s, p0/Z, [x26, #1, MUL VL]
     ld1b {z17.b}, p4/z, [x3]        // lhs sum
     ld1b {z16.b}, p4/z, [x3, #1, mul vl]  // lhs scale
     addvl x3, x3, #2
-    ld1w z20.s, p0/Z, [x26]
-    ld1w z21.s, p0/Z, [x26, #1, MUL VL]
     ld1w z22.s, p0/Z, [x26, #2, MUL VL]
     ld1w z23.s, p0/Z, [x26, #3, MUL VL]
     addvl x26, x26, #4
@@ -128,14 +128,14 @@ KAI_ASM_LABEL(label_5)
     clastb z19.s, p3, z19.s, z16.s
     clastb z18.s, p3, z18.s, z17.s
     mova z28.b, p0/M, za0h.b[w12, 0]
-    mova z29.b, p0/M, za0h.b[w12, 1]
-    mova z30.b, p0/M, za0h.b[w12, 2]
-    mova z31.b, p0/M, za0h.b[w12, 3]
-    add w12, w12, #4
     fmul z4.s, z0.s, z19.s
+    mova z29.b, p0/M, za0h.b[w12, 1]
     fmul z5.s, z1.s, z19.s
+    mova z30.b, p0/M, za0h.b[w12, 2]
     fmul z6.s, z2.s, z19.s
+    mova z31.b, p0/M, za0h.b[w12, 3]
     fmul z7.s, z3.s, z19.s
+    add w12, w12, #4
     scvtf z28.s, p0/M, z28.s
     scvtf z29.s, p0/M, z29.s
     scvtf z30.s, p0/M, z30.s
@@ -163,22 +163,22 @@ KAI_ASM_LABEL(label_6)
     zip2 z27.h, z13.h, z11.h
     fcvt z24.s, p0/m, z24.h
     fcvt z25.s, p0/m, z25.h
-    fcvt z26.s, p0/m, z26.h
-    fcvt z27.s, p0/m, z27.h
     fmla z24.s, p0/m, z20.s, z18.s
     fmla z25.s, p0/m, z21.s, z18.s
-    fmla z26.s, p0/m, z22.s, z18.s
-    fmla z27.s, p0/m, z23.s, z18.s
+    fcvt z26.s, p0/m, z26.h
+    fcvt z27.s, p0/m, z27.h
     fmla z24.s, p0/m,  z4.s, z28.s
     fmla z25.s, p0/m,  z5.s, z29.s
+    fmla z26.s, p0/m, z22.s, z18.s
+    fmla z27.s, p0/m, z23.s, z18.s
     fmla z26.s, p0/m,  z6.s, z30.s
     fmla z27.s, p0/m,  z7.s, z31.s
 KAI_ASM_LABEL(label_7)
     fcvt  z24.h, p0/M, z24.s
     fcvt  z28.h, p0/M, z25.s
-    uzp1  z28.h, z24.h, z28.h
     fcvt  z26.h, p0/M, z26.s
     fcvt  z29.h, p0/M, z27.s
+    uzp1  z28.h, z24.h, z28.h
     uzp1  z29.h, z26.h, z29.h   
     st1h z28.h, p2, [x25]
     st1h z29.h, p5, [x25, #1, MUL VL]
@@ -220,9 +220,9 @@ KAI_ASM_LABEL(label_10)
     FMAX z27.s, p0/M, z27.s, z9.s
     fcvt  z24.h, p0/M, z24.s
     fcvt  z28.h, p0/M, z25.s
-    uzp1  z28.h, z24.h, z28.h
     fcvt  z26.h, p0/M, z26.s
     fcvt  z29.h, p0/M, z27.s
+    uzp1  z28.h, z24.h, z28.h
     uzp1  z29.h, z26.h, z29.h
     st1h z28.h, p2, [x24]
     st1h z29.h, p5, [x24, #1, MUL VL]
