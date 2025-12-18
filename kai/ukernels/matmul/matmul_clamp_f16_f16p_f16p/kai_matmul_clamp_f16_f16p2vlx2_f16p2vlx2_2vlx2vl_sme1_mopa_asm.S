@@ -9,7 +9,6 @@
 //
 
 
-.include "helper.S"
 
 
 #if defined(_MSC_VER)
@@ -96,10 +95,26 @@ KAI_ASM_LABEL(label_2)  // N loop
     and x20, x13, #0x3
     cbz x21, label_6
     subs x21, x21, #0x1
-    ld1h_4  z16.h,z17.h,z18.h,z19.h , p1,x26
-    ld1h_4  z28.h,z29.h,z30.h,z31.h , p1,x26
-    ld1h_4  z0.h, z1.h,z2.h,  z3.h  , p1,x27
-    ld1h_4  z8.h ,z9.h,z10.h ,z11.h , p1,x27
+    ld1h z16.h, p1/Z, [x26]
+    ld1h z17.h, p1/Z, [x26, #1, MUL VL]
+    ld1h z18.h, p1/Z, [x26, #2, MUL VL]
+    ld1h z19.h, p1/Z, [x26, #3, MUL VL]
+    addvl x26, x26, #4
+    ld1h z28.h, p1/Z, [x26]
+    ld1h z29.h, p1/Z, [x26, #1, MUL VL]
+    ld1h z30.h, p1/Z, [x26, #2, MUL VL]
+    ld1h z31.h, p1/Z, [x26, #3, MUL VL]
+    addvl x26, x26, #4
+    ld1h z0.h, p1/Z, [x27]
+    ld1h z1.h, p1/Z, [x27, #1, MUL VL]
+    ld1h z2.h, p1/Z, [x27, #2, MUL VL]
+    ld1h z3.h, p1/Z, [x27, #3, MUL VL]
+    addvl x27, x27, #4
+    ld1h z8.h, p1/Z, [x27]
+    ld1h z9.h, p1/Z, [x27, #1, MUL VL]
+    ld1h z10.h, p1/Z, [x27, #2, MUL VL]
+    ld1h z11.h, p1/Z, [x27, #3, MUL VL]
+    addvl x27, x27, #4
     ble label_5
 KAI_ASM_LABEL(label_4)  // K loop
     fmopa za0.s, p1/M, p1/M, z16.h, z0.h
@@ -111,9 +126,17 @@ KAI_ASM_LABEL(label_4)  // K loop
     fmopa za1.s, p1/M, p1/M, z18.h, z3.h
     fmopa za2.s, p1/M, p1/M, z19.h, z2.h
     fmopa za3.s, p1/M, p1/M, z19.h, z3.h
-    ld1h_4  z16.h,z17.h,z18.h,z19.h , p1,x26
+    ld1h z16.h, p1/Z, [x26]
+    ld1h z17.h, p1/Z, [x26, #1, MUL VL]
+    ld1h z18.h, p1/Z, [x26, #2, MUL VL]
+    ld1h z19.h, p1/Z, [x26, #3, MUL VL]
+    addvl x26, x26, #4
     fmopa za0.s, p1/M, p1/M, z28.h, z8.h
-    ld1h_4  z0.h, z1.h,z2.h,  z3.h  , p1,x27
+    ld1h z0.h, p1/Z, [x27]
+    ld1h z1.h, p1/Z, [x27, #1, MUL VL]
+    ld1h z2.h, p1/Z, [x27, #2, MUL VL]
+    ld1h z3.h, p1/Z, [x27, #3, MUL VL]
+    addvl x27, x27, #4
     fmopa za1.s, p1/M, p1/M, z28.h, z9.h
     fmopa za2.s, p1/M, p1/M, z29.h, z8.h
     fmopa za3.s, p1/M, p1/M, z29.h, z9.h
@@ -121,8 +144,16 @@ KAI_ASM_LABEL(label_4)  // K loop
     fmopa za1.s, p1/M, p1/M, z30.h, z11.h
     fmopa za2.s, p1/M, p1/M, z31.h, z10.h
     fmopa za3.s, p1/M, p1/M, z31.h, z11.h
-    ld1h_4  z28.h,z29.h,z30.h,z31.h , p1,x26
-    ld1h_4  z8.h ,z9.h,z10.h ,z11.h , p1,x27
+    ld1h z28.h, p1/Z, [x26]
+    ld1h z29.h, p1/Z, [x26, #1, MUL VL]
+    ld1h z30.h, p1/Z, [x26, #2, MUL VL]
+    ld1h z31.h, p1/Z, [x26, #3, MUL VL]
+    addvl x26, x26, #4
+    ld1h z8.h, p1/Z, [x27]
+    ld1h z9.h, p1/Z, [x27, #1, MUL VL]
+    ld1h z10.h, p1/Z, [x27, #2, MUL VL]
+    ld1h z11.h, p1/Z, [x27, #3, MUL VL]
+    addvl x27, x27, #4
     bgt label_4
 KAI_ASM_LABEL(label_5)  // K loop tail
     fmopa za0.s, p1/M, p1/M, z16.h, z0.h
@@ -144,8 +175,12 @@ KAI_ASM_LABEL(label_5)  // K loop tail
 KAI_ASM_LABEL(label_6)  // K oddments
     cbz x20, label_8
 KAI_ASM_LABEL(label_7)  // K oddments: Loop
-    ld1h_2  z5.h, z13.h , p1,x26
-    ld1h_2  z14.h,z15.h , p1,x27
+    ld1h z5.h, p1/Z, [x26]
+    ld1h z13.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ld1h z14.h, p1/Z, [x27]
+    ld1h z15.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
     subs x20, x20, #0x1
     fmopa za0.s, p1/M, p1/M, z5.h, z14.h
     fmopa za1.s, p1/M, p1/M, z5.h, z15.h
@@ -173,10 +208,14 @@ KAI_ASM_LABEL(label_10)  // Store to output array: Accumulator loop
     add x12, x12, #0x4
     cmp x12, x23, LSL #1
     add x21, x21, #0x1
-    fcvt_2S1H  p1, z14.h, z4.h, z14.s, z15.s
+    fcvt z14.h, p1/M, z14.s
+    fcvt z4.h, p1/M, z15.s
+    uzp1 z4.h, z14.h, z4.h
     csel x12, x12, x20, LT
     cmp x21, x24
-    clamp_float_1 z4.h, z17.h, z16.h, p1 
+    FMAX z4.h, p1/M, z4.h, z17.h
+    FMIN z4.h, p1/M, z4.h, z16.h
+
     st1h { z4.h }, p0, [x25]
     add x25, x25, x22
     blt label_10

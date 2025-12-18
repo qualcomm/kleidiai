@@ -1213,7 +1213,7 @@ TEST_P(MatMulTest, Output) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul, MatMulTest,
+    MatMul_fp32_fp16, MatMulTest,
     testing::Combine(
         testing::ValuesIn(get_matmul_methods()),
         testing::Values(
@@ -1232,7 +1232,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    VecMul, MatMulTest,
+    VecMul_fp32_fp16, MatMulTest,
     testing::Combine(
         testing::ValuesIn(get_vecmul_methods()),
         testing::Values(

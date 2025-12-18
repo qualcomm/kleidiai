@@ -9,7 +9,6 @@
 //
 
 
-.include "helper.S"
 
 
 #if defined(_MSC_VER)
@@ -119,12 +118,16 @@ KAI_ASM_LABEL(label_4)  // Column loop
     beq label_10
     cntw x20, ALL, MUL #2
     add x22, x14, x12
-    ld1h_2d  z4.s,z5.s , p1, x14
+    ld1h z4.s, p1/Z, [x14]
+    ld1h z5.s, p1/Z, [x14, #1, MUL VL]
     cmp x5, x20
     mov x11, x7
     csel x22, x22, x14, GT
     mov x21, x5
-    fcvt_H2S  z4.s,z5.s,z6.s,z7.s,z4.h,z5.h,z6.h,z7.h ,p1 
+    fcvt z4.s, p1/M, z4.h
+    fcvt z5.s, p1/M, z5.h
+    fcvt z6.s, p1/M, z6.h
+    fcvt z7.s, p1/M, z7.h
     mov x10, x16
     lsl x20, x7, #0x1
     mov x4,XZR
@@ -142,70 +145,182 @@ KAI_ASM_LABEL(label_5)  // Width 1: Multiply loop: Main loop head
     sub x11, x11, #0x8
     add x10, x10, #0x10
     cmp x11, #0x8
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[0], z3.h[1]
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[2], z3.h[3]
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[4], z3.h[5]
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[6], z3.h[7]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[0]
+    fmlalb z5.s, z13.h, z3.h[0]
+    fmlalb z6.s, z14.h, z3.h[0]
+    fmlalb z7.s, z15.h, z3.h[0]
+    fmlalt z4.s, z12.h, z3.h[1]
+    fmlalt z5.s, z13.h, z3.h[1]
+    fmlalt z6.s, z14.h, z3.h[1]
+    fmlalt z7.s, z15.h, z3.h[1]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[2]
+    fmlalb z5.s, z13.h, z3.h[2]
+    fmlalb z6.s, z14.h, z3.h[2]
+    fmlalb z7.s, z15.h, z3.h[2]
+    fmlalt z4.s, z12.h, z3.h[3]
+    fmlalt z5.s, z13.h, z3.h[3]
+    fmlalt z6.s, z14.h, z3.h[3]
+    fmlalt z7.s, z15.h, z3.h[3]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[4]
+    fmlalb z5.s, z13.h, z3.h[4]
+    fmlalb z6.s, z14.h, z3.h[4]
+    fmlalb z7.s, z15.h, z3.h[4]
+    fmlalt z4.s, z12.h, z3.h[5]
+    fmlalt z5.s, z13.h, z3.h[5]
+    fmlalt z6.s, z14.h, z3.h[5]
+    fmlalt z7.s, z15.h, z3.h[5]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[6]
+    fmlalb z5.s, z13.h, z3.h[6]
+    fmlalb z6.s, z14.h, z3.h[6]
+    fmlalb z7.s, z15.h, z3.h[6]
+    fmlalt z4.s, z12.h, z3.h[7]
+    fmlalt z5.s, z13.h, z3.h[7]
+    fmlalt z6.s, z14.h, z3.h[7]
+    fmlalt z7.s, z15.h, z3.h[7]
     bgt label_5
 KAI_ASM_LABEL(label_6)  // Width 1: Multiply loop: Single iteration only
     whilelt p0.h, XZR, x11
     subs x11, x11, #0x2
     ld1rqh { z3.h }, p0/Z, [x10]
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[0], z3.h[1]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[0]
+    fmlalb z5.s, z13.h, z3.h[0]
+    fmlalb z6.s, z14.h, z3.h[0]
+    fmlalb z7.s, z15.h, z3.h[0]
+    fmlalt z4.s, z12.h, z3.h[1]
+    fmlalt z5.s, z13.h, z3.h[1]
+    fmlalt z6.s, z14.h, z3.h[1]
+    fmlalt z7.s, z15.h, z3.h[1]
     ble label_7
     subs x11, x11, #0x2
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[2], z3.h[3]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[2]
+    fmlalb z5.s, z13.h, z3.h[2]
+    fmlalb z6.s, z14.h, z3.h[2]
+    fmlalb z7.s, z15.h, z3.h[2]
+    fmlalt z4.s, z12.h, z3.h[3]
+    fmlalt z5.s, z13.h, z3.h[3]
+    fmlalt z6.s, z14.h, z3.h[3]
+    fmlalt z7.s, z15.h, z3.h[3]
     ble label_7
     subs x11, x11, #0x2
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[4], z3.h[5]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[4]
+    fmlalb z5.s, z13.h, z3.h[4]
+    fmlalb z6.s, z14.h, z3.h[4]
+    fmlalb z7.s, z15.h, z3.h[4]
+    fmlalt z4.s, z12.h, z3.h[5]
+    fmlalt z5.s, z13.h, z3.h[5]
+    fmlalt z6.s, z14.h, z3.h[5]
+    fmlalt z7.s, z15.h, z3.h[5]
     ble label_7
-    ldnt1h_2  z12.h,z13.h , p1, x14
-    ldnt1h_2  z14.h,z15.h , p1, x22
-    fdot_4 z4.s,z5.s,z6.s,z7.s , z12.h,z13.h,z14.h,z15.h , z3.h[6], z3.h[7]
+    ldnt1h z12.h, p1/Z, [x14]
+    ldnt1h z13.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z14.h, p1/Z, [x22]
+    ldnt1h z15.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    fmlalb z4.s, z12.h, z3.h[6]
+    fmlalb z5.s, z13.h, z3.h[6]
+    fmlalb z6.s, z14.h, z3.h[6]
+    fmlalb z7.s, z15.h, z3.h[6]
+    fmlalt z4.s, z12.h, z3.h[7]
+    fmlalt z5.s, z13.h, z3.h[7]
+    fmlalt z6.s, z14.h, z3.h[7]
+    fmlalt z7.s, z15.h, z3.h[7]
 KAI_ASM_LABEL(label_7)  // Width 1: Multiply loop: multiply skip
     tbz x15, #1, label_8
     add x21, x0, #0x2
     add x20, x0, #0x0
     ld1rh { z19.h }, p1/Z, [x21]
     ld1rh { z22.h }, p1/Z, [x20]
-    fcvt_2S1H p1, z4.h, z20.h,  z4.s,z5.s 
-    fcvt_2S1H p1, z6.h, z21.h,  z6.s,z7.s 
-    clamp_float_2 z20.h,z21.h , z19.h, z22.h, p1
-    st1h_2p  z20.h,z21.h , p2,p3, x13
+    fcvt z4.h, p1/M, z4.s
+    fcvt z20.h, p1/M, z5.s
+    uzp1 z20.h, z4.h, z20.h
+    fcvt z6.h, p1/M, z6.s
+    fcvt z21.h, p1/M, z7.s
+    uzp1 z21.h, z6.h, z21.h
+    FMIN z20.h, p1/M, z20.h, z22.h
+    FMAX z20.h, p1/M, z20.h, z19.h
+    FMIN z21.h, p1/M, z21.h, z22.h
+    FMAX z21.h, p1/M, z21.h, z19.h
+
+    st1h z20.h, p2, [x13]
+    st1h z21.h, p3, [x13, #1, MUL VL]
     b label_9
 KAI_ASM_LABEL(label_8)  // Width 1: No activation
-    fcvt_2S1H p1, z5.h, z4.h,  z4.s,z5.s 
-    fcvt_2S1H p1, z6.h, z5.h,  z6.s,z7.s 
-    st1h_2p  z4.h,z5.h , p2,p3, x13
+    fcvt z5.h, p1/M, z4.s
+    fcvt z4.h, p1/M, z5.s
+    uzp1 z4.h, z5.h, z4.h
+    fcvt z6.h, p1/M, z6.s
+    fcvt z5.h, p1/M, z7.s
+    uzp1 z5.h, z6.h, z5.h
+    st1h z4.h, p2, [x13]
+    st1h z5.h, p3, [x13, #1, MUL VL]
 KAI_ASM_LABEL(label_9)  // Width 1: Output done
     b label_28
 KAI_ASM_LABEL(label_10)  // Width 2
     add x24, x14, x12, LSL #1
     cntw x20, ALL, MUL #6
-    ld1h_2d  z8.s ,z9.s, p1, x14
+    ld1h z8.s, p1/Z, [x14]
+    ld1h z9.s, p1/Z, [x14, #1, MUL VL]
     add x23, x24, x12
     cmp x5, x20
     add x22, x14, x12
     csel x23, x23, x14, GT
-    ld1h_2d  z12.s,z13.s , p1, x24
-    ld1h_2d  z10.s,z11.s , p1, x22
-    ld1h_2d  z14.s,z15.s , p1, x23
-    fcvt_H2S  z8.s,z9.s,z10.s,z11.s,z8.h,z9.h,z10.h,z11.h ,p1 
-    fcvt_H2S  z12.s,z13.s,z14.s,z15.s,z12.h,z13.h,z14.h,z15.h ,p1 
+    ld1h z12.s, p1/Z, [x24]
+    ld1h z13.s, p1/Z, [x24, #1, MUL VL]
+    ld1h z10.s, p1/Z, [x22]
+    ld1h z11.s, p1/Z, [x22, #1, MUL VL]
+    ld1h z14.s, p1/Z, [x23]
+    ld1h z15.s, p1/Z, [x23, #1, MUL VL]
+    fcvt z8.s, p1/M, z8.h
+    fcvt z9.s, p1/M, z9.h
+    fcvt z10.s, p1/M, z10.h
+    fcvt z11.s, p1/M, z11.h
+    fcvt z12.s, p1/M, z12.h
+    fcvt z13.s, p1/M, z13.h
+    fcvt z14.s, p1/M, z14.h
+    fcvt z15.s, p1/M, z15.h
     mov x11, x7
     sub x21, x5, x6
     mov x10, x16
@@ -227,107 +342,323 @@ KAI_ASM_LABEL(label_11)  // Width 2: Multiply loop: Main loop head
     sub x11, x11, #0x8
     add x10, x10, #0x10
     cmp x11, #0x8
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[0], z3.h[1]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[2], z3.h[3]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[4], z3.h[5]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[6], z3.h[7]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[0]
+    fmlalb z9.s, z17.h, z3.h[0]
+    fmlalb z10.s, z18.h, z3.h[0]
+    fmlalb z11.s, z19.h, z3.h[0]
+    fmlalt z8.s, z16.h, z3.h[1]
+    fmlalt z9.s, z17.h, z3.h[1]
+    fmlalt z10.s, z18.h, z3.h[1]
+    fmlalt z11.s, z19.h, z3.h[1]
+    fmlalb z12.s, z20.h, z3.h[0]
+    fmlalb z13.s, z21.h, z3.h[0]
+    fmlalb z14.s, z22.h, z3.h[0]
+    fmlalb z15.s, z23.h, z3.h[0]
+    fmlalt z12.s, z20.h, z3.h[1]
+    fmlalt z13.s, z21.h, z3.h[1]
+    fmlalt z14.s, z22.h, z3.h[1]
+    fmlalt z15.s, z23.h, z3.h[1]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[2]
+    fmlalb z9.s, z17.h, z3.h[2]
+    fmlalb z10.s, z18.h, z3.h[2]
+    fmlalb z11.s, z19.h, z3.h[2]
+    fmlalt z8.s, z16.h, z3.h[3]
+    fmlalt z9.s, z17.h, z3.h[3]
+    fmlalt z10.s, z18.h, z3.h[3]
+    fmlalt z11.s, z19.h, z3.h[3]
+    fmlalb z12.s, z20.h, z3.h[2]
+    fmlalb z13.s, z21.h, z3.h[2]
+    fmlalb z14.s, z22.h, z3.h[2]
+    fmlalb z15.s, z23.h, z3.h[2]
+    fmlalt z12.s, z20.h, z3.h[3]
+    fmlalt z13.s, z21.h, z3.h[3]
+    fmlalt z14.s, z22.h, z3.h[3]
+    fmlalt z15.s, z23.h, z3.h[3]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[4]
+    fmlalb z9.s, z17.h, z3.h[4]
+    fmlalb z10.s, z18.h, z3.h[4]
+    fmlalb z11.s, z19.h, z3.h[4]
+    fmlalt z8.s, z16.h, z3.h[5]
+    fmlalt z9.s, z17.h, z3.h[5]
+    fmlalt z10.s, z18.h, z3.h[5]
+    fmlalt z11.s, z19.h, z3.h[5]
+    fmlalb z12.s, z20.h, z3.h[4]
+    fmlalb z13.s, z21.h, z3.h[4]
+    fmlalb z14.s, z22.h, z3.h[4]
+    fmlalb z15.s, z23.h, z3.h[4]
+    fmlalt z12.s, z20.h, z3.h[5]
+    fmlalt z13.s, z21.h, z3.h[5]
+    fmlalt z14.s, z22.h, z3.h[5]
+    fmlalt z15.s, z23.h, z3.h[5]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[6]
+    fmlalb z9.s, z17.h, z3.h[6]
+    fmlalb z10.s, z18.h, z3.h[6]
+    fmlalb z11.s, z19.h, z3.h[6]
+    fmlalt z8.s, z16.h, z3.h[7]
+    fmlalt z9.s, z17.h, z3.h[7]
+    fmlalt z10.s, z18.h, z3.h[7]
+    fmlalt z11.s, z19.h, z3.h[7]
+    fmlalb z12.s, z20.h, z3.h[6]
+    fmlalb z13.s, z21.h, z3.h[6]
+    fmlalb z14.s, z22.h, z3.h[6]
+    fmlalb z15.s, z23.h, z3.h[6]
+    fmlalt z12.s, z20.h, z3.h[7]
+    fmlalt z13.s, z21.h, z3.h[7]
+    fmlalt z14.s, z22.h, z3.h[7]
+    fmlalt z15.s, z23.h, z3.h[7]
     bgt label_11
 KAI_ASM_LABEL(label_12)  // Width 2: Multiply loop: Single iteration only
     whilelt p0.h, XZR, x11
     subs x11, x11, #0x2
     ld1rqh { z3.h }, p0/Z, [x10]
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[0], z3.h[1]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[0]
+    fmlalb z9.s, z17.h, z3.h[0]
+    fmlalb z10.s, z18.h, z3.h[0]
+    fmlalb z11.s, z19.h, z3.h[0]
+    fmlalt z8.s, z16.h, z3.h[1]
+    fmlalt z9.s, z17.h, z3.h[1]
+    fmlalt z10.s, z18.h, z3.h[1]
+    fmlalt z11.s, z19.h, z3.h[1]
+    fmlalb z12.s, z20.h, z3.h[0]
+    fmlalb z13.s, z21.h, z3.h[0]
+    fmlalb z14.s, z22.h, z3.h[0]
+    fmlalb z15.s, z23.h, z3.h[0]
+    fmlalt z12.s, z20.h, z3.h[1]
+    fmlalt z13.s, z21.h, z3.h[1]
+    fmlalt z14.s, z22.h, z3.h[1]
+    fmlalt z15.s, z23.h, z3.h[1]
     ble label_13
     subs x11, x11, #0x2
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[2], z3.h[3]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[2]
+    fmlalb z9.s, z17.h, z3.h[2]
+    fmlalb z10.s, z18.h, z3.h[2]
+    fmlalb z11.s, z19.h, z3.h[2]
+    fmlalt z8.s, z16.h, z3.h[3]
+    fmlalt z9.s, z17.h, z3.h[3]
+    fmlalt z10.s, z18.h, z3.h[3]
+    fmlalt z11.s, z19.h, z3.h[3]
+    fmlalb z12.s, z20.h, z3.h[2]
+    fmlalb z13.s, z21.h, z3.h[2]
+    fmlalb z14.s, z22.h, z3.h[2]
+    fmlalb z15.s, z23.h, z3.h[2]
+    fmlalt z12.s, z20.h, z3.h[3]
+    fmlalt z13.s, z21.h, z3.h[3]
+    fmlalt z14.s, z22.h, z3.h[3]
+    fmlalt z15.s, z23.h, z3.h[3]
     ble label_13
     subs x11, x11, #0x2
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[4], z3.h[5]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[4]
+    fmlalb z9.s, z17.h, z3.h[4]
+    fmlalb z10.s, z18.h, z3.h[4]
+    fmlalb z11.s, z19.h, z3.h[4]
+    fmlalt z8.s, z16.h, z3.h[5]
+    fmlalt z9.s, z17.h, z3.h[5]
+    fmlalt z10.s, z18.h, z3.h[5]
+    fmlalt z11.s, z19.h, z3.h[5]
+    fmlalb z12.s, z20.h, z3.h[4]
+    fmlalb z13.s, z21.h, z3.h[4]
+    fmlalb z14.s, z22.h, z3.h[4]
+    fmlalb z15.s, z23.h, z3.h[4]
+    fmlalt z12.s, z20.h, z3.h[5]
+    fmlalt z13.s, z21.h, z3.h[5]
+    fmlalt z14.s, z22.h, z3.h[5]
+    fmlalt z15.s, z23.h, z3.h[5]
     ble label_13
-    ldnt1h_2  z16.h,z17.h, p1,x14
-    ldnt1h_2  z18.h,z19.h, p1,x22
-    ldnt1h_2  z20.h,z21.h, p1,x24
-    ldnt1h_2  z22.h,z23.h, p1,x23
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z16.h,z17.h,z18.h,z19.h, z3.h[6], z3.h[7]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x22]
+    ldnt1h z19.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z20.h, p1/Z, [x24]
+    ldnt1h z21.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    ldnt1h z22.h, p1/Z, [x23]
+    ldnt1h z23.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    fmlalb z8.s, z16.h, z3.h[6]
+    fmlalb z9.s, z17.h, z3.h[6]
+    fmlalb z10.s, z18.h, z3.h[6]
+    fmlalb z11.s, z19.h, z3.h[6]
+    fmlalt z8.s, z16.h, z3.h[7]
+    fmlalt z9.s, z17.h, z3.h[7]
+    fmlalt z10.s, z18.h, z3.h[7]
+    fmlalt z11.s, z19.h, z3.h[7]
+    fmlalb z12.s, z20.h, z3.h[6]
+    fmlalb z13.s, z21.h, z3.h[6]
+    fmlalb z14.s, z22.h, z3.h[6]
+    fmlalb z15.s, z23.h, z3.h[6]
+    fmlalt z12.s, z20.h, z3.h[7]
+    fmlalt z13.s, z21.h, z3.h[7]
+    fmlalt z14.s, z22.h, z3.h[7]
+    fmlalt z15.s, z23.h, z3.h[7]
 KAI_ASM_LABEL(label_13)  // Width 2: Multiply loop: multiply skip
     tbz x15, #1, label_14
     add x21, x0, #0x2
     add x20, x0, #0x0
     ld1rh { z6.h }, p1/Z, [x21]
     ld1rh { z22.h }, p1/Z, [x20]
-    fcvt_2S1H p1, z8.h, z18.h,    z8.s ,z9.s  
-    fcvt_2S1H p1, z10.h, z19.h,   z10.s,z11.s 
-    fcvt_2S1H p1, z12.h, z16.h,   z12.s,z13.s 
-    fcvt_2S1H p1, z14.h, z17.h,   z14.s,z15.s 
-    clamp_float_2  z18.h,z19.h , z6.h, z22.h, p1
-    clamp_float_2  z16.h,z17.h , z6.h, z22.h, p1
-    st1h_2    z18.h,z19.h  , p1, x13
-    st1h_2p   z16.h,z17.h  ,   p2,p3, x13
+    fcvt z8.h, p1/M, z8.s
+    fcvt z18.h, p1/M, z9.s
+    uzp1 z18.h, z8.h, z18.h
+    fcvt z10.h, p1/M, z10.s
+    fcvt z19.h, p1/M, z11.s
+    uzp1 z19.h, z10.h, z19.h
+    fcvt z12.h, p1/M, z12.s
+    fcvt z16.h, p1/M, z13.s
+    uzp1 z16.h, z12.h, z16.h
+    fcvt z14.h, p1/M, z14.s
+    fcvt z17.h, p1/M, z15.s
+    uzp1 z17.h, z14.h, z17.h
+    FMIN z18.h, p1/M, z18.h, z22.h
+    FMAX z18.h, p1/M, z18.h, z6.h
+    FMIN z19.h, p1/M, z19.h, z22.h
+    FMAX z19.h, p1/M, z19.h, z6.h
+
+    FMIN z16.h, p1/M, z16.h, z22.h
+    FMAX z16.h, p1/M, z16.h, z6.h
+    FMIN z17.h, p1/M, z17.h, z22.h
+    FMAX z17.h, p1/M, z17.h, z6.h
+
+    st1h z18.h, p1, [x13]
+    st1h z19.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    st1h z16.h, p2, [x13]
+    st1h z17.h, p3, [x13, #1, MUL VL]
     b label_15
 KAI_ASM_LABEL(label_14)  // Width 2: No activation
-    mov_4reg z28.d,z29.d,z30.d,z31.d,z8.d,z9.d,z10.d,z11.d
-    mov_4reg z20.d,z21.d,z22.d,z23.d,z12.d,z13.d,z14.d,z15.d 
-    fcvt_2S1H p1, z28.h,  z26.h, z28.s,z29.s 
-    fcvt_2S1H p1, z30.h, z27.h,  z30.s,z31.s 
-    fcvt_2S1H p1, z20.h, z17.h,  z20.s,z21.s 
-    fcvt_2S1H p1, z22.h, z25.h,  z22.s,z23.s 
-    st1h_2   z26.h,z27.h , p1,x13
-    st1h_2p  z17.h, z25.h  , p2,p3, x13
+    mov z28.d, z8.d
+    mov z29.d, z9.d
+    mov z30.d, z10.d
+    mov z31.d, z11.d
+    mov z20.d, z12.d
+    mov z21.d, z13.d
+    mov z22.d, z14.d
+    mov z23.d, z15.d
+    fcvt z28.h, p1/M, z28.s
+    fcvt z26.h, p1/M, z29.s
+    uzp1 z26.h, z28.h, z26.h
+    fcvt z30.h, p1/M, z30.s
+    fcvt z27.h, p1/M, z31.s
+    uzp1 z27.h, z30.h, z27.h
+    fcvt z20.h, p1/M, z20.s
+    fcvt z17.h, p1/M, z21.s
+    uzp1 z17.h, z20.h, z17.h
+    fcvt z22.h, p1/M, z22.s
+    fcvt z25.h, p1/M, z23.s
+    uzp1 z25.h, z22.h, z25.h
+    st1h z26.h, p1, [x13]
+    st1h z27.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    st1h z17.h, p2, [x13]
+    st1h z25.h, p3, [x13, #1, MUL VL]
 KAI_ASM_LABEL(label_15)  // Width 2: Output done
     b label_28
 KAI_ASM_LABEL(label_16)  // Width 3
     add x26, x14, x12, LSL #2
     cntw x20, ALL, MUL #10
-    ld1h_2d  z4.s,z5.s ,   p1,x14
+    ld1h z4.s, p1/Z, [x14]
+    ld1h z5.s, p1/Z, [x14, #1, MUL VL]
     add x25, x14, x12, LSL #1
     add x24, x26, x12
     cmp x5, x20
     add x23, x14, x12
-    ld1h_2d  z8.s ,z9.s,   p1, x25
+    ld1h z8.s, p1/Z, [x25]
+    ld1h z9.s, p1/Z, [x25, #1, MUL VL]
     add x22, x25, x12
     csel x24, x24, x14, GT
-    ld1h_2d  z6.s ,z7.s,   p1,x23
+    ld1h z6.s, p1/Z, [x23]
+    ld1h z7.s, p1/Z, [x23, #1, MUL VL]
     mov x20, #0x2
     mov x11, x7
     msub x21, x6, x20, x5
     mov x10, x16
-    ld1h_2d  z10.s,z11.s , p1, x22
+    ld1h z10.s, p1/Z, [x22]
+    ld1h z11.s, p1/Z, [x22, #1, MUL VL]
     lsl x20, x7, #0x1
     mov x4, xzr
     whilelt p2.h, x4, x21
@@ -335,15 +666,26 @@ KAI_ASM_LABEL(label_16)  // Width 3
     whilelt p3.h, x4, x21
     cmp x11, #0x8
     rprfm pldkeep, x20, [x10]
-    ld1h_2d  z12.s,z13.s , p1,x26
+    ld1h z12.s, p1/Z, [x26]
+    ld1h z13.s, p1/Z, [x26, #1, MUL VL]
     inch x14, ALL, MUL #2
     inch x23, ALL, MUL #2
     inch x25, ALL, MUL #2
     inch x22, ALL, MUL #2
-    ld1h_2d  z14.s,z15.s , p1,x24
-    fcvt_H2S  z4.s,z5.s,z6.s,z7.s,z4.h,z5.h,z6.h,z7.h ,p1 
-    fcvt_H2S  z8.s,z9.s,z10.s,z11.s,z8.h,z9.h,z10.h,z11.h ,p1 
-    fcvt_H2S  z12.s,z13.s,z14.s,z15.s,z12.h,z13.h,z14.h,z15.h ,p1 
+    ld1h z14.s, p1/Z, [x24]
+    ld1h z15.s, p1/Z, [x24, #1, MUL VL]
+    fcvt z4.s, p1/M, z4.h
+    fcvt z5.s, p1/M, z5.h
+    fcvt z6.s, p1/M, z6.h
+    fcvt z7.s, p1/M, z7.h
+    fcvt z8.s, p1/M, z8.h
+    fcvt z9.s, p1/M, z9.h
+    fcvt z10.s, p1/M, z10.h
+    fcvt z11.s, p1/M, z11.h
+    fcvt z12.s, p1/M, z12.h
+    fcvt z13.s, p1/M, z13.h
+    fcvt z14.s, p1/M, z14.h
+    fcvt z15.s, p1/M, z15.h
     inch x26, ALL, MUL #2
     inch x24, ALL, MUL #2
     ble label_18
@@ -354,120 +696,439 @@ KAI_ASM_LABEL(label_17)  // Width 3: Multiply loop: Main loop head
     sub x11, x11, #0x8
     add x10, x10, #0x10
     cmp x11, #0x8
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[0], z3.h[1]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[0], z3.h[1]
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[2], z3.h[3]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[2], z3.h[3]
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[4], z3.h[5]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[4], z3.h[5]
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[6], z3.h[7]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[6], z3.h[7]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[0]
+    fmlalb z5.s, z17.h, z3.h[0]
+    fmlalb z6.s, z18.h, z3.h[0]
+    fmlalb z7.s, z19.h, z3.h[0]
+    fmlalt z4.s, z16.h, z3.h[1]
+    fmlalt z5.s, z17.h, z3.h[1]
+    fmlalt z6.s, z18.h, z3.h[1]
+    fmlalt z7.s, z19.h, z3.h[1]
+    fmlalb z8.s, z20.h, z3.h[0]
+    fmlalb z9.s, z21.h, z3.h[0]
+    fmlalb z10.s, z22.h, z3.h[0]
+    fmlalb z11.s, z23.h, z3.h[0]
+    fmlalt z8.s, z20.h, z3.h[1]
+    fmlalt z9.s, z21.h, z3.h[1]
+    fmlalt z10.s, z22.h, z3.h[1]
+    fmlalt z11.s, z23.h, z3.h[1]
+    fmlalb z12.s, z24.h, z3.h[0]
+    fmlalb z13.s, z25.h, z3.h[0]
+    fmlalb z14.s, z26.h, z3.h[0]
+    fmlalb z15.s, z27.h, z3.h[0]
+    fmlalt z12.s, z24.h, z3.h[1]
+    fmlalt z13.s, z25.h, z3.h[1]
+    fmlalt z14.s, z26.h, z3.h[1]
+    fmlalt z15.s, z27.h, z3.h[1]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[2]
+    fmlalb z5.s, z17.h, z3.h[2]
+    fmlalb z6.s, z18.h, z3.h[2]
+    fmlalb z7.s, z19.h, z3.h[2]
+    fmlalt z4.s, z16.h, z3.h[3]
+    fmlalt z5.s, z17.h, z3.h[3]
+    fmlalt z6.s, z18.h, z3.h[3]
+    fmlalt z7.s, z19.h, z3.h[3]
+    fmlalb z8.s, z20.h, z3.h[2]
+    fmlalb z9.s, z21.h, z3.h[2]
+    fmlalb z10.s, z22.h, z3.h[2]
+    fmlalb z11.s, z23.h, z3.h[2]
+    fmlalt z8.s, z20.h, z3.h[3]
+    fmlalt z9.s, z21.h, z3.h[3]
+    fmlalt z10.s, z22.h, z3.h[3]
+    fmlalt z11.s, z23.h, z3.h[3]
+    fmlalb z12.s, z24.h, z3.h[2]
+    fmlalb z13.s, z25.h, z3.h[2]
+    fmlalb z14.s, z26.h, z3.h[2]
+    fmlalb z15.s, z27.h, z3.h[2]
+    fmlalt z12.s, z24.h, z3.h[3]
+    fmlalt z13.s, z25.h, z3.h[3]
+    fmlalt z14.s, z26.h, z3.h[3]
+    fmlalt z15.s, z27.h, z3.h[3]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[4]
+    fmlalb z5.s, z17.h, z3.h[4]
+    fmlalb z6.s, z18.h, z3.h[4]
+    fmlalb z7.s, z19.h, z3.h[4]
+    fmlalt z4.s, z16.h, z3.h[5]
+    fmlalt z5.s, z17.h, z3.h[5]
+    fmlalt z6.s, z18.h, z3.h[5]
+    fmlalt z7.s, z19.h, z3.h[5]
+    fmlalb z8.s, z20.h, z3.h[4]
+    fmlalb z9.s, z21.h, z3.h[4]
+    fmlalb z10.s, z22.h, z3.h[4]
+    fmlalb z11.s, z23.h, z3.h[4]
+    fmlalt z8.s, z20.h, z3.h[5]
+    fmlalt z9.s, z21.h, z3.h[5]
+    fmlalt z10.s, z22.h, z3.h[5]
+    fmlalt z11.s, z23.h, z3.h[5]
+    fmlalb z12.s, z24.h, z3.h[4]
+    fmlalb z13.s, z25.h, z3.h[4]
+    fmlalb z14.s, z26.h, z3.h[4]
+    fmlalb z15.s, z27.h, z3.h[4]
+    fmlalt z12.s, z24.h, z3.h[5]
+    fmlalt z13.s, z25.h, z3.h[5]
+    fmlalt z14.s, z26.h, z3.h[5]
+    fmlalt z15.s, z27.h, z3.h[5]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[6]
+    fmlalb z5.s, z17.h, z3.h[6]
+    fmlalb z6.s, z18.h, z3.h[6]
+    fmlalb z7.s, z19.h, z3.h[6]
+    fmlalt z4.s, z16.h, z3.h[7]
+    fmlalt z5.s, z17.h, z3.h[7]
+    fmlalt z6.s, z18.h, z3.h[7]
+    fmlalt z7.s, z19.h, z3.h[7]
+    fmlalb z8.s, z20.h, z3.h[6]
+    fmlalb z9.s, z21.h, z3.h[6]
+    fmlalb z10.s, z22.h, z3.h[6]
+    fmlalb z11.s, z23.h, z3.h[6]
+    fmlalt z8.s, z20.h, z3.h[7]
+    fmlalt z9.s, z21.h, z3.h[7]
+    fmlalt z10.s, z22.h, z3.h[7]
+    fmlalt z11.s, z23.h, z3.h[7]
+    fmlalb z12.s, z24.h, z3.h[6]
+    fmlalb z13.s, z25.h, z3.h[6]
+    fmlalb z14.s, z26.h, z3.h[6]
+    fmlalb z15.s, z27.h, z3.h[6]
+    fmlalt z12.s, z24.h, z3.h[7]
+    fmlalt z13.s, z25.h, z3.h[7]
+    fmlalt z14.s, z26.h, z3.h[7]
+    fmlalt z15.s, z27.h, z3.h[7]
     bgt label_17
 KAI_ASM_LABEL(label_18)  // Width 3: Multiply loop: Single iteration only
     whilelt p0.h, XZR, x11
     subs x11, x11, #0x2
     ld1rqh { z3.h }, p0/Z, [x10]
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[0], z3.h[1]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[0], z3.h[1]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[0]
+    fmlalb z5.s, z17.h, z3.h[0]
+    fmlalb z6.s, z18.h, z3.h[0]
+    fmlalb z7.s, z19.h, z3.h[0]
+    fmlalt z4.s, z16.h, z3.h[1]
+    fmlalt z5.s, z17.h, z3.h[1]
+    fmlalt z6.s, z18.h, z3.h[1]
+    fmlalt z7.s, z19.h, z3.h[1]
+    fmlalb z8.s, z20.h, z3.h[0]
+    fmlalb z9.s, z21.h, z3.h[0]
+    fmlalb z10.s, z22.h, z3.h[0]
+    fmlalb z11.s, z23.h, z3.h[0]
+    fmlalt z8.s, z20.h, z3.h[1]
+    fmlalt z9.s, z21.h, z3.h[1]
+    fmlalt z10.s, z22.h, z3.h[1]
+    fmlalt z11.s, z23.h, z3.h[1]
+    fmlalb z12.s, z24.h, z3.h[0]
+    fmlalb z13.s, z25.h, z3.h[0]
+    fmlalb z14.s, z26.h, z3.h[0]
+    fmlalb z15.s, z27.h, z3.h[0]
+    fmlalt z12.s, z24.h, z3.h[1]
+    fmlalt z13.s, z25.h, z3.h[1]
+    fmlalt z14.s, z26.h, z3.h[1]
+    fmlalt z15.s, z27.h, z3.h[1]
     ble label_19
     subs x11, x11, #0x2
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[2], z3.h[3]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[2], z3.h[3]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[2]
+    fmlalb z5.s, z17.h, z3.h[2]
+    fmlalb z6.s, z18.h, z3.h[2]
+    fmlalb z7.s, z19.h, z3.h[2]
+    fmlalt z4.s, z16.h, z3.h[3]
+    fmlalt z5.s, z17.h, z3.h[3]
+    fmlalt z6.s, z18.h, z3.h[3]
+    fmlalt z7.s, z19.h, z3.h[3]
+    fmlalb z8.s, z20.h, z3.h[2]
+    fmlalb z9.s, z21.h, z3.h[2]
+    fmlalb z10.s, z22.h, z3.h[2]
+    fmlalb z11.s, z23.h, z3.h[2]
+    fmlalt z8.s, z20.h, z3.h[3]
+    fmlalt z9.s, z21.h, z3.h[3]
+    fmlalt z10.s, z22.h, z3.h[3]
+    fmlalt z11.s, z23.h, z3.h[3]
+    fmlalb z12.s, z24.h, z3.h[2]
+    fmlalb z13.s, z25.h, z3.h[2]
+    fmlalb z14.s, z26.h, z3.h[2]
+    fmlalb z15.s, z27.h, z3.h[2]
+    fmlalt z12.s, z24.h, z3.h[3]
+    fmlalt z13.s, z25.h, z3.h[3]
+    fmlalt z14.s, z26.h, z3.h[3]
+    fmlalt z15.s, z27.h, z3.h[3]
     ble label_19
     subs x11, x11, #0x2
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[4], z3.h[5]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[4], z3.h[5]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[4]
+    fmlalb z5.s, z17.h, z3.h[4]
+    fmlalb z6.s, z18.h, z3.h[4]
+    fmlalb z7.s, z19.h, z3.h[4]
+    fmlalt z4.s, z16.h, z3.h[5]
+    fmlalt z5.s, z17.h, z3.h[5]
+    fmlalt z6.s, z18.h, z3.h[5]
+    fmlalt z7.s, z19.h, z3.h[5]
+    fmlalb z8.s, z20.h, z3.h[4]
+    fmlalb z9.s, z21.h, z3.h[4]
+    fmlalb z10.s, z22.h, z3.h[4]
+    fmlalb z11.s, z23.h, z3.h[4]
+    fmlalt z8.s, z20.h, z3.h[5]
+    fmlalt z9.s, z21.h, z3.h[5]
+    fmlalt z10.s, z22.h, z3.h[5]
+    fmlalt z11.s, z23.h, z3.h[5]
+    fmlalb z12.s, z24.h, z3.h[4]
+    fmlalb z13.s, z25.h, z3.h[4]
+    fmlalb z14.s, z26.h, z3.h[4]
+    fmlalb z15.s, z27.h, z3.h[4]
+    fmlalt z12.s, z24.h, z3.h[5]
+    fmlalt z13.s, z25.h, z3.h[5]
+    fmlalt z14.s, z26.h, z3.h[5]
+    fmlalt z15.s, z27.h, z3.h[5]
     ble label_19
-    ldnt1h_2  z16.h,z17.h, p1,x14 
-    ldnt1h_2  z18.h,z19.h, p1,x23 
-    ldnt1h_2  z20.h,z21.h, p1,x25 
-    ldnt1h_2  z22.h,z23.h, p1,x22 
-    ldnt1h_2  z24.h,z25.h, p1,x26 
-    ldnt1h_2  z26.h,z27.h, p1,x24 
-    fdot_4 z4.s,z5.s,z6.s,z7.s ,    z16.h,z17.h,z18.h,z19.h, z3.h[6], z3.h[7]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z24.h,z25.h,z26.h,z27.h, z3.h[6], z3.h[7]
+    ldnt1h z16.h, p1/Z, [x14]
+    ldnt1h z17.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z18.h, p1/Z, [x23]
+    ldnt1h z19.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x25]
+    ldnt1h z21.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z22.h, p1/Z, [x22]
+    ldnt1h z23.h, p1/Z, [x22, #1, MUL VL]
+    addvl x22, x22, #2
+    ldnt1h z24.h, p1/Z, [x26]
+    ldnt1h z25.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    ldnt1h z26.h, p1/Z, [x24]
+    ldnt1h z27.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z4.s, z16.h, z3.h[6]
+    fmlalb z5.s, z17.h, z3.h[6]
+    fmlalb z6.s, z18.h, z3.h[6]
+    fmlalb z7.s, z19.h, z3.h[6]
+    fmlalt z4.s, z16.h, z3.h[7]
+    fmlalt z5.s, z17.h, z3.h[7]
+    fmlalt z6.s, z18.h, z3.h[7]
+    fmlalt z7.s, z19.h, z3.h[7]
+    fmlalb z8.s, z20.h, z3.h[6]
+    fmlalb z9.s, z21.h, z3.h[6]
+    fmlalb z10.s, z22.h, z3.h[6]
+    fmlalb z11.s, z23.h, z3.h[6]
+    fmlalt z8.s, z20.h, z3.h[7]
+    fmlalt z9.s, z21.h, z3.h[7]
+    fmlalt z10.s, z22.h, z3.h[7]
+    fmlalt z11.s, z23.h, z3.h[7]
+    fmlalb z12.s, z24.h, z3.h[6]
+    fmlalb z13.s, z25.h, z3.h[6]
+    fmlalb z14.s, z26.h, z3.h[6]
+    fmlalb z15.s, z27.h, z3.h[6]
+    fmlalt z12.s, z24.h, z3.h[7]
+    fmlalt z13.s, z25.h, z3.h[7]
+    fmlalt z14.s, z26.h, z3.h[7]
+    fmlalt z15.s, z27.h, z3.h[7]
 KAI_ASM_LABEL(label_19)  // Width 3: Multiply loop: multiply skip
     tbz x15, #1, label_20
-    mov_4reg z24.d,z25.d,z26.d,z27.d,  z4.d,z5.d,z6.d,z7.d     
-    mov_4reg z28.d,z29.d,z30.d,z31.d,  z8.d,z9.d,z10.d,z11.d   
-    mov_4reg z0.d,z1.d,z2.d,z24.d,  z12.d,z13.d,z14.d,z15.d 
+    mov z24.d, z4.d
+    mov z25.d, z5.d
+    mov z26.d, z6.d
+    mov z27.d, z7.d
+    mov z28.d, z8.d
+    mov z29.d, z9.d
+    mov z30.d, z10.d
+    mov z31.d, z11.d
+    mov z0.d, z12.d
+    mov z1.d, z13.d
+    mov z2.d, z14.d
+    mov z24.d, z15.d
     add x21, x0, #0x2
     add x20, x0, #0x0
     ld1rh { z19.h }, p1/Z, [x21]
     ld1rh { z18.h }, p1/Z, [x20]
-    fcvt_2S1H p1, z24.h, z20.h,   z24.s,z25.s
-    fcvt_2S1H p1, z26.h, z21.h,   z26.s,z27.s
-    fcvt_2S1H p1, z28.h, z14.h,   z28.s,z29.s
-    fcvt_2S1H p1, z30.h, z15.h,   z30.s,z31.s
-    fcvt_2S1H p1, z0.h, z16.h,    z0.s ,z1.s 
-    fcvt_2S1H p1, z2.h, z17.h,    z2.s ,z3.s 
-    clamp_float_2 z20.h,z21.h , z19.h, z18.h,p1
-    clamp_float_2 z14.h,z15.h , z19.h, z18.h,p1
-    clamp_float_2 z16.h,z17.h , z19.h, z18.h,p1
-    st1h_2  z20.h,z21.h , p1, x13
-    st1h_2  z14.h,z15.h , p1, x13
-    st1h_2p z16.h,z17.h ,  p2,p3, x13
+    fcvt z24.h, p1/M, z24.s
+    fcvt z20.h, p1/M, z25.s
+    uzp1 z20.h, z24.h, z20.h
+    fcvt z26.h, p1/M, z26.s
+    fcvt z21.h, p1/M, z27.s
+    uzp1 z21.h, z26.h, z21.h
+    fcvt z28.h, p1/M, z28.s
+    fcvt z14.h, p1/M, z29.s
+    uzp1 z14.h, z28.h, z14.h
+    fcvt z30.h, p1/M, z30.s
+    fcvt z15.h, p1/M, z31.s
+    uzp1 z15.h, z30.h, z15.h
+    fcvt z0.h, p1/M, z0.s
+    fcvt z16.h, p1/M, z1.s
+    uzp1 z16.h, z0.h, z16.h
+    fcvt z2.h, p1/M, z2.s
+    fcvt z17.h, p1/M, z3.s
+    uzp1 z17.h, z2.h, z17.h
+    FMIN z20.h, p1/M, z20.h, z18.h
+    FMAX z20.h, p1/M, z20.h, z19.h
+    FMIN z21.h, p1/M, z21.h, z18.h
+    FMAX z21.h, p1/M, z21.h, z19.h
+
+    FMIN z14.h, p1/M, z14.h, z18.h
+    FMAX z14.h, p1/M, z14.h, z19.h
+    FMIN z15.h, p1/M, z15.h, z18.h
+    FMAX z15.h, p1/M, z15.h, z19.h
+
+    FMIN z16.h, p1/M, z16.h, z18.h
+    FMAX z16.h, p1/M, z16.h, z19.h
+    FMIN z17.h, p1/M, z17.h, z18.h
+    FMAX z17.h, p1/M, z17.h, z19.h
+
+    st1h z20.h, p1, [x13]
+    st1h z21.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    st1h z14.h, p1, [x13]
+    st1h z15.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    st1h z16.h, p2, [x13]
+    st1h z17.h, p3, [x13, #1, MUL VL]
     b label_21
 KAI_ASM_LABEL(label_20)  // Width 3: No activation
-    fcvt_2S1H p1, z4.h, z17.h,   z4.s ,z5.s 
-    fcvt_2S1H p1, z6.h, z25.h,   z6.s ,z7.s 
-    fcvt_2S1H p1, z8.h, z18.h,   z8.s ,z9.s 
-    fcvt_2S1H p1, z10.h, z19.h,  z10.s,z11.s
-    fcvt_2S1H p1, z12.h, z17.h,  z12.s,z13.s
-    fcvt_2S1H p1, z14.h, z25.h,  z14.s,z15.s
-    st1h_2   z17.h, z25.h, p1, x13
-    st1h_2   z18.h,z19.h , p1, x13
-    st1h_2p  z17.h, z25.h,  p2,p3, x13
+    fcvt z4.h, p1/M, z4.s
+    fcvt z17.h, p1/M, z5.s
+    uzp1 z17.h, z4.h, z17.h
+    fcvt z6.h, p1/M, z6.s
+    fcvt z25.h, p1/M, z7.s
+    uzp1 z25.h, z6.h, z25.h
+    fcvt z8.h, p1/M, z8.s
+    fcvt z18.h, p1/M, z9.s
+    uzp1 z18.h, z8.h, z18.h
+    fcvt z10.h, p1/M, z10.s
+    fcvt z19.h, p1/M, z11.s
+    uzp1 z19.h, z10.h, z19.h
+    fcvt z12.h, p1/M, z12.s
+    fcvt z17.h, p1/M, z13.s
+    uzp1 z17.h, z12.h, z17.h
+    fcvt z14.h, p1/M, z14.s
+    fcvt z25.h, p1/M, z15.s
+    uzp1 z25.h, z14.h, z25.h
+    st1h z17.h, p1, [x13]
+    st1h z25.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    st1h z18.h, p1, [x13]
+    st1h z19.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    st1h z17.h, p2, [x13]
+    st1h z25.h, p3, [x13, #1, MUL VL]
 KAI_ASM_LABEL(label_21)  // Width 3: Output done
     b label_28
 KAI_ASM_LABEL(label_22)  // Width 4
@@ -540,149 +1201,563 @@ KAI_ASM_LABEL(label_23)  // Width 4: Multiply loop: Main loop head
     sub x11, x11, #0x8
     add x10, x10, #0x10
     cmp x11, #0x8
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[0], z3.h[1]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[0], z3.h[1]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[2], z3.h[3]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[2], z3.h[3]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[4], z3.h[5]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[4], z3.h[5]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[6], z3.h[7]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[6], z3.h[7]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[0]
+    fmlalb z13.s, z5.h, z3.h[0]
+    fmlalb z14.s, z6.h, z3.h[0]
+    fmlalb z15.s, z7.h, z3.h[0]
+    fmlalt z12.s, z4.h, z3.h[1]
+    fmlalt z13.s, z5.h, z3.h[1]
+    fmlalt z14.s, z6.h, z3.h[1]
+    fmlalt z15.s, z7.h, z3.h[1]
+    fmlalb z16.s, z20.h, z3.h[0]
+    fmlalb z17.s, z21.h, z3.h[0]
+    fmlalb z18.s, z22.h, z3.h[0]
+    fmlalb z19.s, z23.h, z3.h[0]
+    fmlalt z16.s, z20.h, z3.h[1]
+    fmlalt z17.s, z21.h, z3.h[1]
+    fmlalt z18.s, z22.h, z3.h[1]
+    fmlalt z19.s, z23.h, z3.h[1]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[0]
+    fmlalb z29.s, z5.h, z3.h[0]
+    fmlalb z30.s, z6.h, z3.h[0]
+    fmlalb z31.s, z7.h, z3.h[0]
+    fmlalt z28.s, z4.h, z3.h[1]
+    fmlalt z29.s, z5.h, z3.h[1]
+    fmlalt z30.s, z6.h, z3.h[1]
+    fmlalt z31.s, z7.h, z3.h[1]
+    fmlalb z8.s, z20.h, z3.h[0]
+    fmlalb z9.s, z21.h, z3.h[0]
+    fmlalb z10.s, z22.h, z3.h[0]
+    fmlalb z11.s, z23.h, z3.h[0]
+    fmlalt z8.s, z20.h, z3.h[1]
+    fmlalt z9.s, z21.h, z3.h[1]
+    fmlalt z10.s, z22.h, z3.h[1]
+    fmlalt z11.s, z23.h, z3.h[1]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[2]
+    fmlalb z13.s, z5.h, z3.h[2]
+    fmlalb z14.s, z6.h, z3.h[2]
+    fmlalb z15.s, z7.h, z3.h[2]
+    fmlalt z12.s, z4.h, z3.h[3]
+    fmlalt z13.s, z5.h, z3.h[3]
+    fmlalt z14.s, z6.h, z3.h[3]
+    fmlalt z15.s, z7.h, z3.h[3]
+    fmlalb z16.s, z20.h, z3.h[2]
+    fmlalb z17.s, z21.h, z3.h[2]
+    fmlalb z18.s, z22.h, z3.h[2]
+    fmlalb z19.s, z23.h, z3.h[2]
+    fmlalt z16.s, z20.h, z3.h[3]
+    fmlalt z17.s, z21.h, z3.h[3]
+    fmlalt z18.s, z22.h, z3.h[3]
+    fmlalt z19.s, z23.h, z3.h[3]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[2]
+    fmlalb z29.s, z5.h, z3.h[2]
+    fmlalb z30.s, z6.h, z3.h[2]
+    fmlalb z31.s, z7.h, z3.h[2]
+    fmlalt z28.s, z4.h, z3.h[3]
+    fmlalt z29.s, z5.h, z3.h[3]
+    fmlalt z30.s, z6.h, z3.h[3]
+    fmlalt z31.s, z7.h, z3.h[3]
+    fmlalb z8.s, z20.h, z3.h[2]
+    fmlalb z9.s, z21.h, z3.h[2]
+    fmlalb z10.s, z22.h, z3.h[2]
+    fmlalb z11.s, z23.h, z3.h[2]
+    fmlalt z8.s, z20.h, z3.h[3]
+    fmlalt z9.s, z21.h, z3.h[3]
+    fmlalt z10.s, z22.h, z3.h[3]
+    fmlalt z11.s, z23.h, z3.h[3]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[4]
+    fmlalb z13.s, z5.h, z3.h[4]
+    fmlalb z14.s, z6.h, z3.h[4]
+    fmlalb z15.s, z7.h, z3.h[4]
+    fmlalt z12.s, z4.h, z3.h[5]
+    fmlalt z13.s, z5.h, z3.h[5]
+    fmlalt z14.s, z6.h, z3.h[5]
+    fmlalt z15.s, z7.h, z3.h[5]
+    fmlalb z16.s, z20.h, z3.h[4]
+    fmlalb z17.s, z21.h, z3.h[4]
+    fmlalb z18.s, z22.h, z3.h[4]
+    fmlalb z19.s, z23.h, z3.h[4]
+    fmlalt z16.s, z20.h, z3.h[5]
+    fmlalt z17.s, z21.h, z3.h[5]
+    fmlalt z18.s, z22.h, z3.h[5]
+    fmlalt z19.s, z23.h, z3.h[5]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[4]
+    fmlalb z29.s, z5.h, z3.h[4]
+    fmlalb z30.s, z6.h, z3.h[4]
+    fmlalb z31.s, z7.h, z3.h[4]
+    fmlalt z28.s, z4.h, z3.h[5]
+    fmlalt z29.s, z5.h, z3.h[5]
+    fmlalt z30.s, z6.h, z3.h[5]
+    fmlalt z31.s, z7.h, z3.h[5]
+    fmlalb z8.s, z20.h, z3.h[4]
+    fmlalb z9.s, z21.h, z3.h[4]
+    fmlalb z10.s, z22.h, z3.h[4]
+    fmlalb z11.s, z23.h, z3.h[4]
+    fmlalt z8.s, z20.h, z3.h[5]
+    fmlalt z9.s, z21.h, z3.h[5]
+    fmlalt z10.s, z22.h, z3.h[5]
+    fmlalt z11.s, z23.h, z3.h[5]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[6]
+    fmlalb z13.s, z5.h, z3.h[6]
+    fmlalb z14.s, z6.h, z3.h[6]
+    fmlalb z15.s, z7.h, z3.h[6]
+    fmlalt z12.s, z4.h, z3.h[7]
+    fmlalt z13.s, z5.h, z3.h[7]
+    fmlalt z14.s, z6.h, z3.h[7]
+    fmlalt z15.s, z7.h, z3.h[7]
+    fmlalb z16.s, z20.h, z3.h[6]
+    fmlalb z17.s, z21.h, z3.h[6]
+    fmlalb z18.s, z22.h, z3.h[6]
+    fmlalb z19.s, z23.h, z3.h[6]
+    fmlalt z16.s, z20.h, z3.h[7]
+    fmlalt z17.s, z21.h, z3.h[7]
+    fmlalt z18.s, z22.h, z3.h[7]
+    fmlalt z19.s, z23.h, z3.h[7]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[6]
+    fmlalb z29.s, z5.h, z3.h[6]
+    fmlalb z30.s, z6.h, z3.h[6]
+    fmlalb z31.s, z7.h, z3.h[6]
+    fmlalt z28.s, z4.h, z3.h[7]
+    fmlalt z29.s, z5.h, z3.h[7]
+    fmlalt z30.s, z6.h, z3.h[7]
+    fmlalt z31.s, z7.h, z3.h[7]
+    fmlalb z8.s, z20.h, z3.h[6]
+    fmlalb z9.s, z21.h, z3.h[6]
+    fmlalb z10.s, z22.h, z3.h[6]
+    fmlalb z11.s, z23.h, z3.h[6]
+    fmlalt z8.s, z20.h, z3.h[7]
+    fmlalt z9.s, z21.h, z3.h[7]
+    fmlalt z10.s, z22.h, z3.h[7]
+    fmlalt z11.s, z23.h, z3.h[7]
     bgt label_23
 KAI_ASM_LABEL(label_24)  // Width 4: Multiply loop: Single iteration only
     whilelt p0.h, XZR, x11
     subs x11, x11, #0x2
     ld1rqh { z3.h }, p0/Z, [x10]
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[0], z3.h[1]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[0], z3.h[1]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[0], z3.h[1]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[0]
+    fmlalb z13.s, z5.h, z3.h[0]
+    fmlalb z14.s, z6.h, z3.h[0]
+    fmlalb z15.s, z7.h, z3.h[0]
+    fmlalt z12.s, z4.h, z3.h[1]
+    fmlalt z13.s, z5.h, z3.h[1]
+    fmlalt z14.s, z6.h, z3.h[1]
+    fmlalt z15.s, z7.h, z3.h[1]
+    fmlalb z16.s, z20.h, z3.h[0]
+    fmlalb z17.s, z21.h, z3.h[0]
+    fmlalb z18.s, z22.h, z3.h[0]
+    fmlalb z19.s, z23.h, z3.h[0]
+    fmlalt z16.s, z20.h, z3.h[1]
+    fmlalt z17.s, z21.h, z3.h[1]
+    fmlalt z18.s, z22.h, z3.h[1]
+    fmlalt z19.s, z23.h, z3.h[1]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[0]
+    fmlalb z29.s, z5.h, z3.h[0]
+    fmlalb z30.s, z6.h, z3.h[0]
+    fmlalb z31.s, z7.h, z3.h[0]
+    fmlalt z28.s, z4.h, z3.h[1]
+    fmlalt z29.s, z5.h, z3.h[1]
+    fmlalt z30.s, z6.h, z3.h[1]
+    fmlalt z31.s, z7.h, z3.h[1]
+    fmlalb z8.s, z20.h, z3.h[0]
+    fmlalb z9.s, z21.h, z3.h[0]
+    fmlalb z10.s, z22.h, z3.h[0]
+    fmlalb z11.s, z23.h, z3.h[0]
+    fmlalt z8.s, z20.h, z3.h[1]
+    fmlalt z9.s, z21.h, z3.h[1]
+    fmlalt z10.s, z22.h, z3.h[1]
+    fmlalt z11.s, z23.h, z3.h[1]
     ble label_25
     subs x11, x11, #0x2
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[2], z3.h[3]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[2], z3.h[3]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[2], z3.h[3]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[2]
+    fmlalb z13.s, z5.h, z3.h[2]
+    fmlalb z14.s, z6.h, z3.h[2]
+    fmlalb z15.s, z7.h, z3.h[2]
+    fmlalt z12.s, z4.h, z3.h[3]
+    fmlalt z13.s, z5.h, z3.h[3]
+    fmlalt z14.s, z6.h, z3.h[3]
+    fmlalt z15.s, z7.h, z3.h[3]
+    fmlalb z16.s, z20.h, z3.h[2]
+    fmlalb z17.s, z21.h, z3.h[2]
+    fmlalb z18.s, z22.h, z3.h[2]
+    fmlalb z19.s, z23.h, z3.h[2]
+    fmlalt z16.s, z20.h, z3.h[3]
+    fmlalt z17.s, z21.h, z3.h[3]
+    fmlalt z18.s, z22.h, z3.h[3]
+    fmlalt z19.s, z23.h, z3.h[3]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[2]
+    fmlalb z29.s, z5.h, z3.h[2]
+    fmlalb z30.s, z6.h, z3.h[2]
+    fmlalb z31.s, z7.h, z3.h[2]
+    fmlalt z28.s, z4.h, z3.h[3]
+    fmlalt z29.s, z5.h, z3.h[3]
+    fmlalt z30.s, z6.h, z3.h[3]
+    fmlalt z31.s, z7.h, z3.h[3]
+    fmlalb z8.s, z20.h, z3.h[2]
+    fmlalb z9.s, z21.h, z3.h[2]
+    fmlalb z10.s, z22.h, z3.h[2]
+    fmlalb z11.s, z23.h, z3.h[2]
+    fmlalt z8.s, z20.h, z3.h[3]
+    fmlalt z9.s, z21.h, z3.h[3]
+    fmlalt z10.s, z22.h, z3.h[3]
+    fmlalt z11.s, z23.h, z3.h[3]
     ble label_25
     subs x11, x11, #0x2
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[4], z3.h[5]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[4], z3.h[5]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[4], z3.h[5]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[4]
+    fmlalb z13.s, z5.h, z3.h[4]
+    fmlalb z14.s, z6.h, z3.h[4]
+    fmlalb z15.s, z7.h, z3.h[4]
+    fmlalt z12.s, z4.h, z3.h[5]
+    fmlalt z13.s, z5.h, z3.h[5]
+    fmlalt z14.s, z6.h, z3.h[5]
+    fmlalt z15.s, z7.h, z3.h[5]
+    fmlalb z16.s, z20.h, z3.h[4]
+    fmlalb z17.s, z21.h, z3.h[4]
+    fmlalb z18.s, z22.h, z3.h[4]
+    fmlalb z19.s, z23.h, z3.h[4]
+    fmlalt z16.s, z20.h, z3.h[5]
+    fmlalt z17.s, z21.h, z3.h[5]
+    fmlalt z18.s, z22.h, z3.h[5]
+    fmlalt z19.s, z23.h, z3.h[5]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[4]
+    fmlalb z29.s, z5.h, z3.h[4]
+    fmlalb z30.s, z6.h, z3.h[4]
+    fmlalb z31.s, z7.h, z3.h[4]
+    fmlalt z28.s, z4.h, z3.h[5]
+    fmlalt z29.s, z5.h, z3.h[5]
+    fmlalt z30.s, z6.h, z3.h[5]
+    fmlalt z31.s, z7.h, z3.h[5]
+    fmlalb z8.s, z20.h, z3.h[4]
+    fmlalb z9.s, z21.h, z3.h[4]
+    fmlalb z10.s, z22.h, z3.h[4]
+    fmlalb z11.s, z23.h, z3.h[4]
+    fmlalt z8.s, z20.h, z3.h[5]
+    fmlalt z9.s, z21.h, z3.h[5]
+    fmlalt z10.s, z22.h, z3.h[5]
+    fmlalt z11.s, z23.h, z3.h[5]
     ble label_25
-    ldnt1h_2  z4.h,z5.h,   p1, x14
-    ldnt1h_2  z6.h,z7.h,   p1, x25
-    ldnt1h_2  z20.h,z21.h, p1, x27
-    ldnt1h_2  z22.h,z23.h, p1, x24
-    fdot_4 z12.s,z13.s,z14.s,z15.s, z4.h,z5.h,z6.h,z7.h,     z3.h[6], z3.h[7]	
-    fdot_4 z16.s,z17.s,z18.s,z19.s, z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
-    ldnt1h_2  z4.h,z5.h,   p1, x9 
-    ldnt1h_2  z6.h,z7.h,   p1, x23
-    ldnt1h_2  z20.h,z21.h, p1, x28
-    ldnt1h_2  z22.h,z23.h, p1, x26
-    fdot_4 z28.s,z29.s,z30.s,z31.s, z4.h,z5.h,z6.h,z7.h,     z3.h[6], z3.h[7]	
-    fdot_4 z8.s,z9.s,z10.s,z11.s,   z20.h,z21.h,z22.h,z23.h, z3.h[6], z3.h[7]
+    ldnt1h z4.h, p1/Z, [x14]
+    ldnt1h z5.h, p1/Z, [x14, #1, MUL VL]
+    addvl x14, x14, #2
+    ldnt1h z6.h, p1/Z, [x25]
+    ldnt1h z7.h, p1/Z, [x25, #1, MUL VL]
+    addvl x25, x25, #2
+    ldnt1h z20.h, p1/Z, [x27]
+    ldnt1h z21.h, p1/Z, [x27, #1, MUL VL]
+    addvl x27, x27, #2
+    ldnt1h z22.h, p1/Z, [x24]
+    ldnt1h z23.h, p1/Z, [x24, #1, MUL VL]
+    addvl x24, x24, #2
+    fmlalb z12.s, z4.h, z3.h[6]
+    fmlalb z13.s, z5.h, z3.h[6]
+    fmlalb z14.s, z6.h, z3.h[6]
+    fmlalb z15.s, z7.h, z3.h[6]
+    fmlalt z12.s, z4.h, z3.h[7]
+    fmlalt z13.s, z5.h, z3.h[7]
+    fmlalt z14.s, z6.h, z3.h[7]
+    fmlalt z15.s, z7.h, z3.h[7]
+    fmlalb z16.s, z20.h, z3.h[6]
+    fmlalb z17.s, z21.h, z3.h[6]
+    fmlalb z18.s, z22.h, z3.h[6]
+    fmlalb z19.s, z23.h, z3.h[6]
+    fmlalt z16.s, z20.h, z3.h[7]
+    fmlalt z17.s, z21.h, z3.h[7]
+    fmlalt z18.s, z22.h, z3.h[7]
+    fmlalt z19.s, z23.h, z3.h[7]
+    ldnt1h z4.h, p1/Z, [x9]
+    ldnt1h z5.h, p1/Z, [x9, #1, MUL VL]
+    addvl x9, x9, #2
+    ldnt1h z6.h, p1/Z, [x23]
+    ldnt1h z7.h, p1/Z, [x23, #1, MUL VL]
+    addvl x23, x23, #2
+    ldnt1h z20.h, p1/Z, [x28]
+    ldnt1h z21.h, p1/Z, [x28, #1, MUL VL]
+    addvl x28, x28, #2
+    ldnt1h z22.h, p1/Z, [x26]
+    ldnt1h z23.h, p1/Z, [x26, #1, MUL VL]
+    addvl x26, x26, #2
+    fmlalb z28.s, z4.h, z3.h[6]
+    fmlalb z29.s, z5.h, z3.h[6]
+    fmlalb z30.s, z6.h, z3.h[6]
+    fmlalb z31.s, z7.h, z3.h[6]
+    fmlalt z28.s, z4.h, z3.h[7]
+    fmlalt z29.s, z5.h, z3.h[7]
+    fmlalt z30.s, z6.h, z3.h[7]
+    fmlalt z31.s, z7.h, z3.h[7]
+    fmlalb z8.s, z20.h, z3.h[6]
+    fmlalb z9.s, z21.h, z3.h[6]
+    fmlalb z10.s, z22.h, z3.h[6]
+    fmlalb z11.s, z23.h, z3.h[6]
+    fmlalt z8.s, z20.h, z3.h[7]
+    fmlalt z9.s, z21.h, z3.h[7]
+    fmlalt z10.s, z22.h, z3.h[7]
+    fmlalt z11.s, z23.h, z3.h[7]
 KAI_ASM_LABEL(label_25)  // Width 4: Multiply loop: multiply skip
     tbz x15, #1, label_26
     add x21, x0, #0x2
     add x20, x0, #0x0
     ld1rh { z1.h }, p1/Z, [x21]
     ld1rh { z0.h }, p1/Z, [x20]
-    fcvt_2S1H p1, z12.h, z7.h,   z12.s,z13.s
-    fcvt_2S1H p1, z12.h, z15.h,  z14.s,z15.s
-    clamp_float_2 z7.h, z15.h , z1.h, z0.h ,p1
-    st1h_2  z7.h, z15.h , p1, x13
-    fcvt_2S1H p1, z12.h, z7.h,   z16.s,z17.s
-    fcvt_2S1H p1, z12.h, z15.h,  z18.s,z19.s
-    clamp_float_2 z7.h, z15.h , z1.h, z0.h ,p1
-    st1h_2  z7.h, z15.h , p1, x13
-    fcvt_2S1H p1, z12.h, z14.h,  z28.s,z29.s
-    fcvt_2S1H p1, z12.h, z15.h,  z30.s,z31.s
-    clamp_float_2 z14.h,z15.h , z1.h, z0.h ,p1
-    st1h_2  z14.h,z15.h , p1, x13
-    fcvt_2S1H p1, z12.h, z18.h,  z8.s ,z9.s 
-    fcvt_2S1H p1, z12.h, z26.h,  z10.s,z11.s
-    clamp_float_2 z18.h, z26.h, z1.h, z0.h ,p1
-    st1h_2p z18.h, z26.h, p2,p3, x13
+    fcvt z12.h, p1/M, z12.s
+    fcvt z7.h, p1/M, z13.s
+    uzp1 z7.h, z12.h, z7.h
+    fcvt z12.h, p1/M, z14.s
+    fcvt z15.h, p1/M, z15.s
+    uzp1 z15.h, z12.h, z15.h
+    FMIN z7.h, p1/M, z7.h, z0.h
+    FMAX z7.h, p1/M, z7.h, z1.h
+    FMIN z15.h, p1/M, z15.h, z0.h
+    FMAX z15.h, p1/M, z15.h, z1.h
+
+    st1h z7.h, p1, [x13]
+    st1h z15.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    fcvt z12.h, p1/M, z16.s
+    fcvt z7.h, p1/M, z17.s
+    uzp1 z7.h, z12.h, z7.h
+    fcvt z12.h, p1/M, z18.s
+    fcvt z15.h, p1/M, z19.s
+    uzp1 z15.h, z12.h, z15.h
+    FMIN z7.h, p1/M, z7.h, z0.h
+    FMAX z7.h, p1/M, z7.h, z1.h
+    FMIN z15.h, p1/M, z15.h, z0.h
+    FMAX z15.h, p1/M, z15.h, z1.h
+
+    st1h z7.h, p1, [x13]
+    st1h z15.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    fcvt z12.h, p1/M, z28.s
+    fcvt z14.h, p1/M, z29.s
+    uzp1 z14.h, z12.h, z14.h
+    fcvt z12.h, p1/M, z30.s
+    fcvt z15.h, p1/M, z31.s
+    uzp1 z15.h, z12.h, z15.h
+    FMIN z14.h, p1/M, z14.h, z0.h
+    FMAX z14.h, p1/M, z14.h, z1.h
+    FMIN z15.h, p1/M, z15.h, z0.h
+    FMAX z15.h, p1/M, z15.h, z1.h
+
+    st1h z14.h, p1, [x13]
+    st1h z15.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    fcvt z12.h, p1/M, z8.s
+    fcvt z18.h, p1/M, z9.s
+    uzp1 z18.h, z12.h, z18.h
+    fcvt z12.h, p1/M, z10.s
+    fcvt z26.h, p1/M, z11.s
+    uzp1 z26.h, z12.h, z26.h
+    FMIN z18.h, p1/M, z18.h, z0.h
+    FMAX z18.h, p1/M, z18.h, z1.h
+    FMIN z26.h, p1/M, z26.h, z0.h
+    FMAX z26.h, p1/M, z26.h, z1.h
+
+    st1h z18.h, p2, [x13]
+    st1h z26.h, p3, [x13, #1, MUL VL]
     addvl x13, x13, #2
     b label_27
 KAI_ASM_LABEL(label_26)  // Width 4: No activation
-    fcvt_2S1H p1, z12.h, z7.h,   z12.s,z13.s
-    fcvt_2S1H p1, z12.h, z15.h,  z14.s,z15.s
-    st1h_2  z7.h, z15.h , p1, x13
-    fcvt_2S1H p1, z12.h, z7.h,   z16.s,z17.s
-    fcvt_2S1H p1, z12.h, z15.h,  z18.s,z19.s
-    st1h_2  z7.h, z15.h , p1, x13
-    fcvt_2S1H p1, z12.h, z14.h,  z28.s,z29.s
-    fcvt_2S1H p1, z12.h, z15.h,  z30.s,z31.s
-    st1h_2  z14.h,z15.h , p1, x13
-    fcvt_2S1H p1, z12.h, z18.h,  z8.s ,z9.s 
-    fcvt_2S1H p1, z12.h, z26.h,  z10.s,z11.s
-    st1h_2p z18.h, z26.h, p2,p3, x13
+    fcvt z12.h, p1/M, z12.s
+    fcvt z7.h, p1/M, z13.s
+    uzp1 z7.h, z12.h, z7.h
+    fcvt z12.h, p1/M, z14.s
+    fcvt z15.h, p1/M, z15.s
+    uzp1 z15.h, z12.h, z15.h
+    st1h z7.h, p1, [x13]
+    st1h z15.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    fcvt z12.h, p1/M, z16.s
+    fcvt z7.h, p1/M, z17.s
+    uzp1 z7.h, z12.h, z7.h
+    fcvt z12.h, p1/M, z18.s
+    fcvt z15.h, p1/M, z19.s
+    uzp1 z15.h, z12.h, z15.h
+    st1h z7.h, p1, [x13]
+    st1h z15.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    fcvt z12.h, p1/M, z28.s
+    fcvt z14.h, p1/M, z29.s
+    uzp1 z14.h, z12.h, z14.h
+    fcvt z12.h, p1/M, z30.s
+    fcvt z15.h, p1/M, z31.s
+    uzp1 z15.h, z12.h, z15.h
+    st1h z14.h, p1, [x13]
+    st1h z15.h, p1, [x13, #1, MUL VL]
+    addvl x13, x13, #2
+    fcvt z12.h, p1/M, z8.s
+    fcvt z18.h, p1/M, z9.s
+    uzp1 z18.h, z12.h, z18.h
+    fcvt z12.h, p1/M, z10.s
+    fcvt z26.h, p1/M, z11.s
+    uzp1 z26.h, z12.h, z26.h
+    st1h z18.h, p2, [x13]
+    st1h z26.h, p3, [x13, #1, MUL VL]
     addvl x13, x13, #2
 KAI_ASM_LABEL(label_27)  // Width 4: Output done
     subs x17, x17, #0x4
