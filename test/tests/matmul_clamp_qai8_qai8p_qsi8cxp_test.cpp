@@ -529,7 +529,7 @@ const auto& get_gemv_variants() {
     static const kai_matmul_clamp_qai8_qai8p_qsi8cxp_ukernel& ukernel =
         get_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme2_dot_interface();
 
-    variants[0].name = "matmul_qai8_qai8_qsi8cxp";
+    variants[0].name = "matmul_qai8_qai8_qsi8cxp_sme2_dot";
     variants[0].acc_pack.m = 1;
     variants[0].acc_pack.n = 2 * get_sme_vector_length<int32_t>();
     variants[0].acc_pack.k = sizeof(int32_t) / sizeof(int8_t);
@@ -553,7 +553,7 @@ const auto& get_gemv_variants() {
     static const kai_matmul_clamp_qai8_qai8p_qsi8cxp_ukernel& ukernel1 =
         get_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot_interface();
 
-    variants[1].name = "matmul_qai8_qai8_qsi8cxp_sme1";
+    variants[1].name = "matmul_qai8_qai8_qsi8cxp_sme1_dot";
     variants[1].acc_pack.m = 1;
     variants[1].acc_pack.n = 2 * get_sme_vector_length<int32_t>();
     variants[1].acc_pack.k = sizeof(int32_t) / sizeof(int8_t);
