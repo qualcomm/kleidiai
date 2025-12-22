@@ -318,7 +318,7 @@ void kai_run_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_sme1_mopa(
 
         " b.first 1b // .LOOP_N_START%= \n"
         " 9: // .LOOP_N_END%=: \n"
-        "smstop \n"
+        " .inst 0xd503467f // smstop \n"
         : [dst] "+r"(dst), [rhs_packed] "+r"(rhs_packed), [rhs_scales] "+r"(rhs_scales)
         : [M] "r"(m), [N] "r"(n), [K] "r"(k), [lhs_packed] "r"(lhs_packed), [lhs_scales] "r"(lhs_scales),
           [stride] "r"(dst_stride_row), [lut] "r"(lut), [args_ptr] "r"(&ka),

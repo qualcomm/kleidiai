@@ -3,13 +3,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
-// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
-// + SPDX-License-Identifier: BSD-3-Clause-Clear
-//
-
-
-
 
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
@@ -66,7 +59,7 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_s
     stp d10, d11, [sp, 88]
     stp d12, d13, [sp, 104]
     stp d14, d15, [sp, 120]
-    SMSTART 
+    KAI_ASM_INST(0xd503477f)  //     SMSTART 
     mov x14, #0x0
     ldr x13, [x0, #0x30]
     ptrue p1.b
@@ -83,119 +76,119 @@ KAI_ASM_LABEL(label_2)  // N loop
     ld1h { z18.h }, p1/Z, [x27]
     fmov z2.h, #1.0
     mov x26, x28
-    zero { za }
+    KAI_ASM_INST(0xc00800ff)  // zero	{za}
     inch x27, ALL, MUL #2
     zip1 z14.h, z18.h, z23.h
     zip2 z3.h, z18.h, z23.h
-    fmopa za0.s, p1/M, p1/M, z2.h, z14.h
-    fmopa za1.s, p1/M, p1/M, z2.h, z3.h
-    fmopa za2.s, p1/M, p1/M, z2.h, z14.h
-    fmopa za3.s, p1/M, p1/M, z2.h, z3.h
+    KAI_ASM_INST(0x81ae2440)  // fmopa	za0.s, p1/m, p1/m, z2.h, z14.h
+    KAI_ASM_INST(0x81a32441)  // fmopa	za1.s, p1/m, p1/m, z2.h, z3.h
+    KAI_ASM_INST(0x81ae2442)  // fmopa	za2.s, p1/m, p1/m, z2.h, z14.h
+    KAI_ASM_INST(0x81a32443)  // fmopa	za3.s, p1/m, p1/m, z2.h, z3.h
     lsr x21, x13, #0x2
     and x20, x13, #0x3
     cbz x21, label_6
     subs x21, x21, #0x1
-    ld1h z16.h, p1/Z, [x26]
-    ld1h z17.h, p1/Z, [x26, #1, MUL VL]
-    ld1h z18.h, p1/Z, [x26, #2, MUL VL]
-    ld1h z19.h, p1/Z, [x26, #3, MUL VL]
+    KAI_ASM_INST(0xa4a0a750)  // ld1h	{z16.h}, p1/z, [x26]
+    KAI_ASM_INST(0xa4a1a751)  // ld1h	{z17.h}, p1/z, [x26, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a752)  // ld1h	{z18.h}, p1/z, [x26, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a753)  // ld1h	{z19.h}, p1/z, [x26, #3, mul vl]
     addvl x26, x26, #4
-    ld1h z28.h, p1/Z, [x26]
-    ld1h z29.h, p1/Z, [x26, #1, MUL VL]
-    ld1h z30.h, p1/Z, [x26, #2, MUL VL]
-    ld1h z31.h, p1/Z, [x26, #3, MUL VL]
+    KAI_ASM_INST(0xa4a0a75c)  // ld1h	{z28.h}, p1/z, [x26]
+    KAI_ASM_INST(0xa4a1a75d)  // ld1h	{z29.h}, p1/z, [x26, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a75e)  // ld1h	{z30.h}, p1/z, [x26, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a75f)  // ld1h	{z31.h}, p1/z, [x26, #3, mul vl]
     addvl x26, x26, #4
-    ld1h z0.h, p1/Z, [x27]
-    ld1h z1.h, p1/Z, [x27, #1, MUL VL]
-    ld1h z2.h, p1/Z, [x27, #2, MUL VL]
-    ld1h z3.h, p1/Z, [x27, #3, MUL VL]
+    KAI_ASM_INST(0xa4a0a760)  // ld1h	{z0.h}, p1/z, [x27]
+    KAI_ASM_INST(0xa4a1a761)  // ld1h	{z1.h}, p1/z, [x27, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a762)  // ld1h	{z2.h}, p1/z, [x27, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a763)  // ld1h	{z3.h}, p1/z, [x27, #3, mul vl]
     addvl x27, x27, #4
-    ld1h z8.h, p1/Z, [x27]
-    ld1h z9.h, p1/Z, [x27, #1, MUL VL]
-    ld1h z10.h, p1/Z, [x27, #2, MUL VL]
-    ld1h z11.h, p1/Z, [x27, #3, MUL VL]
+    KAI_ASM_INST(0xa4a0a768)  // ld1h	{z8.h}, p1/z, [x27]
+    KAI_ASM_INST(0xa4a1a769)  // ld1h	{z9.h}, p1/z, [x27, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a76a)  // ld1h	{z10.h}, p1/z, [x27, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a76b)  // ld1h	{z11.h}, p1/z, [x27, #3, mul vl]
     addvl x27, x27, #4
     ble label_5
 KAI_ASM_LABEL(label_4)  // K loop
-    fmopa za0.s, p1/M, p1/M, z16.h, z0.h
+    KAI_ASM_INST(0x81a02600)  // fmopa	za0.s, p1/m, p1/m, z16.h, z0.h
     subs x21, x21, #0x1
-    fmopa za1.s, p1/M, p1/M, z16.h, z1.h
-    fmopa za2.s, p1/M, p1/M, z17.h, z0.h
-    fmopa za3.s, p1/M, p1/M, z17.h, z1.h
-    fmopa za0.s, p1/M, p1/M, z18.h, z2.h
-    fmopa za1.s, p1/M, p1/M, z18.h, z3.h
-    fmopa za2.s, p1/M, p1/M, z19.h, z2.h
-    fmopa za3.s, p1/M, p1/M, z19.h, z3.h
-    ld1h z16.h, p1/Z, [x26]
-    ld1h z17.h, p1/Z, [x26, #1, MUL VL]
-    ld1h z18.h, p1/Z, [x26, #2, MUL VL]
-    ld1h z19.h, p1/Z, [x26, #3, MUL VL]
+    KAI_ASM_INST(0x81a12601)  // fmopa	za1.s, p1/m, p1/m, z16.h, z1.h
+    KAI_ASM_INST(0x81a02622)  // fmopa	za2.s, p1/m, p1/m, z17.h, z0.h
+    KAI_ASM_INST(0x81a12623)  // fmopa	za3.s, p1/m, p1/m, z17.h, z1.h
+    KAI_ASM_INST(0x81a22640)  // fmopa	za0.s, p1/m, p1/m, z18.h, z2.h
+    KAI_ASM_INST(0x81a32641)  // fmopa	za1.s, p1/m, p1/m, z18.h, z3.h
+    KAI_ASM_INST(0x81a22662)  // fmopa	za2.s, p1/m, p1/m, z19.h, z2.h
+    KAI_ASM_INST(0x81a32663)  // fmopa	za3.s, p1/m, p1/m, z19.h, z3.h
+    KAI_ASM_INST(0xa4a0a750)  // ld1h	{z16.h}, p1/z, [x26]
+    KAI_ASM_INST(0xa4a1a751)  // ld1h	{z17.h}, p1/z, [x26, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a752)  // ld1h	{z18.h}, p1/z, [x26, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a753)  // ld1h	{z19.h}, p1/z, [x26, #3, mul vl]
     addvl x26, x26, #4
-    fmopa za0.s, p1/M, p1/M, z28.h, z8.h
-    ld1h z0.h, p1/Z, [x27]
-    ld1h z1.h, p1/Z, [x27, #1, MUL VL]
-    ld1h z2.h, p1/Z, [x27, #2, MUL VL]
-    ld1h z3.h, p1/Z, [x27, #3, MUL VL]
+    KAI_ASM_INST(0x81a82780)  // fmopa	za0.s, p1/m, p1/m, z28.h, z8.h
+    KAI_ASM_INST(0xa4a0a760)  // ld1h	{z0.h}, p1/z, [x27]
+    KAI_ASM_INST(0xa4a1a761)  // ld1h	{z1.h}, p1/z, [x27, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a762)  // ld1h	{z2.h}, p1/z, [x27, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a763)  // ld1h	{z3.h}, p1/z, [x27, #3, mul vl]
     addvl x27, x27, #4
-    fmopa za1.s, p1/M, p1/M, z28.h, z9.h
-    fmopa za2.s, p1/M, p1/M, z29.h, z8.h
-    fmopa za3.s, p1/M, p1/M, z29.h, z9.h
-    fmopa za0.s, p1/M, p1/M, z30.h, z10.h
-    fmopa za1.s, p1/M, p1/M, z30.h, z11.h
-    fmopa za2.s, p1/M, p1/M, z31.h, z10.h
-    fmopa za3.s, p1/M, p1/M, z31.h, z11.h
-    ld1h z28.h, p1/Z, [x26]
-    ld1h z29.h, p1/Z, [x26, #1, MUL VL]
-    ld1h z30.h, p1/Z, [x26, #2, MUL VL]
-    ld1h z31.h, p1/Z, [x26, #3, MUL VL]
+    KAI_ASM_INST(0x81a92781)  // fmopa	za1.s, p1/m, p1/m, z28.h, z9.h
+    KAI_ASM_INST(0x81a827a2)  // fmopa	za2.s, p1/m, p1/m, z29.h, z8.h
+    KAI_ASM_INST(0x81a927a3)  // fmopa	za3.s, p1/m, p1/m, z29.h, z9.h
+    KAI_ASM_INST(0x81aa27c0)  // fmopa	za0.s, p1/m, p1/m, z30.h, z10.h
+    KAI_ASM_INST(0x81ab27c1)  // fmopa	za1.s, p1/m, p1/m, z30.h, z11.h
+    KAI_ASM_INST(0x81aa27e2)  // fmopa	za2.s, p1/m, p1/m, z31.h, z10.h
+    KAI_ASM_INST(0x81ab27e3)  // fmopa	za3.s, p1/m, p1/m, z31.h, z11.h
+    KAI_ASM_INST(0xa4a0a75c)  // ld1h	{z28.h}, p1/z, [x26]
+    KAI_ASM_INST(0xa4a1a75d)  // ld1h	{z29.h}, p1/z, [x26, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a75e)  // ld1h	{z30.h}, p1/z, [x26, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a75f)  // ld1h	{z31.h}, p1/z, [x26, #3, mul vl]
     addvl x26, x26, #4
-    ld1h z8.h, p1/Z, [x27]
-    ld1h z9.h, p1/Z, [x27, #1, MUL VL]
-    ld1h z10.h, p1/Z, [x27, #2, MUL VL]
-    ld1h z11.h, p1/Z, [x27, #3, MUL VL]
+    KAI_ASM_INST(0xa4a0a768)  // ld1h	{z8.h}, p1/z, [x27]
+    KAI_ASM_INST(0xa4a1a769)  // ld1h	{z9.h}, p1/z, [x27, #1, mul vl]
+    KAI_ASM_INST(0xa4a2a76a)  // ld1h	{z10.h}, p1/z, [x27, #2, mul vl]
+    KAI_ASM_INST(0xa4a3a76b)  // ld1h	{z11.h}, p1/z, [x27, #3, mul vl]
     addvl x27, x27, #4
     bgt label_4
 KAI_ASM_LABEL(label_5)  // K loop tail
-    fmopa za0.s, p1/M, p1/M, z16.h, z0.h
-    fmopa za1.s, p1/M, p1/M, z16.h, z1.h
-    fmopa za2.s, p1/M, p1/M, z17.h, z0.h
-    fmopa za3.s, p1/M, p1/M, z17.h, z1.h
-    fmopa za0.s, p1/M, p1/M, z18.h, z2.h
-    fmopa za1.s, p1/M, p1/M, z18.h, z3.h
-    fmopa za2.s, p1/M, p1/M, z19.h, z2.h
-    fmopa za3.s, p1/M, p1/M, z19.h, z3.h
-    fmopa za0.s, p1/M, p1/M, z28.h, z8.h
-    fmopa za1.s, p1/M, p1/M, z28.h, z9.h
-    fmopa za2.s, p1/M, p1/M, z29.h, z8.h
-    fmopa za3.s, p1/M, p1/M, z29.h, z9.h
-    fmopa za0.s, p1/M, p1/M, z30.h, z10.h
-    fmopa za1.s, p1/M, p1/M, z30.h, z11.h
-    fmopa za2.s, p1/M, p1/M, z31.h, z10.h
-    fmopa za3.s, p1/M, p1/M, z31.h, z11.h
+    KAI_ASM_INST(0x81a02600)  // fmopa za0.s, p1/M, p1/M, z16.h, z0.h
+    KAI_ASM_INST(0x81a12601)  // fmopa za1.s, p1/M, p1/M, z16.h, z1.h
+    KAI_ASM_INST(0x81a02622)  // fmopa za2.s, p1/M, p1/M, z17.h, z0.h
+    KAI_ASM_INST(0x81a12623)  // fmopa za3.s, p1/M, p1/M, z17.h, z1.h
+    KAI_ASM_INST(0x81a22640)  // fmopa za0.s, p1/M, p1/M, z18.h, z2.h
+    KAI_ASM_INST(0x81a32641)  // fmopa za1.s, p1/M, p1/M, z18.h, z3.h
+    KAI_ASM_INST(0x81a22662)  // fmopa za2.s, p1/M, p1/M, z19.h, z2.h
+    KAI_ASM_INST(0x81a32663)  // fmopa za3.s, p1/M, p1/M, z19.h, z3.h
+    KAI_ASM_INST(0x81a82780)  // fmopa za0.s, p1/M, p1/M, z28.h, z8.h
+    KAI_ASM_INST(0x81a92781)  // fmopa za1.s, p1/M, p1/M, z28.h, z9.h
+    KAI_ASM_INST(0x81a827a2)  // fmopa za2.s, p1/M, p1/M, z29.h, z8.h
+    KAI_ASM_INST(0x81a927a3)  // fmopa za3.s, p1/M, p1/M, z29.h, z9.h
+    KAI_ASM_INST(0x81aa27c0)  // fmopa za0.s, p1/M, p1/M, z30.h, z10.h
+    KAI_ASM_INST(0x81ab27c1)  // fmopa za1.s, p1/M, p1/M, z30.h, z11.h
+    KAI_ASM_INST(0x81aa27e2)  // fmopa za2.s, p1/M, p1/M, z31.h, z10.h
+    KAI_ASM_INST(0x81ab27e3)  // fmopa za3.s, p1/M, p1/M, z31.h, z11.h
 KAI_ASM_LABEL(label_6)  // K oddments
     cbz x20, label_8
 KAI_ASM_LABEL(label_7)  // K oddments: Loop
-    ld1h z5.h, p1/Z, [x26]
-    ld1h z13.h, p1/Z, [x26, #1, MUL VL]
+    KAI_ASM_INST(0xa4a0a745)  // ld1h	{z5.h}, p1/z, [x26]
+    KAI_ASM_INST(0xa4a1a74d)  // ld1h	{z13.h}, p1/z, [x26, #1, mul vl]
     addvl x26, x26, #2
-    ld1h z14.h, p1/Z, [x27]
-    ld1h z15.h, p1/Z, [x27, #1, MUL VL]
+    KAI_ASM_INST(0xa4a0a76e)  // ld1h	{z14.h}, p1/z, [x27]
+    KAI_ASM_INST(0xa4a1a76f)  // ld1h	{z15.h}, p1/z, [x27, #1, mul vl]
     addvl x27, x27, #2
     subs x20, x20, #0x1
-    fmopa za0.s, p1/M, p1/M, z5.h, z14.h
-    fmopa za1.s, p1/M, p1/M, z5.h, z15.h
-    fmopa za2.s, p1/M, p1/M, z13.h, z14.h
-    fmopa za3.s, p1/M, p1/M, z13.h, z15.h
+    KAI_ASM_INST(0x81ae24a0)  // fmopa	za0.s, p1/m, p1/m, z5.h, z14.h
+    KAI_ASM_INST(0x81af24a1)  // fmopa	za1.s, p1/m, p1/m, z5.h, z15.h
+    KAI_ASM_INST(0x81ae25a2)  // fmopa	za2.s, p1/m, p1/m, z13.h, z14.h
+    KAI_ASM_INST(0x81af25a3)  // fmopa	za3.s, p1/m, p1/m, z13.h, z15.h
     bgt label_7
 KAI_ASM_LABEL(label_8)  // K oddments: End
     ldr x25, [x0, #0x10]
     sub x24, x11, x14
     cntw x23, ALL, MUL #2
-    ld1rh { z17.h }, p1/Z, [x0, #56]
+    KAI_ASM_INST(0x84dca411)  // ld1rh { z17.h }, p1/Z, [x0, #56]
     ldr x22, [x0, #0x18]
     whilelt p0.h, x10, x9
     cmp x24, x23
-    ld1rh { z16.h }, p1/Z, [x0, #58]
+    KAI_ASM_INST(0x84dda410)  // ld1rh { z16.h }, p1/Z, [x0, #58]
     mov x12, #0x0
     mov x21, #0x0
     add x25, x25, x10, LSL #1  // C += n
@@ -203,19 +196,18 @@ KAI_ASM_LABEL(label_8)  // K oddments: End
     madd x25, x14, x22, x25  // C += m * ldc
     csel x24, x24, x23, LT
 KAI_ASM_LABEL(label_10)  // Store to output array: Accumulator loop
-    mova z14.b,p1/M, za0h.b[w12, 0]
-    mova z15.b,p1/M, za0h.b[w12, 1]
+    KAI_ASM_INST(0xc002040e)  // mov	z14.b, p1/m, za0h.b[w12, 0]
+    KAI_ASM_INST(0xc002042f)  // mov	z15.b, p1/m, za0h.b[w12, 1]
     add x12, x12, #0x4
     cmp x12, x23, LSL #1
     add x21, x21, #0x1
-    fcvt z14.h, p1/M, z14.s
-    fcvt z4.h, p1/M, z15.s
-    uzp1 z4.h, z14.h, z4.h
+    KAI_ASM_INST(0x6588a5ce)  // fcvt	z14.h, p1/m, z14.s
+    KAI_ASM_INST(0x6588a5e4)  // fcvt	z4.h, p1/m, z15.s
+    KAI_ASM_INST(0x056469c4)  // uzp1	z4.h, z14.h, z4.h
     csel x12, x12, x20, LT
     cmp x21, x24
-    FMAX z4.h, p1/M, z4.h, z17.h
-    FMIN z4.h, p1/M, z4.h, z16.h
-
+    KAI_ASM_INST(0x65468624)  // fmax	z4.h, p1/m, z4.h, z17.h
+    KAI_ASM_INST(0x65478604)  // fmin	z4.h, p1/m, z4.h, z16.h
     st1h { z4.h }, p0, [x25]
     add x25, x25, x22
     blt label_10
@@ -227,7 +219,7 @@ KAI_ASM_LABEL(label_10)  // Store to output array: Accumulator loop
     cmp x14, x11
     mov x28, x26
     blt label_1
-    SMSTOP
+    KAI_ASM_INST(0xd503467f)  // SMSTOP
     ldp x22, x23, [sp, 16]
     ldp x24, x25, [sp, 32]
     ldp x26, x27, [sp, 48]

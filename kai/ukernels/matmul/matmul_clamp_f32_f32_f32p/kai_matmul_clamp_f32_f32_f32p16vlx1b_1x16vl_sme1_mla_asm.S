@@ -59,7 +59,7 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme1_m
     stp d10, d11, [sp, 88]
     stp d12, d13, [sp, 104]
     stp d14, d15, [sp, 120]
-    SMSTART SM
+    KAI_ASM_INST(0xd503477f)  // SMSTART 
     mov x8, #0x0
     ldr x11, [x0, #0x18]
     cntw x10, ALL, MUL #4
@@ -1251,7 +1251,7 @@ KAI_ASM_LABEL(label_27)  // Width 4: Output done
     sub x11, x11, x10, LSL #2
     bgt label_4
 KAI_ASM_LABEL(label_28)  // Exit
-    SMSTOP
+    KAI_ASM_INST(0xd503467f)  // SMSTOP
     ldp x22, x23, [sp, 16]
     ldp x24, x25, [sp, 32]
     ldp x26, x27, [sp, 48]

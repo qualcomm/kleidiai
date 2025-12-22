@@ -1508,7 +1508,7 @@ KAI_ASM_LABEL(label_30)  // Width 4: Multiply loop: unique 8: skip row sum
     KAI_ASM_INST(0xcb0608a5)  // sub	x5, x5, x6, lsl #2
     bgt label_4
 KAI_ASM_LABEL(label_32)  // Exit
-    SMSTOP
+    KAI_ASM_INST(0xd503467f)  // SMSTOP
     ldp x22, x23, [sp, 16]
     ldp x24, x25, [sp, 32]
     ldp x26, x27, [sp, 48]
