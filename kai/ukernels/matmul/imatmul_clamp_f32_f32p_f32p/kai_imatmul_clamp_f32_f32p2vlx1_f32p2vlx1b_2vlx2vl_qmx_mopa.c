@@ -12,7 +12,7 @@
 #if (!defined(__aarch64__) || !defined(__ARM_FEATURE_SVE2)) && !defined(_M_ARM64)
 #error This file must be compiled for AArch64, FEAT_SVE2.
 #else  // Architectural features check.
-#include "kai_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa.h"
+#include "kai_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -37,7 +37,7 @@ static const size_t kai_mr = 2;
 static const size_t kai_nr = 2;
 static const size_t kai_kr = 1;
 
-void kai_kernel_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(KernelArgs* args);
+void kai_kernel_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(KernelArgs* args);
 
 // Returns a constant value specific to this kernel that's relative to vector length
 static size_t kai_get_kernel_vec_length_constant(void) {
@@ -45,48 +45,48 @@ static size_t kai_get_kernel_vec_length_constant(void) {
     return kernel_vec_length_constant;
 }
 
-size_t kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(void) {
+size_t kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(void) {
     return kai_mr * kai_get_kernel_vec_length_constant();
 }
 
-size_t kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(void) {
+size_t kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(void) {
     return kai_nr * kai_get_kernel_vec_length_constant();
 }
 
-size_t kai_get_lhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(
+size_t kai_get_lhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t m_idx, size_t k_chunk_count, size_t k_chunk_length) {
-    KAI_ASSUME(m_idx % kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa() == 0);
+    KAI_ASSUME(m_idx % kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa() == 0);
     return m_idx * k_chunk_count * kai_roundup(k_chunk_length, kai_kr) * sizeof(float);
 }
 
-static size_t kai_get_rhs_packed_stride_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(
+static size_t kai_get_rhs_packed_stride_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t k_chunk_count, size_t k_chunk_length) {
-    return kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa() *
+    return kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa() *
         (sizeof(float) + k_chunk_count * kai_roundup(k_chunk_length, kai_kr) * sizeof(float));
 }
 
-size_t kai_get_rhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(
+size_t kai_get_rhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t n_idx, size_t k_chunk_count, size_t k_chunk_length) {
-    KAI_ASSUME(n_idx % kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa() == 0);
-    const size_t block_idx = n_idx / kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa();
+    KAI_ASSUME(n_idx % kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa() == 0);
+    const size_t block_idx = n_idx / kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa();
     return block_idx *
-        kai_get_rhs_packed_stride_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(
+        kai_get_rhs_packed_stride_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
                k_chunk_count, k_chunk_length);
 }
 
-size_t kai_get_dst_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(
+size_t kai_get_dst_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t m_idx, size_t n_idx, size_t dst_stride_row) {
-    KAI_ASSUME(m_idx % kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa() == 0);
-    KAI_ASSUME(n_idx % kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa() == 0);
+    KAI_ASSUME(m_idx % kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa() == 0);
+    KAI_ASSUME(n_idx % kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa() == 0);
 
     return m_idx * dst_stride_row + n_idx * sizeof(float);
 }
 
-size_t kai_get_dst_size_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(size_t m, size_t n) {
+size_t kai_get_dst_size_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(size_t m, size_t n) {
     return m * n * sizeof(float);
 }
 
-void kai_run_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(
+void kai_run_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t m, size_t n, size_t k_chunk_count, size_t k_chunk_length, const void* lhs_packed, const void* rhs_packed,
     void* dst, size_t dst_stride_row, float clamp_min, float clamp_max) {
     KernelArgs args;
@@ -103,7 +103,7 @@ void kai_run_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(
     args.accumulator_buffer = NULL;
     args.flags = 0;
 
-    kai_kernel_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme1_mopa(&args);
+    kai_kernel_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(&args);
 }
 
 #endif  // Architectural features check.

@@ -19,22 +19,22 @@ extern "C" {
 
 /// Micro-kernel dependencies
 ///
-/// -# kai_lhs_imatmul_pack_x16p2vlx2_x16p_sme to pack the LHS matrix.
-/// -# kai_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme to pack the RHS matrix.
+/// -# kai_lhs_imatmul_pack_x32p2vlx1_x32p_sme to pack the LHS matrix.
+/// -# kai_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme to pack the RHS matrix.
 
 /// Gets m step value.
 ///
 /// The starting row index must be divisible by `m_step`.
 ///
 /// @return The m step value.
-size_t kai_get_m_step_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(void);
+size_t kai_get_m_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(void);
 
 /// Gets n step value.
 ///
 /// The starting column index must be divisible by `n_step`.
 ///
 /// @return The n step value.
-size_t kai_get_n_step_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(void);
+size_t kai_get_n_step_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(void);
 
 /// Gets the offset in bytes to the data element in the packed LHS matrix buffer.
 ///
@@ -43,7 +43,7 @@ size_t kai_get_n_step_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(vo
 /// @param[in] k_chunk_length Length of a LHS column split.
 ///
 /// @return The offset in bytes to the data element.
-size_t kai_get_lhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(
+size_t kai_get_lhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t m_idx, size_t k_chunk_count, size_t k_chunk_length);
 
 /// Gets the offset in bytes to the data element in the packed RHS matrix buffer.
@@ -53,7 +53,7 @@ size_t kai_get_lhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_s
 /// @param[in] k_chunk_length Length of a LHS column split.
 ///
 /// @return The offset in bytes to the data element.
-size_t kai_get_rhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(
+size_t kai_get_rhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t n_idx, size_t k_chunk_count, size_t k_chunk_length);
 
 /// Gets the offset in bytes to the data element in the destination matrix buffer.
@@ -63,7 +63,7 @@ size_t kai_get_rhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_s
 /// @param[in] dst_stride_row Row stride in bytes.
 ///
 /// @return The offset in bytes to the data element.
-size_t kai_get_dst_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(
+size_t kai_get_dst_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t m_idx, size_t n_idx, size_t dst_stride_row);
 
 /// Gets the size in bytes of the destination matrix buffer.
@@ -72,16 +72,16 @@ size_t kai_get_dst_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mop
 /// @param[in] n Number of columns.
 ///
 /// @return The size in bytes of the destination matrix buffer.
-size_t kai_get_dst_size_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(size_t m, size_t n);
+size_t kai_get_dst_size_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(size_t m, size_t n);
 
 /// Runs the matrix multiplication microkernel followed by a clamp operation.
 ///
 /// The pointer of each buffers (packed LHS, packed RHS and output) needs to be added with offset
 /// calculated using the following functions:
 ///
-///   * Packed LHS: @ref kai_get_lhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa.
-///   * Packed RHS: @ref kai_get_rhs_packed_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa.
-///   * Output: @ref kai_get_dst_offset_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa.
+///   * Packed LHS: @ref kai_get_lhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa.
+///   * Packed RHS: @ref kai_get_rhs_packed_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa.
+///   * Output: @ref kai_get_dst_offset_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa.
 ///
 /// @param[in] m Number of output rows to be computed.
 /// @param[in] n Number of output columns to be computed.
@@ -93,7 +93,7 @@ size_t kai_get_dst_size_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(
 /// @param[in] dst_stride_row Row stride in bytes of the output matrix.
 /// @param[in] clamp_min Minimum value to clamp the final result.
 /// @param[in] clamp_max Maximum value to clamp the final result.
-void kai_run_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme1_mopa(
+void kai_run_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa(
     size_t m, size_t n, size_t k_chunk_count, size_t k_chunk_length, const void* lhs_packed, const void* rhs_packed,
     void* dst, size_t dst_stride_row, float clamp_min, float clamp_max);
 
