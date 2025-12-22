@@ -21,14 +21,14 @@
 #include "kai/kai_common.h"
 #include "kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/kai_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxp2vlx4sb_2vlx2vl_sme_mopa.h"
 #include "kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/kai_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa.h"
-#include "kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/kai_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa.h"
+#include "kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/kai_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa.h"
 #include "kai/ukernels/matmul/imatmul_clamp_qai8_qai8p_qsi8cxp/kai_imatmul_clamp_qai8_qai8p_qsi8cxp_interface.h"
 #include "kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme2_dot.h"
-#include "kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot.h"
+#include "kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot.h"
 #include "kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp_interface.h"
 #include "kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxp2vlx4sb_2vlx2vl_sme_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa.h"
-#include "kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_interface.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_imatmul_pack_x8p2vlx4_x8p_sme.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_pack_x8p2vlx4_x8_sme.h"
@@ -161,24 +161,24 @@ get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa_interface() {
 
     return ukernel;
 }
-/// Make sure that interface matches for qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa
+/// Make sure that interface matches for qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa
 const kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel&
-get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa_interface() {
+get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa_interface() {
     static kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel ukernel1;
 
-    ukernel1.get_m_step = kai_get_m_step_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_n_step = kai_get_n_step_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_mr = kai_get_mr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_nr = kai_get_nr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_kr = kai_get_kr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_sr = kai_get_sr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
+    ukernel1.get_m_step = kai_get_m_step_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_n_step = kai_get_n_step_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_mr = kai_get_mr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_nr = kai_get_nr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_kr = kai_get_kr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_sr = kai_get_sr_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
     ukernel1.get_lhs_packed_offset =
-        kai_get_lhs_packed_offset_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
+        kai_get_lhs_packed_offset_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
     ukernel1.get_rhs_packed_offset =
-        kai_get_rhs_packed_offset_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_dst_offset = kai_get_dst_offset_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_dst_size = kai_get_dst_size_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.run_matmul = kai_run_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
+        kai_get_rhs_packed_offset_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_dst_offset = kai_get_dst_offset_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_dst_size = kai_get_dst_size_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.run_matmul = kai_run_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
 
     return ukernel1;
 }
@@ -224,21 +224,21 @@ get_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme2_dot_interface() {
 
     return ukernel;
 };
-/// Make sure that interface matches for qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot
+/// Make sure that interface matches for qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot
 const kai_matmul_clamp_qai8_qai8p_qsi8cxp_ukernel&
-get_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot_interface() {
+get_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot_interface() {
     static kai_matmul_clamp_qai8_qai8p_qsi8cxp_ukernel ukernel1;
 
-    ukernel1.get_m_step = kai_get_m_step_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_n_step = kai_get_n_step_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_nr = kai_get_nr_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_kr = kai_get_kr_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_sr = kai_get_sr_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_lhs_offset = kai_get_lhs_offset_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_rhs_packed_offset = kai_get_rhs_packed_offset_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_dst_offset = kai_get_dst_offset_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.get_dst_size = kai_get_dst_size_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
-    ukernel1.run_matmul = kai_run_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot;
+    ukernel1.get_m_step = kai_get_m_step_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_n_step = kai_get_n_step_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_nr = kai_get_nr_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_kr = kai_get_kr_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_sr = kai_get_sr_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_lhs_offset = kai_get_lhs_offset_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_rhs_packed_offset = kai_get_rhs_packed_offset_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_dst_offset = kai_get_dst_offset_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.get_dst_size = kai_get_dst_size_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
+    ukernel1.run_matmul = kai_run_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot;
 
     return ukernel1;
 };
@@ -261,20 +261,20 @@ get_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa_interface() {
     return ukernel;
 };
 
-/// Make sure that interface matches qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa
+/// Make sure that interface matches qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa
 const kai_imatmul_clamp_qai8_qai8p_qsi8cxp_ukernel&
-get_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa_interface() {
+get_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa_interface() {
     static kai_imatmul_clamp_qai8_qai8p_qsi8cxp_ukernel ukernel1;
 
-    ukernel1.get_m_step = kai_get_m_step_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_n_step = kai_get_n_step_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
+    ukernel1.get_m_step = kai_get_m_step_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_n_step = kai_get_n_step_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
     ukernel1.get_lhs_packed_offset =
-        kai_get_lhs_packed_offset_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
+        kai_get_lhs_packed_offset_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
     ukernel1.get_rhs_packed_offset =
-        kai_get_rhs_packed_offset_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_dst_offset = kai_get_dst_offset_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.get_dst_size = kai_get_dst_size_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
-    ukernel1.run_imatmul = kai_run_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa;
+        kai_get_rhs_packed_offset_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_dst_offset = kai_get_dst_offset_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.get_dst_size = kai_get_dst_size_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
+    ukernel1.run_imatmul = kai_run_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa;
 
     return ukernel1;
 };
@@ -351,8 +351,8 @@ const auto& get_gemm_variants() {
     static std::array<MatMulVariant, 3> variants;
     static const kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel& ukernel_sme2 =
         get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa_interface();
-    static const kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel& ukernel_sme1 =
-        get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa_interface();
+    static const kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel& ukernel_qmx =
+        get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa_interface();
     static const kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel& ukernel_sme =
         get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxp2vlx4sb_2vlx2vl_sme_mopa_interface();
 
@@ -401,7 +401,7 @@ const auto& get_gemm_variants() {
     variants[1].matmul.matmul = ukernel_sme2.run_matmul;
 
 
-    variants[2].name = "matmul_qai8_qai8p_qsi8cxp_sme1";
+    variants[2].name = "matmul_qai8_qai8p_qsi8cxp_qmx";
     variants[2].acc_pack.m = 2 * get_sme_vector_length<int32_t>();
     variants[2].acc_pack.n = 2 * get_sme_vector_length<int32_t>();
     variants[2].acc_pack.k = sizeof(int32_t) / sizeof(int8_t);
@@ -411,17 +411,17 @@ const auto& get_gemm_variants() {
     variants[2].is_supported = cpu_has_sme;
     variants[2].lhs_pack = get_lhs_pack();
     variants[2].rhs_pack = get_rhs_pack();
-    variants[2].matmul.get_m_step = ukernel_sme1.get_m_step;
-    variants[2].matmul.get_n_step = ukernel_sme1.get_n_step;
-    variants[2].matmul.get_mr = ukernel_sme1.get_mr;
-    variants[2].matmul.get_nr = ukernel_sme1.get_nr;
-    variants[2].matmul.get_kr = ukernel_sme1.get_kr;
-    variants[2].matmul.get_sr = ukernel_sme1.get_sr;
-    variants[2].matmul.get_packed_lhs_offset = ukernel_sme1.get_lhs_packed_offset;
-    variants[2].matmul.get_packed_rhs_offset = ukernel_sme1.get_rhs_packed_offset;
-    variants[2].matmul.get_dst_offset = ukernel_sme1.get_dst_offset;
-    variants[2].matmul.get_dst_size = ukernel_sme1.get_dst_size;
-    variants[2].matmul.matmul = ukernel_sme1.run_matmul;
+    variants[2].matmul.get_m_step = ukernel_qmx.get_m_step;
+    variants[2].matmul.get_n_step = ukernel_qmx.get_n_step;
+    variants[2].matmul.get_mr = ukernel_qmx.get_mr;
+    variants[2].matmul.get_nr = ukernel_qmx.get_nr;
+    variants[2].matmul.get_kr = ukernel_qmx.get_kr;
+    variants[2].matmul.get_sr = ukernel_qmx.get_sr;
+    variants[2].matmul.get_packed_lhs_offset = ukernel_qmx.get_lhs_packed_offset;
+    variants[2].matmul.get_packed_rhs_offset = ukernel_qmx.get_rhs_packed_offset;
+    variants[2].matmul.get_dst_offset = ukernel_qmx.get_dst_offset;
+    variants[2].matmul.get_dst_size = ukernel_qmx.get_dst_size;
+    variants[2].matmul.matmul = ukernel_qmx.run_matmul;
     return variants;
 }
 
@@ -431,8 +431,8 @@ const auto& get_indirect_gemm_variants() {
         get_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxp2vlx4sb_2vlx2vl_sme_mopa_interface();
     static const kai_imatmul_clamp_qai8_qai8p_qsi8cxp_ukernel& ukernel_sme2 =
         get_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa_interface();
-    static const kai_imatmul_clamp_qai8_qai8p_qsi8cxp_ukernel& ukernel_sme1 =
-        get_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme1_mopa_interface();
+    static const kai_imatmul_clamp_qai8_qai8p_qsi8cxp_ukernel& ukernel_qmx =
+        get_imatmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_qmx_mopa_interface();
         
     variants[0].name = "imatmul_qai8_qai8p_qsi8cxp_sme";
     variants[0].acc_pack.m = 2 * get_sme_vector_length<int32_t>();
@@ -492,7 +492,7 @@ const auto& get_indirect_gemm_variants() {
     variants[1].matmul.get_dst_size = ukernel_sme2.get_dst_size;
     variants[1].matmul.imatmul = ukernel_sme2.run_imatmul;
 
-    variants[2].name = "imatmul_qai8_qai8p_qsi8cxp_sme1";
+    variants[2].name = "imatmul_qai8_qai8p_qsi8cxp_qmx";
     variants[2].acc_pack.m = 2 * get_sme_vector_length<int32_t>();
     variants[2].acc_pack.n = 2 * get_sme_vector_length<int32_t>();
     variants[2].acc_pack.k = sizeof(int32_t) / sizeof(int8_t);
@@ -513,13 +513,13 @@ const auto& get_indirect_gemm_variants() {
     variants[2].rhs_pack.get_packed_rhs_size =
         kai_get_rhs_packed_size_rhs_imatmul_pack_kxn_qsi8cxp2vlx4sb_qs8cx_f32_i32_sme;
     variants[2].rhs_pack.pack = kai_run_rhs_imatmul_pack_kxn_qsi8cxp2vlx4sb_qs8cx_f32_i32_sme;
-    variants[2].matmul.get_m_step = ukernel_sme1.get_m_step;
-    variants[2].matmul.get_n_step = ukernel_sme1.get_n_step;
-    variants[2].matmul.get_lhs_packed_offset = ukernel_sme1.get_lhs_packed_offset;
-    variants[2].matmul.get_rhs_packed_offset = ukernel_sme1.get_rhs_packed_offset;
-    variants[2].matmul.get_dst_offset = ukernel_sme1.get_dst_offset;
-    variants[2].matmul.get_dst_size = ukernel_sme1.get_dst_size;
-    variants[2].matmul.imatmul = ukernel_sme1.run_imatmul;
+    variants[2].matmul.get_m_step = ukernel_qmx.get_m_step;
+    variants[2].matmul.get_n_step = ukernel_qmx.get_n_step;
+    variants[2].matmul.get_lhs_packed_offset = ukernel_qmx.get_lhs_packed_offset;
+    variants[2].matmul.get_rhs_packed_offset = ukernel_qmx.get_rhs_packed_offset;
+    variants[2].matmul.get_dst_offset = ukernel_qmx.get_dst_offset;
+    variants[2].matmul.get_dst_size = ukernel_qmx.get_dst_size;
+    variants[2].matmul.imatmul = ukernel_qmx.run_imatmul;
     
     return variants;
 }
@@ -551,9 +551,9 @@ const auto& get_gemv_variants() {
     variants[0].matmul.get_dst_size = ukernel.get_dst_size;
     variants[0].matmul.matmul = ukernel.run_matmul;
     static const kai_matmul_clamp_qai8_qai8p_qsi8cxp_ukernel& ukernel1 =
-        get_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme1_dot_interface();
+        get_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_qmx_dot_interface();
 
-    variants[1].name = "matmul_qai8_qai8_qsi8cxp_sme1_dot";
+    variants[1].name = "matmul_qai8_qai8_qsi8cxp_qmx_dot";
     variants[1].acc_pack.m = 1;
     variants[1].acc_pack.n = 2 * get_sme_vector_length<int32_t>();
     variants[1].acc_pack.k = sizeof(int32_t) / sizeof(int8_t);

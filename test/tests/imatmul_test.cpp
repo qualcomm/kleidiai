@@ -369,7 +369,7 @@ const auto& get_indirect_matmul_methods() {
     indirect_matmul_methods[3].imatmul.get_dst_size = ukernel_f32_sme.get_dst_size;
     indirect_matmul_methods[3].imatmul.imatmul = ukernel_f32_sme.run_imatmul;
 
-    // F16 IMATMUL sme1 ///////////////////////////////////////////////////////
+    // F16 IMATMUL qmx ///////////////////////////////////////////////////////
     indirect_matmul_methods[4].name = "imatmul_f16_f16p_f16p_2vlx2vl_qmx_mopa";
     indirect_matmul_methods[4].is_supported = cpu_has_sme;
     indirect_matmul_methods[4].pack_shape.m = 2 * get_sme_vector_length<int32_t>();
@@ -398,17 +398,17 @@ const auto& get_indirect_matmul_methods() {
     indirect_matmul_methods[4].rhs.pack = kai_run_rhs_imatmul_pack_kxn_x16p2vlx2b_x16_x16_sme;
 
     // IMATMUL
-    const kai_imatmul_clamp_f16_f16p_f16p_ukernel& ukernel_f16_sme1 =
+    const kai_imatmul_clamp_f16_f16p_f16p_ukernel& ukernel_f16_qmx =
         get_imatmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa();
-    indirect_matmul_methods[4].imatmul.get_m_step = ukernel_f16_sme1.get_m_step;
-    indirect_matmul_methods[4].imatmul.get_n_step = ukernel_f16_sme1.get_n_step;
-    indirect_matmul_methods[4].imatmul.get_lhs_packed_offset = ukernel_f16_sme1.get_lhs_packed_offset;
-    indirect_matmul_methods[4].imatmul.get_rhs_packed_offset = ukernel_f16_sme1.get_rhs_packed_offset;
-    indirect_matmul_methods[4].imatmul.get_dst_offset = ukernel_f16_sme1.get_dst_offset;
-    indirect_matmul_methods[4].imatmul.get_dst_size = ukernel_f16_sme1.get_dst_size;
-    indirect_matmul_methods[4].imatmul.imatmul = ukernel_f16_sme1.run_imatmul;
+    indirect_matmul_methods[4].imatmul.get_m_step = ukernel_f16_qmx.get_m_step;
+    indirect_matmul_methods[4].imatmul.get_n_step = ukernel_f16_qmx.get_n_step;
+    indirect_matmul_methods[4].imatmul.get_lhs_packed_offset = ukernel_f16_qmx.get_lhs_packed_offset;
+    indirect_matmul_methods[4].imatmul.get_rhs_packed_offset = ukernel_f16_qmx.get_rhs_packed_offset;
+    indirect_matmul_methods[4].imatmul.get_dst_offset = ukernel_f16_qmx.get_dst_offset;
+    indirect_matmul_methods[4].imatmul.get_dst_size = ukernel_f16_qmx.get_dst_size;
+    indirect_matmul_methods[4].imatmul.imatmul = ukernel_f16_qmx.run_imatmul;
 
-    // F32 IMATMUL sme1 ///////////////////////////////////////////////////////
+    // F32 IMATMUL qmx ///////////////////////////////////////////////////////
     indirect_matmul_methods[5].name = "imatmul_f32_f32p_f32p_2vlx2vl_qmx_mopa";
     indirect_matmul_methods[5].is_supported = cpu_has_sme;
     indirect_matmul_methods[5].pack_shape.m = 2 * get_sme_vector_length<int32_t>();
@@ -437,15 +437,15 @@ const auto& get_indirect_matmul_methods() {
     indirect_matmul_methods[5].rhs.pack = kai_run_rhs_imatmul_pack_kxn_x32p2vlx1b_x32_x32_sme;
 
     // IMATMUL
-    const kai_imatmul_clamp_f32_f32p_f32p_ukernel& ukernel_f32_sme1 =
+    const kai_imatmul_clamp_f32_f32p_f32p_ukernel& ukernel_f32_qmx =
         get_imatmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_qmx_mopa();
-    indirect_matmul_methods[5].imatmul.get_m_step = ukernel_f32_sme1.get_m_step;
-    indirect_matmul_methods[5].imatmul.get_n_step = ukernel_f32_sme1.get_n_step;
-    indirect_matmul_methods[5].imatmul.get_lhs_packed_offset = ukernel_f32_sme1.get_lhs_packed_offset;
-    indirect_matmul_methods[5].imatmul.get_rhs_packed_offset = ukernel_f32_sme1.get_rhs_packed_offset;
-    indirect_matmul_methods[5].imatmul.get_dst_offset = ukernel_f32_sme1.get_dst_offset;
-    indirect_matmul_methods[5].imatmul.get_dst_size = ukernel_f32_sme1.get_dst_size;
-    indirect_matmul_methods[5].imatmul.imatmul = ukernel_f32_sme1.run_imatmul;
+    indirect_matmul_methods[5].imatmul.get_m_step = ukernel_f32_qmx.get_m_step;
+    indirect_matmul_methods[5].imatmul.get_n_step = ukernel_f32_qmx.get_n_step;
+    indirect_matmul_methods[5].imatmul.get_lhs_packed_offset = ukernel_f32_qmx.get_lhs_packed_offset;
+    indirect_matmul_methods[5].imatmul.get_rhs_packed_offset = ukernel_f32_qmx.get_rhs_packed_offset;
+    indirect_matmul_methods[5].imatmul.get_dst_offset = ukernel_f32_qmx.get_dst_offset;
+    indirect_matmul_methods[5].imatmul.get_dst_size = ukernel_f32_qmx.get_dst_size;
+    indirect_matmul_methods[5].imatmul.imatmul = ukernel_f32_qmx.run_imatmul;
 
 
     return indirect_matmul_methods;
