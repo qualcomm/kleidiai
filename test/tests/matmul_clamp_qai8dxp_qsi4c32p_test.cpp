@@ -21,6 +21,8 @@
 #include "kai/ukernels/matmul/matmul_clamp_bf16_qai8dxp_qsi4c32p/kai_matmul_clamp_bf16_qai8dxp_qsi4c32p_interface.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_sme2_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/kai_matmul_clamp_f32_qai8dxp1x4_qsi4c32p4vlx4_1x4vl_sme2_dot.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_sme1_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/kai_matmul_clamp_f32_qai8dxp1x4_qsi4c32p4vlx4_1x4vl_sme1_dot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/kai_matmul_clamp_f32_qai8dxp1x4_qsi4c32p4x4_1x4_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/kai_matmul_clamp_f32_qai8dxp1x4_qsi4c32p8x4_1x8_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/kai_matmul_clamp_f32_qai8dxp1x8_qsi4c32p4x8_1x4x32_neon_dotprod.h"
@@ -98,7 +100,7 @@ const auto& get_f32_gemm_variants() noexcept {
     using Variant = UkernelMatmulPackVariant<
         kai_matmul_clamp_f32_qai8dxp_qsi4c32p_ukernel, kai_qai8dxp_pack_functions, kai_qsi4c32p_pack_functions>;
 
-    static const std::array<Variant, 12> variants = {{
+    static const std::array<Variant, 13> variants = {{
         UKERNEL_MATMUL_PACK_VARIANT(
             clamp_f32_qai8dxp1x4_qsi4c32p4x4_1x4_neon_dotprod, cpu_has_dotprod, lhs_quant_pack_qai8dxp_f32,
             rhs_pack_nxk_qsi4c32p_qsu4c32s1s0,
@@ -137,6 +139,9 @@ const auto& get_f32_gemm_variants() noexcept {
         UKERNEL_MATMUL_PACK_VARIANT(
             clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_sme2_mopa, cpu_has_sme2, lhs_quant_pack_qai8dxp_f32,
             rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false),
+        UKERNEL_MATMUL_PACK_VARIANT(
+            clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_sme1_mopa, cpu_has_sme, lhs_quant_pack_qai8dxp_f32,
+            rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false),
     }};
 
     return variants;
@@ -146,11 +151,13 @@ const auto& get_f32_gemv_variants() noexcept {
     using Variant = UkernelMatmulPackVariant<
         kai_matmul_clamp_f32_qai8dxp_qsi4c32p_ukernel, kai_qai8dxp_pack_functions, kai_qsi4c32p_pack_functions>;
 
-    static const std::array<Variant, 1> variants = {{
+    static const std::array<Variant, 2> variants = {{
         UKERNEL_MATMUL_PACK_VARIANT(
             clamp_f32_qai8dxp1x4_qsi4c32p4vlx4_1x4vl_sme2_dot, cpu_has_sme2, lhs_quant_pack_qai8dxp_f32,
             rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false),
-    }};
+        UKERNEL_MATMUL_PACK_VARIANT(
+            clamp_f32_qai8dxp1x4_qsi4c32p4vlx4_1x4vl_sme1_dot, cpu_has_sme, lhs_quant_pack_qai8dxp_f32,
+            rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false),    }};
 
     return variants;
 }
