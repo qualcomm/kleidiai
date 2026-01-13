@@ -147,6 +147,7 @@ const auto& get_f32_gemm_variants() noexcept {
     return variants;
 }
 
+
 const auto& get_f32_gemv_variants() noexcept {
     using Variant = UkernelMatmulPackVariant<
         kai_matmul_clamp_f32_qai8dxp_qsi4c32p_ukernel, kai_qai8dxp_pack_functions, kai_qsi4c32p_pack_functions>;
@@ -184,7 +185,7 @@ const auto& get_f32_neon_gemm_variants_only() {
         const auto& all = get_f32_gemm_variants();
         for (const auto& v : all) {
             const char* n = v.ukernel.name.data();
-            if (n == nullptr || std::strstr(n, "sme2") == nullptr) {
+            if (n == nullptr || std::strstr(n, "sme") == nullptr) {
                 filtered.push_back(v);
             }
         }
@@ -554,7 +555,7 @@ class QMatMulClampF32Test : public ::testing::TestWithParam<QMatmulClampF32Param
         RhsPackType rhs_pack_type;
         Rect rect;
         float clamp_ratio;
-        bool is_sme2;
+        bool is_sme;
 
         TestParams() :
             variant(nullptr),
@@ -565,7 +566,7 @@ class QMatMulClampF32Test : public ::testing::TestWithParam<QMatmulClampF32Param
             rhs_pack_type(RhsPackType::NxK),
             rect(0, 0, 0, 0),
             clamp_ratio(0.8F),
-            is_sme2(false) {
+            is_sme(false) {
         }
 
         TestParams(
@@ -582,7 +583,7 @@ class QMatMulClampF32Test : public ::testing::TestWithParam<QMatmulClampF32Param
             rhs_pack_type(r),
             rect(rect),
             clamp_ratio(clamp_ratio),
-            is_sme2(false) {
+            is_sme(false) {
         }
     };
 
@@ -659,8 +660,8 @@ protected:
         params.rhs_pack_type = rhs_dir;
         params.rect = rect;
         params.clamp_ratio = clamp_ratio;
-        params.is_sme2 =
-            (variant.ukernel.name.data() != nullptr && std::strstr(variant.ukernel.name.data(), "sme2") != nullptr);
+        params.is_sme =
+            (variant.ukernel.name.data() != nullptr && std::strstr(variant.ukernel.name.data(), "sme") != nullptr);
     }
 };
 
@@ -1239,7 +1240,7 @@ TEST_P(QMatMulClampF32Test, EndToEnd) {
         }
         std::tie(imp_packed_rhs, rhs_packed_offset) = pack_rhs_qsi4c32p_kxn(
             data.N, data.K, nr, kr, sr, bl, data.rhs_quant, data.bias, bias_offset_bytes, data.rhs_scales,
-            rhs_start_col, rect.width(), p.is_sme2);
+            rhs_start_col, rect.width(), p.is_sme);
     }
 
     ASSERT_EQ(rhs_packed_offset, ukernel.interface.get_rhs_packed_offset(rhs_start_col, data.K, bl));
