@@ -100,6 +100,11 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_LESS 
     message(WARNING "KleidiAI: Using non-supported GCC version. Expected ${KLEIDIAI_MIN_GNU_VERSION} or newer, received ${CMAKE_C_COMPILER_VERSION}.")
 endif()
 
+if(onnxruntime_USE_QMX_KLEIDIAI_COEXIST)
+        set(ENABLE_KLEIDIAI_QMX_COEXIST ON CACHE BOOL "" FORCE)
+endif()
+
+
 # Compile all kernels from Arm Kleidiai and Qualcomm QMX kernels
 if(NOT ENABLE_KLEIDIAI_QMX_COEXIST)
 
