@@ -10,6 +10,76 @@ KleidiAI follows the [Semantic Versioning](https://semver.org/) specification fo
 
 ## Upcoming Release
 
+## v1.16.0
+
+- Extended the benchmarking framework to support multiple operators.
+  - Initial support for matrix multiplication (matmul) & indirect matrix multiplication (imatmul)
+  - Added all imatmul and matmul micro-kernels to the benchmark suite
+- Fixes:
+  - All SME and SME2 micro-kernels now commit ZA lazy save buffer when building with SME support.
+  - Fixed incorrect handling of zero point and scale into two packing kernels which caused incorrect de-quantisation is certain cases:
+    - kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon
+    - kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon
+- NEW SVE micro-kernels (256-bit Vector length specific):
+  - Matrix multiplication (MxN) Micro-kernels of QSI8DX LHS and QSI4CX RHS with F32 input and output.
+  - Matrix multiplication (1xN) Micro-kernels of QSI8DX LHS and QSI4CX RHS with F32 input and output.
+
+## v1.15.1
+
+- Fixes
+  - Added missing checks for bf16 support for quantised matmuls with bf16 input/output.
+
+## v1.15.0
+
+- New SME micro-kernels:
+  - Matrix multiplication (MxN) Micro-kernels of QAI8DX LHS and QSI8CX RHS with F32 input and output.
+  - Matrix multiplication (1xN) Micro-kernels of QAI8DX LHS and QSI8CX RHS with F32 input and output.
+- Wider compiler compatibility for the following kernels:
+  - kai_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa
+  - kai_matmul_clamp_f16_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_sme2_dot
+  - kai_matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla
+  - kai_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla
+  - kai_matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_sme2_mopa
+  - kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme2_mopa
+  - kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme_mopa
+  - kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme2_dot
+  - kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme_dot
+  - kai_matmul_clamp_f32_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa
+  - kai_matmul_clamp_f32_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_sme2_dot
+  - kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa
+
+## v1.14.0
+
+- New SME micro-kernels:
+  - Indirect matrix multiplication (MxN) of QAI8 input and output.
+  - Indirect matrix multiplication (MxN) of F16 input and output.
+  - Indirect matrix multiplication (MxN) of F32 input and output.
+  - Matrix multiplication (MxN) of QAI8 LHS and RHS with QAI8 output.
+  - Depthwise Convolution RHS F32 Packing micro-kernel.
+- New SME2 micro-kernels:
+  - Depthwise Convolution (3x3) Planar micro-kernel of F32 LHS and Packed F32 RHS with F32 output using MLA.
+- Convert SME2 matmul micro-kernels to pure assembly, and add MSVC support.
+  - Affects: kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa
+- Optimizations:
+  - Packing micro-kernels kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon and kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon have been further optimized.
+  - Packing micro-kernel kai_lhs_quant_pack_qai8dxp_f16_neon has been further optimized.
+- New Advanced SIMD micro-kernels:
+  - Wider 6x32 block size variants of FP16 Matrix Multiplication, including a variant optimized for the Arm® Cortex®-A55 processor.
+  - Wider 6x16 block size variants of FP32 Matrix Multiplication, including a variant optimized for the Arm® Cortex®-A55 processor.
+- Fixes:
+  - Fix out-of-bound read of intermediate values in kai_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa micro-kernel
+  - Fix out-of-bounds write in kai_matmul_clamp_f16_f16_f16p2vlx2b_1x8vl_sme_mla
+  - Fix out-of-bounds read in kai_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme2_dot
+
+## v1.13.0
+
+- Improve performance of lhs_quant_pack_qsi8d32p_f32 using Advanced SIMD reimplemented as lhs_quant_pack_qsi8d32p4x8sb_f32_neon.
+- New SME2 micro-kernels:
+  - Matrix multiplication (1xN) Micro-kernels of QSI8D32 LHS and QAI4C32 RHS with F16 output, optimized for FEAT_SME2.
+  - Matrix multiplication (MxN) Micro-kernels of QSI8D32 LHS and QAI4C32 RHS with F16 output, optimized for FEAT_SME2.
+  - Matrix multiplication (MxN) Micro-kernels of QSI8D32 LHS and QAI4C32 RHS with F32 output, optimized for FEAT_SME2.
+  - Matrix multiplication (1xN) Micro-kernels of QSI8D32 LHS and QAI4C32 RHS with F32 output, optimized for FEAT_SME2.
+
 ## v1.12.0
 
 - New Advanced SIMD micro-kernels:
@@ -39,7 +109,7 @@ KleidiAI follows the [Semantic Versioning](https://semver.org/) specification fo
 ## v1.11.0
 
 - New Advanced SIMD micro-kernels:
-  - Optimized version of kai_rhs_pack_nxk_qsi4c32p_qsu4c32s1s0 kernel for block depth of 4 bytes (`kai_rhs_pack_nxk_qsi4c32pnrx4_qsu4c32s1s0_neon`)
+  - Optimized version of kai_rhs_pack_nxk_qsi4c32p_qsu4c32s1s0 micro-kernel for block depth of 4 bytes (`kai_rhs_pack_nxk_qsi4c32pnrx4_qsu4c32s1s0_neon`)
 - Improve performance of `kai_rhs_pack_nxk_qsi4c32pnrx8_qsu4c32s1s0_neon`
 
 ## v1.10.0
@@ -74,12 +144,12 @@ KleidiAI follows the [Semantic Versioning](https://semver.org/) specification fo
   - Matrix multiplication (MxN) Micro-kernels of QSI8D32 LHS and QAI4C32 RHS with F16 output, optimized for FEAT_DotProd.
   - Matrix multiplication (1xN) Micro-kernels of QSI8D32 LHS and QAI4C32 RHS with F32 output, optimized for FEAT_DotProd.
   - Matrix multiplication (1xN) Micro-kernels of QSI8D32 LHS and QAI4C32 RHS with F16 output, optimized for FEAT_DotProd.
-  - Optimized version of kai_rhs_pack_nxk_qsi4c32p_qsu4c32s1s0 kernel for block depth of 8 bytes (`kai_rhs_pack_nxk_qsi4c32pnrx8_qsu4c32s1s0_neon`)
+  - Optimized version of kai_rhs_pack_nxk_qsi4c32p_qsu4c32s1s0 micro-kernel for block depth of 8 bytes (`kai_rhs_pack_nxk_qsi4c32pnrx8_qsu4c32s1s0_neon`)
 - New SME micro-kernels:
-  - Added GEMM F16 and F32 kernels using SME1 MOPA instruction, block size 2VLx2VL.
-- Added Convolution example using SME2 Indirect Matmul Kernels
+  - Added GEMM F16 and F32 micro-kernels using SME1 MOPA instruction, block size 2VLx2VL.
+- Added Convolution example using SME2 Indirect Matmul micro-kernels
 - Fixes:
-  - Fix issue where kai_get_m_step() returns the incorrect value for kernels
+  - Fix issue where kai_get_m_step() returns the incorrect value for micro-kernels
     - matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla
     - matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla
   - Fix issue with negative values handling in kai_rhs_pack_nxk_qsi4cxps1s0_qsu4cxs1s0_neon
@@ -103,21 +173,21 @@ KleidiAI follows the [Semantic Versioning](https://semver.org/) specification fo
   - Matrix multiplication (1xN) Micro-kernels of QAI8DX LHS and QSI8CX RHS with F16 output, optimized for FEAT_DotProd.
 - New SME micro-kernels:
   - Indirect matrix multiplication (MxN) of F16 input and output.
-    - Packing kernels for LHS and RHS
+    - Packing micro-kernels for LHS and RHS
   - Indirect matrix multiplication (MxN) of F32 input and output.
-    - Packing kernels for LHS and RHS
+    - Packing micro-kernels for LHS and RHS
 - New SME2 micro-kernels:
   - Indirect matrix multiplication (MxN) of F16 input and output.
     - Matrix multiplication of packed indirect LHS and packed RHS
   - Indirect matrix multiplication (MxN) of F32 input and output.
     - Matrix multiplication of packed indirect LHS and packed RHS
-- Disable link time optimization for microkernel library
+- Disable link time optimization for micro-kernel library
 
 ## v1.7.0
 
 - New SME micro-kernels:
   - Indirect matrix multiplication (MxN) of QAI8 input and output.
-    - Packing kernels for LHS and RHS
+    - Packing micro-kernels for LHS and RHS
 - New SME2 micro-kernels:
   - Indirect matrix multiplication (MxN) of QAI8 input and output.
     - Matrix multiplication of packed indirect LHS and packed RHS
@@ -134,7 +204,7 @@ KleidiAI follows the [Semantic Versioning](https://semver.org/) specification fo
 - Add CMake installation and `find_package()` support.
 - Optimize RHS packing qsu4c32s16s0->qsi4c32pscalef16
 - Fixes:
-  - Fix issue where the following kernels ignored clamping parameters:
+  - Fix issue where the following micro-kernels ignored clamping parameters:
     - kai_matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla
     - kai_matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_sme2_dot
     - kai_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla
@@ -205,13 +275,13 @@ KleidiAI follows the [Semantic Versioning](https://semver.org/) specification fo
   - Change the F16 matrix multiplication function signature to use single-precision floating-point for the clamp values.
 - Optimizations:
   - Optimize QAI8DXP LHS quant and pack micro-kernel using Arm® Neon™
-  - Optimize the NxK scalar RHS packing function for QSU4C32 with BF16 quantization scales
+  - Optimize the NxK scalar RHS packing micro-kernel for QSU4C32 with BF16 quantization scales
 - Add initial Microsoft® Visual C++™ build support
 - API for querying library version
 - Fixes:
   - Update QSI8CX tests
   - Asserts will call `abort()` instead of `exit(...)`
-  - Changed invalid assertion in F16 kernel
+  - Changed invalid assertion in F16 micro-kernel
   - Build system improvements
   - Unit test improvements
 
@@ -248,7 +318,7 @@ KleidiAI follows the [Semantic Versioning](https://semver.org/) specification fo
   - SME2 F32 matrix multiplication (1xN) micro-kernels:
     - Compatible with 2VL RHS packing, for sharing one packed RHS with SME2 F32 GEMM micro-kernel.
     - Compatible with 16VL RHS packing.
-  - SME F32 packing function for transposed RHS matrix.
+  - SME F32 packing micro-kernel for transposed RHS matrix.
 - Enhancements to existing micro-kernels:
   - Port several quantized micro-kernels to optimized Advanced SIMD assembly.
 - Register SME F32 matrix multiplication micro-kernel in the benchmark suite.
@@ -291,4 +361,4 @@ The first release of KleidiAI includes:
 - Examples and documentation demonstrating the usage of the 4-bit integer and 16-bit floating point matrix
   multiplication micro-kernels.
 - Testing suite.
-- CMake and Bazel build system for micro kernels.
+- CMake and Bazel build system for micro-kernels.

@@ -1,5 +1,5 @@
 //
-// SPDX-FileCopyrightText: Copyrigh 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
+// SPDX-FileCopyrightText: Copyright 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -179,6 +179,8 @@ void kai_run_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme2_dot(
     args.rhs_stride = rhs_stride;
     args.rhs_row_bytes = rhs_row_bytes;
     args.lhs_end = lhs_end_ptr;
+
+    kai_commit_za();
 
     kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme2_dot(&args);
 }

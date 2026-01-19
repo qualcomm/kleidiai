@@ -1,5 +1,5 @@
 <!--
-    SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates <open-source-office@arm.com>
+    SPDX-FileCopyrightText: Copyright 2024-2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
 
     SPDX-License-Identifier: Apache-2.0
 -->
@@ -60,8 +60,14 @@ Some of the key features of KleidiAI are the following:
 <h1> Supported instructions and extensions </h1>
 
 - Advanced SIMD instructions
+- Scalable Vector Extension (SVE)
 - Scalable Matrix Extension(SME)
 - Scalable Matrix Extension 2(SME2)
+
+The SME and SME2 micro-kernels require compiler support to generate SME ABI-compliant code.
+You can still use the micro-kernels without compiler support, but not within a call chain that already uses ZA register.
+At the moment this is not automatically detected, and you need to build with `KLEIDIAI_INTERNAL_EXTRA_ARCH=+sme` to
+enable this support.
 
 <h1> Filename convention </h1>
 
@@ -89,7 +95,7 @@ All functions defined in the <strong>.h</strong> header file of the micro-kernel
 <h1> Supported micro-kernels </h1>
 
 For a list of supported micro-kernels refer to the [source](/kai/ukernels/) directory. The micro-kernels are grouped in separate directories based on the performed operation.
-For example, all the matrix-multiplication micro-kernels are held in the `matmul/` directory. In there, the micro kernels are grouped into folders whose name syntax describes the micro kernel from a data type point of view of inputs and outputs.
+For example, all the matrix-multiplication micro-kernels are held in the `matmul/` directory. In there, the micro-kernels are grouped into folders whose name syntax describes the micro-kernel from a data type point of view of inputs and outputs.
 
 <h1> How to build </h1>
 

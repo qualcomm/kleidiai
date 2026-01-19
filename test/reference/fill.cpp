@@ -45,11 +45,21 @@ Buffer fill_matrix_random_raw<Float16>(size_t height, size_t width, uint32_t see
 }
 
 template <>
-Buffer fill_matrix_random_raw<BFloat16>(size_t height, size_t width, uint32_t seed) {
+Buffer fill_matrix_random_raw<BFloat16<>>(size_t height, size_t width, uint32_t seed) {
     std::mt19937 rnd(seed);
     std::uniform_real_distribution<float> dist;
 
-    return fill_matrix_raw<BFloat16>(height, width, [&](size_t, size_t) { return static_cast<BFloat16>(dist(rnd)); });
+    return fill_matrix_raw<BFloat16<>>(
+        height, width, [&](size_t, size_t) { return static_cast<BFloat16<>>(dist(rnd)); });
+}
+
+template <>
+Buffer fill_matrix_random_raw<BFloat16<false>>(size_t height, size_t width, uint32_t seed) {
+    std::mt19937 rnd(seed);
+    std::uniform_real_distribution<float> dist;
+
+    return fill_matrix_raw<BFloat16<false>>(
+        height, width, [&](size_t, size_t) { return static_cast<BFloat16<false>>(dist(rnd)); });
 }
 
 template <>
@@ -73,7 +83,7 @@ Buffer fill_matrix_random_raw<UInt4>(size_t height, size_t width, uint32_t seed)
 template <typename T>
 Buffer fill_matrix_raw(size_t height, size_t width, std::function<T(size_t, size_t)> gen) {
     const auto size = height * width * size_in_bits<T> / 8;
-    KAI_ASSUME(width * size_in_bits<T> % 8 == 0);
+    KAI_ASSUME_ALWAYS(width * size_in_bits<T> % 8 == 0);
 
     Buffer data(size);
     auto ptr = reinterpret_cast<T*>(data.data());
@@ -98,7 +108,7 @@ Buffer fill_matrix_random(size_t height, size_t width, const DataFormat& format,
                     return fill_matrix_random_raw<Float16>(height, width, seed);
 
                 case DataType::BF16:
-                    return fill_matrix_random_raw<BFloat16>(height, width, seed);
+                    return fill_matrix_random_raw<BFloat16<>>(height, width, seed);
 
                 case DataType::QSU4:
                     return fill_matrix_random_raw<UInt4>(height, width, seed);
@@ -125,6 +135,6 @@ Buffer fill_random(size_t length, uint32_t seed) {
 template Buffer fill_random<float>(size_t length, uint32_t seed);
 template Buffer fill_random<Float16>(size_t length, uint32_t seed);
 template Buffer fill_matrix_raw<float>(size_t height, size_t width, std::function<float(size_t, size_t)> gen);
-template Buffer fill_random<BFloat16>(size_t length, uint32_t seed);
+template Buffer fill_random<BFloat16<false>>(size_t length, uint32_t seed);
 
 }  // namespace kai::test

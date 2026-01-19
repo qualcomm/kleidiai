@@ -3,11 +3,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
-// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
-// + SPDX-License-Identifier: BSD-3-Clause-Clear
-//
-
 
 #include <gtest/gtest.h>
 
@@ -16,14 +11,15 @@
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
-#include <sstream>
 #include <string>
 #include <tuple>
 
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme2_mopa.h"
-#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme1_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_qmx_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme2_dot.h"
-#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme1_dot.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_qmx_dot.h"
+#include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme_dot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4x4_1x4_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp1x8_qsi8cxp4x8_1x4_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi8cxp/kai_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod.h"
@@ -32,11 +28,14 @@
 #include "kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f32.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_qsi8cxp_qsi8cx_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi8cxp_qsi8cx_neon.h"
+#include "test/common/abi_checker.hpp"
 #include "test/common/buffer.hpp"
+#include "test/common/cache.hpp"
 #include "test/common/cpu_info.hpp"
 #include "test/common/matmul_test_common.hpp"
 #include "test/common/matrix_portion.hpp"
 #include "test/common/memory.hpp"
+#include "test/common/printer.hpp"
 #include "test/common/test_suite.hpp"
 #include "test/reference/fill.hpp"
 #include "test/reference/matmul.hpp"
@@ -44,26 +43,57 @@
 #include "test/reference/transpose.hpp"
 
 namespace kai::test {
+using CacheDataId = std::tuple<MatMulShape, DataFormat, DataFormat, DataFormat>;
 
-static const std::array<UkernelVariant<kai_matmul_clamp_f32_qai8dxp_qsi8cxp_ukernel>, 4>
+struct CacheData {
+    Buffer lhs;
+    Buffer rhs;
+    Buffer bias;
+};
+
+template <>
+CacheData ReferenceGenerator<CacheDataId, CacheData>::generate_reference(const CacheDataId& k) {
+    MatMulShape shape = std::get<0>(k);
+    DataFormat lhs_format = std::get<1>(k);
+    DataFormat rhs_format = std::get<2>(k);
+    DataFormat bias_format = std::get<3>(k);
+
+    static size_t seed = 1;
+    Buffer lhs = fill_matrix_random(shape.m, shape.k, lhs_format, seed++);
+    Buffer rhs = fill_matrix_random(shape.k, shape.n, rhs_format, seed++);
+    Buffer bias = fill_matrix_random(1, shape.n, bias_format, seed++);
+
+    CacheData test_reference;
+    test_reference.lhs = std::move(lhs);
+    test_reference.rhs = std::move(rhs);
+    test_reference.bias = std::move(bias);
+
+    return test_reference;
+}
+
+static const std::array<UkernelVariant<kai_matmul_clamp_f32_qai8dxp_qsi8cxp_ukernel>, 10>
     variants_kai_matmul_clamp_f32_qai8dxp_qsi8cxp = {{
-        // {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x8_qsi8cxp4x8_1x4_neon_dotprod),
-         // "kai_matmul_clamp_f32_qai8dxp1x8_qsi8cxp4x8_1x4_neon_dotprod", cpu_has_dotprod},
-        // {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x4_qsi8cxp4x4_1x4_neon_dotprod),
-         // "kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4x4_1x4_neon_dotprod", cpu_has_dotprod},
-        // {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod),
-         // "kai_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod", cpu_has_dotprod},
-        // {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm),
-         // "kai_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm", cpu_has_i8mm},
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x8_qsi8cxp4x8_1x4_neon_dotprod),
+         "kai_matmul_clamp_f32_qai8dxp1x8_qsi8cxp4x8_1x4_neon_dotprod", cpu_has_dotprod},
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x4_qsi8cxp4x4_1x4_neon_dotprod),
+         "kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4x4_1x4_neon_dotprod", cpu_has_dotprod},
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod),
+         "kai_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod", cpu_has_dotprod},
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm),
+         "kai_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm", cpu_has_i8mm},
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme_dot),
+         "kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme_dot", cpu_has_sme},
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme_mopa),
+         "kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme_mopa", cpu_has_sme},
         {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme2_dot),
          "kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme2_dot", cpu_has_sme2},
-        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme1_dot),
-         "kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_sme1_dot", cpu_has_sme},
         {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme2_mopa),
          "kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme2_mopa", cpu_has_sme2},
-        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme1_mopa),
-        "kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_sme1_mopa", cpu_has_sme},
-    }};
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_qmx_dot),
+         "kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4vlx4_1x4vl_qmx_dot", cpu_has_sme},
+        {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_qmx_mopa),
+         "kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_qmx_mopa", cpu_has_sme},
+         }};
 
 class MatMulTest_f32_qai8dxp_qsi8cxp : public ::testing::TestWithParam<MatMulTestPortionedParams> {};
 
@@ -120,8 +150,6 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_nxk_qsi8cx) {
         GTEST_SKIP() << "Unsupported CPU feature";
     }
 
-    const uint32_t seed = 0;
-
     const size_t M = matmul_shape.m;
     const size_t N = matmul_shape.n;
     const size_t K = matmul_shape.k;
@@ -132,22 +160,25 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_nxk_qsi8cx) {
     const auto sr = ukernel_variant.interface.get_sr();
 
     // Generates input data.
-    const auto ref_lhs = fill_random<float>(M * K, seed + 0);
-    const auto ref_rhs = fill_random<float>(N * K, seed + 1);
-    const auto ref_biases = fill_random<float>(N, seed + 2);
+    const CacheDataId id = {
+        matmul_shape,                //
+        DataFormat(DataType::FP32),  //
+        DataFormat(DataType::FP32),  //
+        DataFormat(DataType::FP32)};
+    const CacheData& test_data = getV<CacheDataId, CacheData>(id);
 
     // Runs the reference implementation.
     //   * Quantizes the LHS matrix using 8-bit asymmetric quantization.
     //   * Quantizes the RHS matrix using 8-bit symmetric quantization.
     //   * Performs GEMM.
     const auto [ref_lhs_qvalues, ref_lhs_scales, ref_lhs_zero_points] =
-        quantize_asymmetric_per_block_dynamic<float, int8_t, float, int32_t>(ref_lhs.data(), M, K, K);
+        quantize_asymmetric_per_block_dynamic<float, int8_t, float, int32_t>(test_data.lhs.data(), M, K, K);
     const auto [ref_rhs_qsi8, ref_rhs_scales] =
-        quantize_symmetric_per_block_dynamic<float, int8_t, float>(ref_rhs.data(), N, K, K);
+        quantize_symmetric_per_block_dynamic<float, int8_t, float>(test_data.rhs.data(), N, K, K);
 
     const auto ref_dst = matmul_clamp_nt_t<int8_t, float, int32_t, int8_t, float, int32_t, float, int32_t, float>(
         M, N, K, ref_lhs_qvalues.data(), ref_lhs_scales.data(), ref_lhs_zero_points.data(), K, ref_rhs_qsi8.data(),
-        ref_rhs_scales.data(), nullptr, K, ref_biases.data(), std::numeric_limits<float>::lowest(),
+        ref_rhs_scales.data(), nullptr, K, test_data.bias.data(), std::numeric_limits<float>::lowest(),
         std::numeric_limits<float>::max());
 
     auto m_step = ukernel_variant.interface.get_m_step();
@@ -172,7 +203,7 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_nxk_qsi8cx) {
     auto lhs_packed_offset = kai_get_lhs_packed_offset_lhs_quant_pack_qai8dxp_f32(lhs_start_row, K, mr, kr, sr);
 
     kai_run_lhs_quant_pack_qai8dxp_f32(
-        rect.height(), K, mr, kr, sr, 0, reinterpret_cast<const float*>(ref_lhs.data() + lhs_offset), lhs_stride,
+        rect.height(), K, mr, kr, sr, 0, reinterpret_cast<const float*>(test_data.lhs.data() + lhs_offset), lhs_stride,
         imp_packed_lhs.data() + lhs_packed_offset);
 
     // Runs the RHS packing micro-kernel.
@@ -184,7 +215,7 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_nxk_qsi8cx) {
     const kai_rhs_pack_qsi8cx_params params{.lhs_zero_point = 1, .scale_multiplier = 1.0f};
     kai_run_rhs_pack_nxk_qsi8cxp_qsi8cx_neon(
         1, N, K, nr, kr, sr, reinterpret_cast<const int8_t*>(ref_rhs_qsi8.data()),
-        reinterpret_cast<const float*>(ref_biases.data()), reinterpret_cast<const float*>(ref_rhs_scales.data()),
+        reinterpret_cast<const float*>(test_data.bias.data()), reinterpret_cast<const float*>(ref_rhs_scales.data()),
         imp_packed_rhs.data(), 0, &params);
 
     const auto packed_rhs_start_row = rect.start_col();
@@ -205,10 +236,11 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_nxk_qsi8cx) {
     const auto imp_dst_size = ukernel_variant.interface.get_dst_size(M, N);
     ASSERT_EQ(imp_dst_size, ref_dst.size());
     Buffer imp_dst(imp_dst_size);
-    ukernel_variant.interface.run_matmul(
-        rect.height(), rect.width(), K, imp_packed_lhs.data() + matmul_lhs_packed_offset,
-        imp_packed_rhs.data() + matmul_rhs_packed_offset, reinterpret_cast<float*>(imp_dst.data() + dst_offset),
-        N * sizeof(float), sizeof(float), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+    abi_check(
+        ukernel_variant.interface.run_matmul, rect.height(), rect.width(), K,
+        imp_packed_lhs.data() + matmul_lhs_packed_offset, imp_packed_rhs.data() + matmul_rhs_packed_offset,
+        reinterpret_cast<float*>(imp_dst.data() + dst_offset), N * sizeof(float), sizeof(float),
+        std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 
     // Compares the output of the micro-kernels against the output of the reference implementation.
     for (size_t y = 0; y < rect.height(); ++y) {
@@ -234,8 +266,6 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
         GTEST_SKIP() << "Unsupported CPU feature";
     }
 
-    const uint32_t seed = 0;
-
     const size_t M = matmul_shape.m;
     const size_t N = matmul_shape.n;
     const size_t K = matmul_shape.k;
@@ -246,9 +276,12 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
     const auto sr = ukernel_variant.interface.get_sr();
 
     // Generates input data.
-    const auto ref_lhs = fill_random<float>(M * K, seed + 0);
-    const auto ref_rhs = fill_random<float>(N * K, seed + 1);
-    const auto ref_biases = fill_random<float>(N, seed + 2);
+    const CacheDataId id = {
+        matmul_shape,                //
+        DataFormat(DataType::FP32),  //
+        DataFormat(DataType::FP32),  //
+        DataFormat(DataType::FP32)};
+    const CacheData& test_data = getV<CacheDataId, CacheData>(id);
 
     // Transposed(nxk) RHS dimensions
     const size_t ref_rhs_qsi8_nxk_stride = K;
@@ -262,9 +295,9 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
     //   * Quantizes the RHS matrix using 8-bit symmetric quantization.
     //   * Performs GEMM.
     const auto [ref_lhs_qvalues, ref_lhs_scales, ref_lhs_zero_points] =
-        quantize_asymmetric_per_block_dynamic<float, int8_t, float, int32_t>(ref_lhs.data(), M, K, K);
+        quantize_asymmetric_per_block_dynamic<float, int8_t, float, int32_t>(test_data.lhs.data(), M, K, K);
     const auto [ref_rhs_qsi8_transposed, ref_rhs_scales] =
-        quantize_symmetric_per_block_dynamic<float, int8_t, float>(ref_rhs.data(), N, K, K);
+        quantize_symmetric_per_block_dynamic<float, int8_t, float>(test_data.rhs.data(), N, K, K);
 
     const auto ref_rhs_qsi8 = transpose_with_padding<int8_t>(
         ref_rhs_qsi8_transposed.data(), N, K, ref_rhs_qsi8_nxk_stride, ref_rhs_qsi8_kxn_stride,
@@ -272,7 +305,7 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
 
     const auto ref_dst = matmul_clamp_nt_nt<int8_t, float, int32_t, int8_t, float, int32_t, float, int32_t, float>(
         M, N, K, ref_lhs_qvalues.data(), ref_lhs_scales.data(), ref_lhs_zero_points.data(), K, ref_rhs_qsi8.data(),
-        ref_rhs_scales.data(), nullptr, K, ref_biases.data(), std::numeric_limits<float>::lowest(),
+        ref_rhs_scales.data(), nullptr, K, test_data.bias.data(), std::numeric_limits<float>::lowest(),
         std::numeric_limits<float>::max());
 
     auto m_step = ukernel_variant.interface.get_m_step();
@@ -296,8 +329,8 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
     const auto imp_packed_lhs_size = kai_get_lhs_packed_size_lhs_quant_pack_qai8dxp_f32(M, K, mr, kr, sr);
     Buffer imp_packed_lhs(imp_packed_lhs_size);
     kai_run_lhs_quant_pack_qai8dxp_f32(
-        rect.height(), K, mr, kr, sr, 0, reinterpret_cast<const float*>(ref_lhs.data() + lhs_offset), K * sizeof(float),
-        imp_packed_lhs.data() + lhs_packed_offset);
+        rect.height(), K, mr, kr, sr, 0, reinterpret_cast<const float*>(test_data.lhs.data() + lhs_offset),
+        K * sizeof(float), imp_packed_lhs.data() + lhs_packed_offset);
 
     // Runs the RHS packing micro-kernel.
     //   * Generates the 8-bit signed symmetric quantized input for the micro-kernel.
@@ -308,7 +341,7 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
     const kai_rhs_pack_qsi8cx_params params{.lhs_zero_point = 1, .scale_multiplier = 1.0f};
     kai_run_rhs_pack_kxn_qsi8cxp_qsi8cx_neon(
         1, N, K, nr, kr, sr, reinterpret_cast<const int8_t*>(ref_rhs_qsi8.data()),
-        reinterpret_cast<const float*>(ref_biases.data()), reinterpret_cast<const float*>(ref_rhs_scales.data()),
+        reinterpret_cast<const float*>(test_data.bias.data()), reinterpret_cast<const float*>(ref_rhs_scales.data()),
         imp_packed_rhs.data(), 0, &params);
 
     const auto packed_rhs_start_row = rect.start_col();
@@ -329,10 +362,11 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
     const auto imp_dst_size = ukernel_variant.interface.get_dst_size(M, N);
     ASSERT_EQ(imp_dst_size, ref_dst.size());
     Buffer imp_dst(imp_dst_size);
-    ukernel_variant.interface.run_matmul(
-        rect.height(), rect.width(), K, imp_packed_lhs.data() + matmul_lhs_packed_offset,
-        imp_packed_rhs.data() + matmul_rhs_packed_offset, reinterpret_cast<float*>(imp_dst.data() + dst_offset),
-        N * sizeof(float), sizeof(float), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+    abi_check(
+        ukernel_variant.interface.run_matmul, rect.height(), rect.width(), K,
+        imp_packed_lhs.data() + matmul_lhs_packed_offset, imp_packed_rhs.data() + matmul_rhs_packed_offset,
+        reinterpret_cast<float*>(imp_dst.data() + dst_offset), N * sizeof(float), sizeof(float),
+        std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 
     // Compares the output of the micro-kernels against the output of the reference implementation.
     for (size_t y = 0; y < rect.height(); ++y) {
@@ -351,7 +385,7 @@ TEST_P(MatMulTest_f32_qai8dxp_qsi8cxp, EndToEnd_RHS_kxn_qsi8cx) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul_fp32_i8, MatMulTest_f32_qai8dxp_qsi8cxp,
+    MatMul, MatMulTest_f32_qai8dxp_qsi8cxp,
     testing::Combine(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f32_qai8dxp_qsi8cxp.size()),
         testing::Values(

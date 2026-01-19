@@ -17,13 +17,13 @@
 namespace kai::test {
 
 UInt4& UInt4::operator=(uint8_t value) {
-    KAI_ASSUME(value >= 0 && value < 16);
+    KAI_ASSUME_ALWAYS(value >= 0 && value < 16);
     _value = value;
     return *this;
 }
 
 UInt4& UInt4::operator=(int value) {
-    KAI_ASSUME(value >= 0 && value < 16);
+    KAI_ASSUME_ALWAYS(value >= 0 && value < 16);
     _value = static_cast<uint8_t>(value);
     return *this;
 }
@@ -66,13 +66,13 @@ std::tuple<UInt4, UInt4> UInt4::unpack_u8(uint8_t value) {
 // =====================================================================================================================
 
 Int4& Int4::operator=(int8_t value) {
-    KAI_ASSUME(value >= -8 && value < 8);
+    KAI_ASSUME_ALWAYS(value >= -8 && value < 8);
     _value = value;
     return *this;
 }
 
 Int4& Int4::operator=(int value) {
-    KAI_ASSUME(value >= -8 && value < 8);
+    KAI_ASSUME_ALWAYS(value >= -8 && value < 8);
     _value = static_cast<int8_t>(value);
     return *this;
 }
@@ -102,7 +102,9 @@ Int4 Int4::operator/(Int4 rhs) const {
 }
 
 uint8_t Int4::pack_u8(Int4 low, Int4 high) {
-    return (low._value & 0x0F) | (high._value << 4);
+    const uint8_t lo = low._value & 0x0F;
+    const uint8_t hi = high._value & 0x0F;
+    return (lo << 0) | (hi << 4);
 }
 
 std::tuple<Int4, Int4> Int4::unpack_u8(uint8_t value) {

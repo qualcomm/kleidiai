@@ -39,8 +39,9 @@ std::tuple<FloatData, ZeroPoint> get_scale_zero_point_from_range(FloatData min_v
         max_value = 0;
     }
 
-    // The reason for computing the inverted scale first is to make it bit-perfect with quantized packing kernels.
-    // If those kernels don't do it this way anymore, it makes more sense to calculate the scale directly.
+    // The reason for computing the inverted scale first is to make it bit-perfect with quantized packing
+    // micro-kernels. If those micro-kernels don't do it this way anymore, it makes more sense to calculate
+    // the scale directly.
     const FloatData inv_scale = max_value != min_value ? (q_max - q_min) / (max_value - min_value) : 1.0F;
     const FloatData scale = 1.0F / inv_scale;
 
@@ -83,7 +84,7 @@ Buffer compute_symmetric_per_block_quantization_info(const void* src, size_t hei
     static_assert(is_integral<DstType>);
     static_assert(is_floating_point<ScaleType>);
 
-    KAI_ASSUME(quant_width != 0);
+    KAI_ASSUME_ALWAYS(quant_width != 0);
 
     const auto num_quant_packets_x = round_up_division(width, quant_width);
 
@@ -173,7 +174,9 @@ template std::tuple<Buffer, Buffer> quantize_symmetric_per_block_dynamic<float, 
     const void* src, size_t height, size_t width, size_t quant_width);
 template std::tuple<Buffer, Buffer> quantize_symmetric_per_block_dynamic<float, Int4, float>(
     const void* src, size_t height, size_t width, size_t quant_width);
-template std::tuple<Buffer, Buffer> quantize_symmetric_per_block_dynamic<float, Int4, BFloat16>(
+template std::tuple<Buffer, Buffer> quantize_symmetric_per_block_dynamic<float, Int4, BFloat16<true>>(
+    const void* src, size_t height, size_t width, size_t quant_width);
+template std::tuple<Buffer, Buffer> quantize_symmetric_per_block_dynamic<float, Int4, BFloat16<false>>(
     const void* src, size_t height, size_t width, size_t quant_width);
 template std::tuple<Buffer, Buffer> quantize_symmetric_per_block_dynamic<float, int8_t, Float16>(
     const void* src, size_t height, size_t width, size_t quant_width);
@@ -190,7 +193,7 @@ std::tuple<Buffer, Buffer> compute_asymmetric_per_block_quantization_info(
     static_assert(is_floating_point<ScaleType>);
     static_assert(is_integral<ZeroPointType>);
 
-    KAI_ASSUME(quant_width != 0);
+    KAI_ASSUME_ALWAYS(quant_width != 0);
 
     const auto num_quant_packets_x = round_up_division(width, quant_width);
 
@@ -290,7 +293,7 @@ std::tuple<Buffer, Buffer, Buffer> quantize_asymmetric_per_block_dynamic(
 
 template std::tuple<Buffer, Buffer, Buffer> quantize_asymmetric_per_block_dynamic<float, int8_t, float, int32_t>(
     const void* src, size_t height, size_t width, size_t quant_width);
-template std::tuple<Buffer, Buffer, Buffer> quantize_asymmetric_per_block_dynamic<float, int8_t, BFloat16, int32_t>(
+template std::tuple<Buffer, Buffer, Buffer> quantize_asymmetric_per_block_dynamic<float, int8_t, BFloat16<>, int32_t>(
     const void* src, size_t height, size_t width, size_t quant_width);
 template std::tuple<Buffer, Buffer, Buffer> quantize_asymmetric_per_block_dynamic<float, Int4, float, int32_t>(
     const void* src, size_t height, size_t width, size_t quant_width);
@@ -316,6 +319,8 @@ inline std::tuple<Buffer, Buffer> quantize_rhs_qsi4c32p(
 
     return {std::move(rhs_values_qsi4), std::move(rhs_scales)};
 }
-template std::tuple<Buffer, Buffer> quantize_rhs_qsi4c32p<float, BFloat16>(
-    size_t N, size_t K, size_t bl, const Buffer& ref_rhs, bool transposed);
+
+template std::tuple<Buffer, Buffer> quantize_rhs_qsi4c32p<float, BFloat16<false>>(
+    size_t N, size_t K, size_t bl, const Buffer& rhs, bool transposed);
+
 }  // namespace kai::test

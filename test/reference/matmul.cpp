@@ -53,7 +53,7 @@ Buffer matmul_any_type(
     const auto rhs_k_stride = rhs_transposed ? 1 : n;
 
     Buffer dst(m * n * size_in_bits<T> / 8);
-    KAI_ASSUME(n * size_in_bits<T> % 8 == 0);
+    KAI_ASSUME_ALWAYS(n * size_in_bits<T> % 8 == 0);
 
     for (size_t im = 0; im < m; ++im) {
         for (size_t in = 0; in < n; ++in) {
@@ -100,12 +100,12 @@ Buffer matmul_pack_rhs(
         //   * Scale is divided by 16.
         //   * Zero point is accumulation of all values in the same row.
 
-        KAI_ASSUME(zero_points == nullptr);
+        KAI_ASSUME_ALWAYS(zero_points == nullptr);
         const int32_t zero_point = 8;
         const uint8_t zero_point_i4 = UInt4::pack_u8(UInt4(zero_point), UInt4(zero_point));
         const int32_t row_zero_point = zero_point * static_cast<int32_t>(k);
 
-        KAI_ASSUME(dst_format.subblock_width() > 0);
+        KAI_ASSUME_ALWAYS(dst_format.subblock_width() > 0);
         const auto subblock_width_i32 = static_cast<int32_t>(dst_format.subblock_width());
         const auto subblock_width_f = static_cast<float>(dst_format.subblock_width());
 
@@ -173,9 +173,9 @@ Buffer matmul(
             bias = tmp_bias.data();
         }
 
-        KAI_ASSUME(!data_type_is_quantized(bias_dt));
-        KAI_ASSUME(bias_scales == nullptr);
-        KAI_ASSUME(bias_zero_points == nullptr);
+        KAI_ASSUME_ALWAYS(!data_type_is_quantized(bias_dt));
+        KAI_ASSUME_ALWAYS(bias_scales == nullptr);
+        KAI_ASSUME_ALWAYS(bias_zero_points == nullptr);
 
         tmp_dst = add(tmp_dst.data(), dst_dt, m, n, bias, bias_dt, 1, n);
     }
@@ -197,13 +197,17 @@ Buffer indirect_matmul(
     const size_t n_chunks = m * k_chunk_count;
     Buffer lhs(n_chunks * chunk_bytes);
 
+    const uintptr_t lhs_padding_ptr_uint = reinterpret_cast<uintptr_t>(lhs_padding_ptr);
+
     // Copy all chunks to the created matrix
     for (size_t i = 0; i < n_chunks; i += 1) {
-        const uint8_t* src_pointer = static_cast<const uint8_t*>(lhs_idata[i]);
-        if (src_pointer != lhs_padding_ptr) {
+        uintptr_t src_pointer = reinterpret_cast<uintptr_t>(lhs_idata[i]);
+        if (src_pointer != lhs_padding_ptr_uint) {
             src_pointer += lhs_offset;
         }
-        memcpy(lhs.data() + i * chunk_bytes, src_pointer, chunk_bytes);
+        memcpy(
+            lhs.data() + i * chunk_bytes, reinterpret_cast<const void*>(src_pointer),
+            chunk_bytes);  // NOLINT(performance-no-int-to-ptr)
     }
 
     return matmul(
@@ -224,6 +228,11 @@ Buffer indirect_matmul_nt_t_quantized(
     const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_height,
     size_t rhs_quant_width,  //
     const void* bias_data, const void* bias_scales, const void* bias_zero_points, size_t bias_quant_width) {
+    KAI_ASSUME_ALWAYS(lhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(lhs_quant_height != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_height != 0);
+    KAI_ASSUME_ALWAYS(bias_quant_width != 0);
     const auto lhs_num_quant_per_row = round_up_division(k_chunk_count * k_chunk_length, lhs_quant_width);
     const auto rhs_num_quant_per_row = round_up_division(k_chunk_count * k_chunk_length, rhs_quant_width);
 
@@ -300,6 +309,12 @@ Buffer matmul_nt_t_quantized(
     size_t rhs_quant_height, size_t rhs_quant_width,                               //
     const void* bias_data, const void* bias_scales, const void* bias_zero_points,  //
     size_t bias_quant_width) {
+    KAI_ASSUME_ALWAYS(lhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(lhs_quant_height != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_height != 0);
+    KAI_ASSUME_ALWAYS(bias_quant_width != 0);
+
     const auto lhs_num_quant_per_row = round_up_division(k, lhs_quant_width);
     const auto rhs_num_quant_per_row = round_up_division(k, rhs_quant_width);
 
@@ -378,7 +393,8 @@ template Buffer matmul_nt_t_quantized<int8_t, float, int32_t, int8_t, float, int
     size_t rhs_quant_width,  //
     const void* bias_data, const void* bias_scales, const void* bias_zero_points, size_t bias_quant_width);
 
-template Buffer matmul_nt_t_quantized<int8_t, float, int32_t, Int4, BFloat16, int32_t, float, float, int32_t, float>(
+template Buffer
+matmul_nt_t_quantized<int8_t, float, int32_t, Int4, BFloat16<false>, int32_t, float, float, int32_t, float>(
     size_t m, size_t n, size_t k,  //
     const void* lhs_data, const void* lhs_scales, const void* lhs_zero_points, size_t lhs_quant_height,
     size_t lhs_quant_width,  //
@@ -397,6 +413,12 @@ Buffer matmul_nt_nt_quantized(
     size_t rhs_quant_height, size_t rhs_quant_width,                               //
     const void* bias_data, const void* bias_scales, const void* bias_zero_points,  //
     size_t bias_quant_width) {
+    KAI_ASSUME_ALWAYS(lhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(lhs_quant_height != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_height != 0);
+    KAI_ASSUME_ALWAYS(bias_quant_width != 0);
+
     const auto lhs_num_quant_per_row = round_up_division(k, lhs_quant_width);
     const auto rhs_num_quant_per_row = round_up_division(k, rhs_quant_width);
 
@@ -451,7 +473,16 @@ Buffer matmul_nt_nt_quantized(
     return dst;
 }
 
-template Buffer matmul_nt_nt_quantized<int8_t, float, int32_t, Int4, BFloat16, int32_t, float, float, int32_t, float>(
+template Buffer
+matmul_nt_nt_quantized<int8_t, float, int32_t, Int4, BFloat16<false>, int32_t, float, float, int32_t, float>(
+    size_t m, size_t n, size_t k,  //
+    const void* lhs_data, const void* lhs_scales, const void* lhs_zero_points, size_t lhs_quant_height,
+    size_t lhs_quant_width,  //
+    const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_height,
+    size_t rhs_quant_width,  //
+    const void* bias_data, const void* bias_scales, const void* bias_zero_points, size_t bias_quant_width);
+
+template Buffer matmul_nt_nt_quantized<BFloat16<>, float, float, BFloat16<>, float, float, float, float, float, float>(
     size_t m, size_t n, size_t k,  //
     const void* lhs_data, const void* lhs_scales, const void* lhs_zero_points, size_t lhs_quant_height,
     size_t lhs_quant_width,  //
@@ -478,6 +509,8 @@ Buffer matmul_clamp_nt_t(
     const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_width,  //
     const void* biases,                                                                                 //
     DstData min_value, DstData max_value) {
+    KAI_ASSUME_ALWAYS(lhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_width != 0);
     const auto lhs_num_quant_per_row = round_up_division(k, lhs_quant_width);
     const auto rhs_num_quant_per_row = round_up_division(k, rhs_quant_width);
 
@@ -539,7 +572,7 @@ template Buffer matmul_clamp_nt_t<int8_t, Float16, int32_t, Int4, Float16, int32
     const void* biases,                                                                                 //
     float min_value, float max_value);
 
-template Buffer matmul_clamp_nt_t<int8_t, float, int32_t, Int4, BFloat16, int32_t, float, int32_t, float>(
+template Buffer matmul_clamp_nt_t<int8_t, float, int32_t, Int4, BFloat16<false>, int32_t, float, int32_t, float>(
     size_t m, size_t n, size_t k,                                                                       //
     const void* lhs_data, const void* lhs_scales, const void* lhs_zero_points, size_t lhs_quant_width,  //
     const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_width,  //
@@ -562,6 +595,8 @@ Buffer matmul_clamp_nt_nt(
     const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_width,  //
     const void* biases,                                                                                 //
     DstData min_value, DstData max_value) {
+    KAI_ASSUME_ALWAYS(lhs_quant_width != 0);
+    KAI_ASSUME_ALWAYS(rhs_quant_width != 0);
     const auto lhs_num_quant_per_row = round_up_division(k, lhs_quant_width);
     const auto rhs_num_quant_per_row = round_up_division(k, rhs_quant_width);
 
@@ -629,7 +664,7 @@ template Buffer matmul_clamp_nt_nt<int8_t, Float16, int32_t, Int4, Float16, int3
     const void* biases,                                                                                 //
     float min_value, float max_value);
 
-template Buffer matmul_clamp_nt_nt<int8_t, float, int32_t, Int4, BFloat16, int32_t, float, int32_t, float>(
+template Buffer matmul_clamp_nt_nt<int8_t, float, int32_t, Int4, BFloat16<false>, int32_t, float, int32_t, float>(
     size_t m, size_t n, size_t k,                                                                       //
     const void* lhs_data, const void* lhs_scales, const void* lhs_zero_points, size_t lhs_quant_width,  //
     const void* rhs_data, const void* rhs_scales, const void* rhs_zero_points, size_t rhs_quant_width,  //
