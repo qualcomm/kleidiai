@@ -152,7 +152,7 @@ static const std::array<UkernelVariant<kai_matmul_clamp_f32_qai8dxp_qsi8cxp_uker
         {UKERNEL_MATMUL_VARIANT(clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_qmx_mopa),
          "kai_matmul_clamp_f32_qai8dxp1vlx4_qsi8cxp4vlx4_1vlx4vl_qmx_mopa", cpu_has_sme},
          }};
-
+         
 using MatMulClampTestPortionedParams = std::tuple<size_t, MatMulShape, MatrixPortion, float>;
 
 class MatMulTest_f32_qai8dxp_qsi8cxp : public ::testing::TestWithParam<MatMulClampTestPortionedParams> {};
