@@ -30,7 +30,7 @@ include(GNUInstallDirs)
 include(CheckCSourceCompiles)
 
 option(KLEIDIAI_BUILD_TESTS       "Build unit tests."             ON)
-option(KLEIDIAI_BUILD_BENCHMARK   "Build the benchmark tool."     ON)
+option(KLEIDIAI_BUILD_BENCHMARK   "Build the benchmark tool."     OFF)
 option(KLEIDIAI_ENABLE_CLANG_TIDY "Build with Clang-Tidy checks." OFF)
 option(KLEIDIAI_ERROR_TRAP        "Use trap instead of abort."    OFF)
 option(ENABLE_KLEIDIAI_QMX_COEXIST "Enable linking both Arm Kleidiai and Qualcomm QMX libraries with MLAS and/or XNNPACK frameworks " OFF)
