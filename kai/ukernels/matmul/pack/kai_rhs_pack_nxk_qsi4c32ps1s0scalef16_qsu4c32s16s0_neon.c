@@ -23,12 +23,14 @@ static inline void convert_s1s0_s16s0(uint8_t* dst_blk, const uint8_t* src_blk) 
     for (size_t k = 0; k < kai_bl / 2; k += 2) {
         dst_blk[k / 2] = src_blk[k] & 0xF;
         dst_blk[k / 2] |= src_blk[k + 1] << 4;
+        dst_blk[k / 2] ^= 0x88; // subtract zero-point and treat result as a signed value
     }
 
     // Second half
     for (size_t k = kai_bl / 2; k < kai_bl; k += 2) {
         dst_blk[k / 2] = src_blk[k - kai_bl / 2] >> 4;
         dst_blk[k / 2] |= src_blk[k - kai_bl / 2 + 1] & 0xF0;
+        dst_blk[k / 2] ^= 0x88; // subtract zero-point and treat result as a signed value
     }
 }
 
@@ -153,6 +155,48 @@ void kai_run_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon(
         if (((n_idx + 1) % nr) == 0) {
             rhs_packed_ptr += rhs_packed_stride;
         }
+    }
+
+    rhs_packed_ptr = rhs_packed;
+    // Calculate total packed size in bytes
+    // For 4-bit packing: (nr * k_rounded) / 2 bytes for weights
+    const size_t k_rounded = kai_roundup(k, bl);
+    // for(uint64_t ii = 0; ii < packed_size_bytes; ii+=2){
+    // uint8_t low_nibble = (ii ) % 16;
+    // uint8_t high_nibble = (ii + 1) % 16;
+    // rhs_packed_ptr[ii] = (high_nibble << 4) | low_nibble;
+    // rhs_packed_ptr[ii+1] = (high_nibble << 4) | low_nibble;
+    // }
+
+    const size_t num_n_blocks = kai_roundup(n, nr) / nr;
+
+    for (size_t n_block_idx = 0; n_block_idx < num_n_blocks; ++n_block_idx) {
+        // Calculate actual number of rows in this block
+        // const size_t rows_in_block = (n_block_idx == num_n_blocks - 1) 
+        //     ? (n - n_block_idx * nr)  // Last block: remaining rows
+        //     : nr;                      // Other blocks: full nr rows
+        
+        const size_t block_packed_size_bytes = (nr * k_rounded) / 2;
+        
+        // Process 64-byte chunks
+        for (uint64_t chunk_idx = 0; chunk_idx < block_packed_size_bytes / 64; chunk_idx++) {
+            uint8_t* chunk_ptr = rhs_packed_ptr + chunk_idx * 64;
+
+            // Shuffle nibbles: interleave first 64 nibbles with last 64 nibbles
+            // Before: {0, 1, 2, ..., 127}
+            // After:  {0, 64, 1, 65, ..., 63, 127}
+            uint8_t temp[64];
+            for (size_t j = 0; j < 32; j++) {
+                temp[j * 2]     = (chunk_ptr[j] & 0x0F) | ((chunk_ptr[32 + j] & 0x0F) << 4);
+                temp[j * 2 + 1] = ((chunk_ptr[j] >> 4) & 0x0F) | (chunk_ptr[32 + j] & 0xF0);
+            }
+
+            // Write back
+            for (size_t i = 0; i < 64; i++) {
+                chunk_ptr[i] = temp[i];
+            }
+        }
+        rhs_packed_ptr += rhs_packed_stride;
     }
 }
 #endif  // Architectural features check.
