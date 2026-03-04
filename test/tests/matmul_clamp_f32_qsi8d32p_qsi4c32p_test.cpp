@@ -86,7 +86,7 @@ struct UKernelVariants {
 };
 
 // clang-format off
-static const int num_non_clamping_kernels = 4;
+static const int num_non_clamping_kernels = 6;
 static const std::array<UKernelVariants, 13>
     variants_kai_matmul_clamp_f32_qsi8d32p_qsi4c32p = {
         {
