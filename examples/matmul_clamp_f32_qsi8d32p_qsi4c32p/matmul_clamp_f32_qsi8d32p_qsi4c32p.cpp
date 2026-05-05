@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -25,6 +26,11 @@
 #include "kai_matmul_clamp_f32_qsi8d32p4x8_qsi4c32p4x8_8x4x32_neon_i8mm.h"
 #include "kai_matmul_clamp_f32_qsi8d32p_qsi4c32p_interface.h"
 #include "kai_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0.h"
+
+// QMX MOPA kernel
+#include "kai_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa.h"
+#include "kai_lhs_quant_pack_qsi8d32p_f32_neon.h"
+#include "kai_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon.h"
 
 #define INT4_MIN (-8)
 #define INT4_MAX (7)
@@ -126,6 +132,31 @@ kai_matmul_ukernel_f32_qa8d32p_qs4c32p ukernel_variants[] = {
 
 // Number of micro-kernel variants stored in the array
 const size_t num_ukernel_variants = sizeof(ukernel_variants) / sizeof(ukernel_variants[0]);
+
+// ─── QMX MOPA ukernel variant table ─────────────────────────────────────────
+
+struct kai_matmul_ukernel_f32_qa8d32p_qs4c32p_qmx {
+    kai_matmul_clamp_f32_qsi8d32p_qsi4c32p_ukernel ukernel;
+    std::string name = {};
+};
+
+static kai_matmul_ukernel_f32_qa8d32p_qs4c32p_qmx qmx_ukernel_variants[] = {
+    {kai_get_m_step_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_n_step_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_mr_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_nr_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_kr_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_sr_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_lhs_packed_offset_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_rhs_packed_offset_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_dst_offset_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_get_dst_size_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     kai_run_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa,
+     "matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa"},
+};
+
+static const size_t num_qmx_ukernel_variants =
+    sizeof(qmx_ukernel_variants) / sizeof(qmx_ukernel_variants[0]);
 
 static void fill_uniform_random(size_t num_rows, size_t num_cols, float* dst, size_t seed) {
     std::srand(seed);
@@ -334,6 +365,17 @@ static bool is_output_correct(size_t num_rows, size_t num_cols, float tolerance,
     return is_valid;
 }
 
+/// Compute GFLOPS from matrix dimensions and average iteration time.
+/// FLOPs for matmul = 2 * M * N * K  (one multiply + one add per element)
+static double compute_gflops(size_t m, size_t n, size_t k, long avg_us) {
+    if (avg_us <= 0) return 0.0;
+    const double flops  = 2.0 * static_cast<double>(m)
+                              * static_cast<double>(n)
+                              * static_cast<double>(k);
+    const double time_s = static_cast<double>(avg_us) * 1e-6;
+    return ((flops / time_s) / 1e9);
+}
+
 int main(int argc, char** argv) {
     const size_t num_threads = parse_thread_count(argc, argv);
     std::cout << "Using " << num_threads << " thread(s) for computations." << std::endl;
@@ -515,6 +557,194 @@ int main(int argc, char** argv) {
     delete[] lhs_native_mtx_f32;
     delete[] rhs_native_mtx_qs4c32;
     delete[] dst_ref_mtx_f32;
+
+    // ── QMX MOPA kernel test (multi-threaded, 16 iterations) ─────────────────
+    {
+        const size_t m_qmx = 512;
+        const size_t n_qmx = 512;
+        const size_t k_qmx = 512;
+        const size_t bl_qmx = 32;
+
+        std::cout << "\nTEST QMX MOPA [" << m_qmx << ", " << n_qmx << ", " << k_qmx
+                  << "] with Block Size " << bl_qmx << "\n";
+
+        const size_t num_blocks_qmx = k_qmx / bl_qmx;
+        const size_t num_bytes_per_block_qs4c32_qmx = (bl_qmx / 2) + sizeof(int16_t);
+        const size_t num_bytes_per_block_qs8c32_qmx = bl_qmx + sizeof(int16_t);
+
+        const size_t lhs_native_size_f32_qmx = m_qmx * k_qmx * sizeof(float);
+        const size_t rhs_native_size_f32_qmx = n_qmx * k_qmx * sizeof(float);
+        const size_t rhs_native_size_qs4c32_qmx = n_qmx * num_blocks_qmx * num_bytes_per_block_qs4c32_qmx;
+
+        uint8_t* lhs_native_mtx_f32_qmx = new uint8_t[lhs_native_size_f32_qmx];
+        uint8_t* rhs_native_mtx_f32_qmx = new uint8_t[rhs_native_size_f32_qmx];
+        uint8_t* rhs_native_mtx_qs4c32_qmx = new uint8_t[rhs_native_size_qs4c32_qmx];
+
+        fill_uniform_random(m_qmx, k_qmx, (float*)lhs_native_mtx_f32_qmx, seed_lhs);
+        fill_uniform_random(n_qmx, k_qmx, (float*)rhs_native_mtx_f32_qmx, seed_rhs);
+
+        quant_qs4c32_f32(n_qmx, k_qmx, bl_qmx, (const float*)rhs_native_mtx_f32_qmx,
+                         (uint8_t*)rhs_native_mtx_qs4c32_qmx);
+        delete[] rhs_native_mtx_f32_qmx;
+
+        // Reference implementation
+        const size_t lhs_ref_size_qa8d32_qmx = m_qmx * num_blocks_qmx * num_bytes_per_block_qs8c32_qmx;
+        const size_t dst_ref_size_f32_qmx = m_qmx * n_qmx * sizeof(float);
+
+        uint8_t* lhs_ref_mtx_qa8d32_qmx = new uint8_t[lhs_ref_size_qa8d32_qmx];
+        uint8_t* dst_ref_mtx_f32_qmx = new uint8_t[dst_ref_size_f32_qmx];
+
+        ref_quant_qs8d32_f32(m_qmx, k_qmx, bl_qmx, (const float*)lhs_native_mtx_f32_qmx,
+                             (uint8_t*)lhs_ref_mtx_qa8d32_qmx);
+        ref_matmul_f32_qs8d32_qs4c32(
+            m_qmx, n_qmx, k_qmx, bl_qmx,
+            (const int8_t*)lhs_ref_mtx_qa8d32_qmx,
+            (const uint8_t*)rhs_native_mtx_qs4c32_qmx,
+            (float*)dst_ref_mtx_f32_qmx,
+            -FLT_MAX, FLT_MAX);
+        delete[] lhs_ref_mtx_qa8d32_qmx;
+
+        for (size_t idx_variant = 0; idx_variant < num_qmx_ukernel_variants; ++idx_variant) {
+            std::cout << "Testing " << qmx_ukernel_variants[idx_variant].name << "\n";
+
+            const size_t mr = qmx_ukernel_variants[idx_variant].ukernel.get_mr();
+            const size_t nr = qmx_ukernel_variants[idx_variant].ukernel.get_nr();
+            const size_t kr = qmx_ukernel_variants[idx_variant].ukernel.get_kr();
+            const size_t sr = qmx_ukernel_variants[idx_variant].ukernel.get_sr();
+
+            const size_t lhs_packed_size_qmx =
+                kai_get_lhs_packed_size_lhs_quant_pack_qsi8d32p_f32_neon(m_qmx, k_qmx, bl_qmx, mr, kr, sr);
+
+            struct kai_rhs_pack_qs4cxs1s0_param params_qmx;
+            params_qmx.lhs_zero_point = 1;
+            params_qmx.rhs_zero_point = 8;
+
+            const size_t rhs_packed_size_qmx =
+                kai_get_rhs_packed_size_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon(
+                    n_qmx, k_qmx, nr, kr, bl_qmx);
+            const size_t dst_size_qmx =
+                qmx_ukernel_variants[idx_variant].ukernel.get_dst_size(m_qmx, n_qmx);
+
+            uint8_t* lhs_packed_mtx_qs8d32_qmx = new uint8_t[lhs_packed_size_qmx];
+            uint8_t* rhs_packed_mtx_qs4c32_qmx = new uint8_t[rhs_packed_size_qmx];
+            uint8_t* dst_act_mtx_f32_qmx = new uint8_t[dst_size_qmx];
+
+            // Pack RHS once (constant weights, done before threading)
+            kai_run_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon(
+                1, n_qmx, k_qmx,
+                nr, kr, sr, bl_qmx,
+                (const uint8_t*)rhs_native_mtx_qs4c32_qmx,
+                NULL,
+                rhs_packed_mtx_qs4c32_qmx,
+                0, &params_qmx);
+
+            // ── Phase 1: pack LHS once (not timed) ───────────────────────────
+            auto lhs_pack_worker = [&](int thread_index) {
+                const size_t m_step = qmx_ukernel_variants[idx_variant].ukernel.get_m_step();
+                const size_t num_m_per_thread = kai_roundup(m_qmx, m_step * num_threads) / num_threads;
+                const size_t m_start = static_cast<size_t>(thread_index) * num_m_per_thread;
+                if (m_start >= m_qmx) return;
+                const size_t m_to_process = std::min(num_m_per_thread, m_qmx - m_start);
+
+                const float* src_ptr = (float*)lhs_native_mtx_f32_qmx +
+                    kai_get_lhs_offset_lhs_quant_pack_qsi8d32p_f32_neon(m_start, k_qmx * sizeof(float)) / sizeof(float);
+                const size_t lhs_packed_offset =
+                    qmx_ukernel_variants[idx_variant].ukernel.get_lhs_packed_offset(m_start, k_qmx, bl_qmx);
+                void* lhs_packed_ptr = lhs_packed_mtx_qs8d32_qmx + lhs_packed_offset;
+
+                kai_run_lhs_quant_pack_qsi8d32p_f32_neon(
+                    m_to_process, k_qmx, bl_qmx,
+                    mr, kr, sr, 0,
+                    src_ptr, k_qmx * sizeof(float),
+                    lhs_packed_ptr);
+            };
+
+            {
+                std::vector<std::thread> pack_threads;
+                pack_threads.reserve(num_threads);
+                for (size_t i = 0; i < num_threads; ++i)
+                    pack_threads.emplace_back(lhs_pack_worker, static_cast<int>(i));
+                for (auto& t : pack_threads) t.join();
+            }
+
+            // ── Phase 2: run matmul 60000 times and measure total elapsed time ──
+            constexpr int num_iterations = 60000;
+
+            auto matmul_worker = [&](int thread_index) {
+                const size_t m_step = qmx_ukernel_variants[idx_variant].ukernel.get_m_step();
+                const size_t num_m_per_thread = kai_roundup(m_qmx, m_step * num_threads) / num_threads;
+                const size_t m_start = static_cast<size_t>(thread_index) * num_m_per_thread;
+                if (m_start >= m_qmx) return;
+                const size_t m_to_process = std::min(num_m_per_thread, m_qmx - m_start);
+
+                const size_t dst_stride = n_qmx * sizeof(float);
+                const size_t lhs_packed_offset =
+                    qmx_ukernel_variants[idx_variant].ukernel.get_lhs_packed_offset(m_start, k_qmx, bl_qmx);
+                const void* lhs_packed_ptr = lhs_packed_mtx_qs8d32_qmx + lhs_packed_offset;
+                const size_t rhs_packed_offset =
+                    qmx_ukernel_variants[idx_variant].ukernel.get_rhs_packed_offset(0, k_qmx, bl_qmx);
+                const void* rhs_packed_ptr = rhs_packed_mtx_qs4c32_qmx + rhs_packed_offset;
+                const size_t dst_offset =
+                    qmx_ukernel_variants[idx_variant].ukernel.get_dst_offset(m_start, 0, dst_stride);
+                float* dst_ptr = (float*)(dst_act_mtx_f32_qmx + dst_offset);
+
+                // Each thread runs run_matmul num_iterations times.
+                // join() in the main thread blocks until this loop completes,
+                // so time_e - time_s covers all num_iterations calls.
+                for (int iter = 0; iter < num_iterations; ++iter) {
+                    qmx_ukernel_variants[idx_variant].ukernel.run_matmul(
+                        m_to_process, n_qmx, k_qmx, bl_qmx,
+                        lhs_packed_ptr, rhs_packed_ptr,
+                        dst_ptr, dst_stride, sizeof(float),
+                        -FLT_MAX, FLT_MAX);
+                }
+            };
+
+            //Start Time
+            const auto time_s = std::chrono::high_resolution_clock::now();
+
+            {
+                std::vector<std::thread> threads;
+                threads.reserve(num_threads);
+                // Create worker threads; each runs run_matmul num_iterations times
+                for (size_t i = 0; i < num_threads; ++i)
+                    threads.emplace_back(matmul_worker, static_cast<int>(i));
+                // join() blocks until every thread has finished all num_iterations calls
+                for (auto& t : threads) t.join();
+            }
+
+            //End Time
+            const auto time_e = std::chrono::high_resolution_clock::now();
+            const auto total_us =
+                std::chrono::duration_cast<std::chrono::microseconds>(time_e - time_s).count();
+            const long avg_us = total_us / num_iterations;
+
+            const bool is_valid_qmx =
+                is_output_correct(m_qmx, n_qmx, 0.0001f,
+                                  (const float*)dst_ref_mtx_f32_qmx,
+                                  (const float*)dst_act_mtx_f32_qmx);
+
+            if (is_valid_qmx) {
+                const double gflops = compute_gflops(m_qmx, n_qmx, k_qmx, avg_us);
+                printf("TEST[%zu] = PASSED\n", idx_variant);
+                std::cout << "- Iterations: " << num_iterations << "\n";
+                std::cout << "- Total Performance time: " << total_us << " us\n";
+                std::cout << "- Avg Performance time per iteration: " << avg_us << " us\n";
+                std::cout << std::fixed << std::setprecision(2) << "- GFLOPS: " << gflops << "\n";
+            } else {
+                printf("TEST[%zu] = FAILED\n", idx_variant);
+            }
+            std::cout << "------------\n";
+
+            delete[] lhs_packed_mtx_qs8d32_qmx;
+            delete[] rhs_packed_mtx_qs4c32_qmx;
+            delete[] dst_act_mtx_f32_qmx;
+        }
+
+        delete[] lhs_native_mtx_f32_qmx;
+        delete[] rhs_native_mtx_qs4c32_qmx;
+        delete[] dst_ref_mtx_f32_qmx;
+    }
 }
 
 //----------- END MICRO-KERNELS TESTS

@@ -6,6 +6,8 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+project(matmul_clamp_f32_qai8dxp_qsi4c32p)
+
 enable_language(ASM)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -13,6 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(KLEIDIAI_PATH ../../)
 set(MATMUL_PACK_PATH ${KLEIDIAI_PATH}/kai/ukernels/matmul/pack/)
 set(MATMUL_PATH ${KLEIDIAI_PATH}/kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4c32p/)
+set(KAI_COMMON_PATH ${KLEIDIAI_PATH}/kai/)
 
 # KleidiAI include directories
 include_directories(
@@ -39,7 +42,26 @@ add_executable(matmul_clamp_f32_qai8dxp_qsi4c32p
     ${MATMUL_PATH}/kai_matmul_clamp_f32_qai8dxp4x8_qsi4c32p4x8_16x4x32_neon_i8mm_asm.S
     ${MATMUL_PATH}/kai_matmul_clamp_f32_qai8dxp1x4_qsi4c32p4x4_1x4_neon_dotprod.c
     ${MATMUL_PATH}/kai_matmul_clamp_f32_qai8dxp1x4_qsi4c32p4x4_1x4_neon_dotprod_asm.S
+    ${MATMUL_PATH}/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa.c
+    ${MATMUL_PATH}/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa_asm.S
+    ${MATMUL_PACK_PATH}/kai_rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon.c
+    ${MATMUL_PACK_PATH}/kai_rhs_pack_kxn_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon.c
+    ${KAI_COMMON_PATH}/kai_common_sme_asm.S
     )
 
 target_compile_options(matmul_clamp_f32_qai8dxp_qsi4c32p
     PRIVATE -march=armv8.2-a+dotprod+i8mm)
+
+set_source_files_properties(
+    ${MATMUL_PATH}/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa.c
+    PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2")
+
+set_source_files_properties(
+    ${MATMUL_PATH}/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa_asm.S
+    PROPERTIES COMPILE_OPTIONS "-march=armv8.2-a+sve+sve2")
+
+set_source_files_properties(
+    ${MATMUL_PACK_PATH}/kai_rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon.c
+    ${MATMUL_PACK_PATH}/kai_rhs_pack_kxn_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon.c
+    ${KAI_COMMON_PATH}/kai_common_sme_asm.S
+    PROPERTIES COMPILE_OPTIONS "-march=armv8.2-a+sve+sve2")

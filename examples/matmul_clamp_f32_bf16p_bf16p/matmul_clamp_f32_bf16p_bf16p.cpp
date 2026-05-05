@@ -22,9 +22,14 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <limits>
+#include <string>
+#include <thread>
+#include <vector>
 
 // Include micro-kernel variants
 #include "kai/kai_common.h"
@@ -35,9 +40,63 @@
 #include "kai_matmul_clamp_f32_bf16p_bf16p_interface.h"
 #include "kai_rhs_quant_pack_kxn_bf16p12x4biasf32_f32_neon.h"
 
+// QMX MOPA kernel – packed LHS (SME) + packed RHS+bias (SME)
+#include "kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa.h"
+#include "kai_lhs_pack_bf16p2vlx2_f32_sme.h"
+#include "kai_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme.h"
+
 inline static float bf16_to_float(const uint16_t* v) {
     const uint16_t uint_rep = *v;
     return kai_cast_f32_bf16(uint_rep);
+}
+
+// ─── Thread count parsing ────────────────────────────────────────────────────
+
+static size_t parse_thread_count_value(const std::string& value) {
+    char* end = nullptr;
+    const unsigned long parsed = std::strtoul(value.c_str(), &end, 10);
+    if (end == value.c_str() || *end != '\0') {
+        std::cerr << "Invalid thread count: '" << value << "'\n";
+        std::exit(EXIT_FAILURE);
+    }
+    if (parsed == 0 || parsed > std::numeric_limits<size_t>::max()) {
+        std::cerr << "Thread count must be in range [1, " << std::numeric_limits<size_t>::max() << "]\n";
+        std::exit(EXIT_FAILURE);
+    }
+    return static_cast<size_t>(parsed);
+}
+
+static void print_usage(const char* program_name) {
+    std::cerr << "Usage: " << program_name << " [--threads <count> | --threads=<count>]\n";
+}
+
+static size_t parse_thread_count(int argc, char** argv) {
+    size_t thread_count = 1;
+    for (int i = 1; i < argc; ++i) {
+        std::string arg(argv[i]);
+        if (arg == "--help" || arg == "-h") {
+            print_usage(argv[0]);
+            std::exit(EXIT_SUCCESS);
+        }
+        if (arg == "--threads" || arg == "-t") {
+            if ((i + 1) >= argc) {
+                std::cerr << "--threads expects a value\n";
+                print_usage(argv[0]);
+                std::exit(EXIT_FAILURE);
+            }
+            thread_count = parse_thread_count_value(argv[++i]);
+            continue;
+        }
+        const std::string prefix = "--threads=";
+        if (arg.rfind(prefix, 0) == 0) {
+            thread_count = parse_thread_count_value(arg.substr(prefix.size()));
+            continue;
+        }
+        std::cerr << "Unrecognized argument: " << arg << "\n";
+        print_usage(argv[0]);
+        std::exit(EXIT_FAILURE);
+    }
+    return thread_count;
 }
 
 namespace {
@@ -205,14 +264,60 @@ bool is_output_correct(
 }
 }  // namespace
 
-int main() {
+// ─── QMX MOPA ukernel variant table ─────────────────────────────────────────
+
+struct kai_matmul_ukernel_f32_bf16p_bf16p_qmx {
+    kai_matmul_clamp_f32_bf16p_bf16p_ukernel ukernel;
+    std::string name = {};
+};
+
+static kai_matmul_ukernel_f32_bf16p_bf16p_qmx qmx_ukernel_variants[] = {
+    {
+        {
+            kai_get_m_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_n_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_mr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_nr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_kr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_sr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_lhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_rhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_dst_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_get_dst_size_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+            kai_run_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa,
+        },
+        "matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa",
+    },
+};
+
+static const size_t num_qmx_ukernel_variants =
+    sizeof(qmx_ukernel_variants) / sizeof(qmx_ukernel_variants[0]);
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Compute GFLOPS from matrix dimensions and average iteration time.
+/// FLOPs for matmul = 2 * M * N * K  (one multiply + one add per element)
+static double compute_gflops(size_t m, size_t n, size_t k, long avg_us) {
+    if (avg_us <= 0) return 0.0;
+    const double flops  = 2.0 * static_cast<double>(m)
+                              * static_cast<double>(n)
+                              * static_cast<double>(k);
+    const double time_s = static_cast<double>(avg_us) * 1e-6;
+    return ((flops / time_s) / 1e9);
+}
+
+int main(int argc, char** argv) {
     int ret = 0;
 
-    // Parameters of the matrix multiplication. Change these values to see how the micro-kernels operate on different
-    // sized matrices
-    const size_t M = 10;  // Rows of LHS and DST matrices
-    const size_t N = 27;  // Columns of RHS and DST matrices, and length of the Bias vector.
-    const size_t K = 23;  // Columns of LHS, rows of RHS matrices
+    const size_t num_threads = parse_thread_count(argc, argv);
+    std::cout << "Using " << num_threads << " thread(s) for computations.\n";
+
+    // Matrix dimensions
+    const size_t M = 512;  // LHS rows / output rows
+    const size_t N = 512;  // RHS columns / output columns
+    const size_t K = 512;  // Common dimension (must be even for QMX MOPA kr=2)
+
+    std::cout << "Matrix dimensions: M=" << M << " N=" << N << " K=" << K << "\n\n";
 
     for (int variant_idx = 0; variant_idx < num_ukernel_variants; ++variant_idx) {
         const size_t lhs_size = M * K;
@@ -373,6 +478,174 @@ int main() {
         delete[] dst;
         delete[] dst_ref;
     }
+
+    // ── TEST[2..N]: QMX MOPA kernel (packed LHS + packed RHS, multi-threaded) ─
+    // Allocate fresh input matrices for the QMX MOPA test (the NEON loop freed its copies)
+    {
+        const size_t lhs_size_qmx  = M * K;
+        const size_t rhs_size_qmx  = K * N;
+        const size_t bias_size_qmx = N;
+        const size_t dst_size_qmx  = M * N;
+
+        float* lhs_qmx_in  = new float[lhs_size_qmx];
+        float* rhs_qmx_in  = new float[rhs_size_qmx];
+        float* bias_qmx_in = new float[bias_size_qmx];
+
+        fill_matrix(M, K, lhs_qmx_in,  0.4f);
+        fill_matrix(K, N, rhs_qmx_in,  0.3f);
+        fill_matrix(1, N, bias_qmx_in, 0.2f);
+
+        // Compute reference output for QMX MOPA correctness check
+        float* dst_ref_qmx = new float[dst_size_qmx];
+        run_matmul_ref(M, N, K, lhs_qmx_in, rhs_qmx_in, bias_qmx_in, dst_ref_qmx, -FLT_MAX, FLT_MAX);
+
+    for (size_t idx_variant = 0; idx_variant < num_qmx_ukernel_variants; ++idx_variant) {
+        const size_t test_idx = idx_variant + 2;
+        std::cout << "Testing " << qmx_ukernel_variants[idx_variant].name << "\n";
+
+        const size_t mr = qmx_ukernel_variants[idx_variant].ukernel.get_mr();
+        const size_t nr = qmx_ukernel_variants[idx_variant].ukernel.get_nr();
+        const size_t kr = qmx_ukernel_variants[idx_variant].ukernel.get_kr();
+        const size_t sr = qmx_ukernel_variants[idx_variant].ukernel.get_sr();
+
+        const size_t lhs_packed_size =
+            kai_get_lhs_packed_size_lhs_pack_bf16p2vlx2_f32_sme(M, K, mr, kr, sr);
+        const size_t rhs_packed_size =
+            kai_get_rhs_packed_size_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme(N, K);
+        const size_t dst_size_bytes =
+            qmx_ukernel_variants[idx_variant].ukernel.get_dst_size(M, N);
+
+        uint8_t* lhs_packed_qmx = new uint8_t[lhs_packed_size];
+        uint8_t* rhs_packed_qmx = new uint8_t[rhs_packed_size];
+        float*   dst_qmx        = new float[dst_size_bytes / sizeof(float)];
+
+        // Pack RHS + bias once (constant weights, done before threading)
+        const size_t rhs_stride_qmx = N * sizeof(float);
+        kai_run_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme(
+            1, N, K, nr, kr, sr,
+            rhs_stride_qmx, rhs_qmx_in, bias_qmx_in,
+            /*scale=*/NULL, rhs_packed_qmx,
+            /*extra_bytes=*/0, /*params=*/NULL);
+
+        // ── Phase 1: pack LHS once (not timed) ───────────────────────────────
+        auto lhs_pack_worker = [&](int thread_index) {
+            const size_t m_step =
+                qmx_ukernel_variants[idx_variant].ukernel.get_m_step();
+            const size_t num_m_per_thread =
+                kai_roundup(M, m_step * num_threads) / num_threads;
+            const size_t m_start = static_cast<size_t>(thread_index) * num_m_per_thread;
+            if (m_start >= M) return;
+            const size_t m_to_process = std::min(num_m_per_thread, M - m_start);
+
+            const size_t lhs_src_offset =
+                kai_get_lhs_offset_lhs_pack_bf16p2vlx2_f32_sme(
+                    m_start, K * sizeof(float));
+            const void* lhs_src_ptr =
+                reinterpret_cast<const uint8_t*>(lhs_qmx_in) + lhs_src_offset;
+
+            const size_t lhs_packed_offset =
+                qmx_ukernel_variants[idx_variant].ukernel.get_lhs_packed_offset(
+                    m_start, K);
+            void* lhs_packed_ptr = lhs_packed_qmx + lhs_packed_offset;
+
+            kai_run_lhs_pack_bf16p2vlx2_f32_sme(
+                m_to_process, K, mr, kr, sr,
+                /*m_idx_start=*/0,
+                lhs_src_ptr, K * sizeof(float),
+                lhs_packed_ptr);
+        };
+
+        {
+            std::vector<std::thread> pack_threads;
+            pack_threads.reserve(num_threads);
+            for (size_t i = 0; i < num_threads; ++i)
+                pack_threads.emplace_back(lhs_pack_worker, static_cast<int>(i));
+            for (auto& t : pack_threads) t.join();
+        }
+
+        // ── Phase 2: run matmul 60000 times and measure total elapsed time ───────
+        constexpr int num_iterations = 60000;
+
+        auto matmul_worker = [&](int thread_index) {
+            const size_t m_step =
+                qmx_ukernel_variants[idx_variant].ukernel.get_m_step();
+            const size_t num_m_per_thread =
+                kai_roundup(M, m_step * num_threads) / num_threads;
+            const size_t m_start = static_cast<size_t>(thread_index) * num_m_per_thread;
+            if (m_start >= M) return;
+            const size_t m_to_process = std::min(num_m_per_thread, M - m_start);
+
+            const size_t dst_stride_row = N * sizeof(float);
+
+            const size_t lhs_packed_offset =
+                qmx_ukernel_variants[idx_variant].ukernel.get_lhs_packed_offset(m_start, K);
+            const void* lhs_packed_ptr = lhs_packed_qmx + lhs_packed_offset;
+
+            const size_t rhs_packed_offset =
+                qmx_ukernel_variants[idx_variant].ukernel.get_rhs_packed_offset(0, K);
+            const void* rhs_packed_ptr = rhs_packed_qmx + rhs_packed_offset;
+
+            const size_t dst_offset =
+                qmx_ukernel_variants[idx_variant].ukernel.get_dst_offset(
+                    m_start, 0, dst_stride_row);
+            void* dst_ptr = reinterpret_cast<uint8_t*>(dst_qmx) + dst_offset;
+
+            // Each thread runs run_matmul num_iterations times.
+            // join() in the main thread blocks until this loop completes,
+            // so time_e - time_s covers all num_iterations calls.
+            for (int iter = 0; iter < num_iterations; ++iter) {
+                qmx_ukernel_variants[idx_variant].ukernel.run_matmul(
+                    m_to_process, N, K,
+                    lhs_packed_ptr, rhs_packed_ptr,
+                    dst_ptr,
+                    dst_stride_row, sizeof(float),
+                    -FLT_MAX, FLT_MAX);
+            }
+        };
+
+        //Start Time
+        const auto time_s = std::chrono::high_resolution_clock::now();
+
+        {
+            std::vector<std::thread> threads;
+            threads.reserve(num_threads);
+            // Create worker threads; each runs run_matmul num_iterations times
+            for (size_t i = 0; i < num_threads; ++i)
+                threads.emplace_back(matmul_worker, static_cast<int>(i));
+            // join() blocks until every thread has finished all num_iterations calls
+            for (auto& t : threads) t.join();
+        }
+
+        //End Time
+        const auto time_e = std::chrono::high_resolution_clock::now();
+        const auto total_us =
+            std::chrono::duration_cast<std::chrono::microseconds>(time_e - time_s).count();
+        const long avg_us = total_us / num_iterations;
+
+        // 2% relative tolerance (correctness checked on the last iteration's output)
+        constexpr float rel_tolerance_qmx = 0.02f;
+        const bool is_valid_qmx =
+            is_output_correct(M, N, rel_tolerance_qmx, dst_ref_qmx, dst_qmx);
+
+        printf("TEST[%zu] = %s\n", test_idx, is_valid_qmx ? "PASSED" : "FAILED");
+        std::cout << "- ukernel: " << qmx_ukernel_variants[idx_variant].name << "\n";
+        std::cout << "- Iterations: " << num_iterations << "\n";
+        std::cout << "- Total time: " << total_us << " us\n";
+        const double gflops = compute_gflops(M, N, K, avg_us);
+        std::cout << "- Avg time per iteration: " << avg_us << " us\n";
+        std::cout << std::fixed << std::setprecision(2) << "- GFLOPS: " << gflops << "\n\n";
+        if (!is_valid_qmx) ret = 1;
+
+        delete[] lhs_packed_qmx;
+        delete[] rhs_packed_qmx;
+        delete[] dst_qmx;
+    }  // end QMX variant loop
+
+        delete[] lhs_qmx_in;
+        delete[] rhs_qmx_in;
+        delete[] bias_qmx_in;
+        delete[] dst_ref_qmx;
+    }  // end QMX input block
 
     return ret;
 }

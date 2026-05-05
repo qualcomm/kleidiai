@@ -8,6 +8,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(matmul_clamp_f16_f16_f16p)
 
+enable_language(ASM)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(KAI_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../)
@@ -26,11 +28,19 @@ fetchcontent_makeavailable(kleidiai)
 include_directories(
     ${kleidiai_SOURCE_DIR}/
     ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16_f16p/
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/
     ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/)
 
 set(KAI_SOURCES
     ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16_f16p/kai_matmul_clamp_f16_f16_f16p16x1biasf16_6x16x8_neon_mla.c
-    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_rhs_pack_kxn_f16p16x1biasf16_f16_f16_neon.c)
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_rhs_pack_kxn_f16p16x1biasf16_f16_f16_neon.c
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa.c
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa_asm.S
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_lhs_pack_x16p2vlx2_x16_sme.c
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_lhs_pack_x16p2vlx2_x16_sme_asm.S
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_rhs_pack_kxn_x16p2vlx2b_x16_x16_sme.c
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_rhs_pack_kxn_x16p2vlx2b_x16_x16_sme_asm.S
+    ${kleidiai_SOURCE_DIR}/kai/kai_common_sme_asm.S)
 
 set(KAI_HEADERS
     ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16_f16p/kai_matmul_clamp_f16_f16_f16p16x1biasf16_6x16x8_neon_mla.h
@@ -46,6 +56,22 @@ add_executable(
 
 # Compile args needed for binary.
 target_compile_options(matmul_clamp_f16_f16_f16p PRIVATE -march=armv8.2-a+fp16)
+
+set_source_files_properties(
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa.c
+    PROPERTIES COMPILE_OPTIONS "-fno-tree-vectorize;-march=armv8.2-a+sve+sve2+fp16")
+
+set_source_files_properties(
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa_asm.S
+    PROPERTIES COMPILE_OPTIONS "-march=armv8.2-a+sve+sve2+fp16")
+
+set_source_files_properties(
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_lhs_pack_x16p2vlx2_x16_sme.c
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_lhs_pack_x16p2vlx2_x16_sme_asm.S
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_rhs_pack_kxn_x16p2vlx2b_x16_x16_sme.c
+    ${kleidiai_SOURCE_DIR}/kai/ukernels/matmul/pack/kai_rhs_pack_kxn_x16p2vlx2b_x16_x16_sme_asm.S
+    ${kleidiai_SOURCE_DIR}/kai/kai_common_sme_asm.S
+    PROPERTIES COMPILE_OPTIONS "-march=armv8.2-a+sve+sve2")
 
 target_compile_definitions(matmul_clamp_f16_f16_f16p
     PRIVATE $<$<CONFIG:Debug>:KAI_DEBUG>
