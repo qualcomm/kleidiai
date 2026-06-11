@@ -229,4 +229,15 @@ std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_f32_f32_f32p4vsx
         MatMulUkerApiBiasDeliveryStage::PACK_RHS);
 }
 
+std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla() {
+    return std::make_unique<MatMulUkerApiWrapper>(
+        "matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla", kai_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla(),
+        MatMulSlot::LHS_DATA, make_poly<PlainFormat>(DataType::FP32),
+        make_poly<Block2dRowFormat>(
+            4 * get_sme_vector_scale(), 1, 1, false, DataType::FP32, std::array{DataType::FP32},
+            std::array<DataType, 0>{}),
+        make_poly<PlainFormat>(DataType::FP32), DataType::FP32, MatMulUkerClampConfig::optional(DataType::FP32),
+        MatMulUkerApiBiasDeliveryStage::PACK_RHS);
+}
+
 }  // namespace kai::test
