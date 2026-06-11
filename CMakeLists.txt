@@ -391,6 +391,8 @@ set(KLEIDIAI_FILES_SME_ASM
     kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx4vs_qmx_mopa_asm.S
     kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8vs_qmx_mopa_asm.S
     kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_16vsx4vs_qmx_mopa_asm.S
+    kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot_asm.S
+    kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot.c
     kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8vs_qmx_mopa.c
     
     kai/ukernels/matmul/matmul_clamp_f32_u8p_u8p/kai_kernel_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa_asm.S

@@ -129,6 +129,7 @@
 
 // matmul_clamp_qai8_qai8_qsi8cxp
 #include "kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp2vlx4sb_1x16vl_sme2_dot.h"
+#include "kai/ukernels/matmul/matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot.h"
 
 // matmul_clamp_qai8_qai8p_qsi8cxp
 #include "kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxp2vlx4sb_2vlx2vl_sme_mopa.h"
@@ -542,6 +543,14 @@ inline constexpr MatMulStaticQuantInterface kai_matmul_clamp_qai8_qai8_qsi8cxp2v
 inline constexpr MatMulUkernelApiInterface kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_sme2_dot_interface{
     .get_config = [] { return kai_matmul_uker_config{}; },
     .get_api = kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_sme2_dot,
+    .flags = KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP,
+    .args_flags = KAI_BENCHMARK_MATMUL_UKER_ARGS_SCALE_BIAS_GLOBAL,
+    .scale_bias_elem_size = sizeof(int32_t),
+};
+
+inline constexpr MatMulUkernelApiInterface kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot_interface{
+    .get_config = [] { return kai_matmul_uker_config{}; },
+    .get_api = kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot,
     .flags = KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP,
     .args_flags = KAI_BENCHMARK_MATMUL_UKER_ARGS_SCALE_BIAS_GLOBAL,
     .scale_bias_elem_size = sizeof(int32_t),
@@ -1079,6 +1088,11 @@ inline const std::array matmul_benchmarks{
         kai_benchmark_matmul<MatMulUkernelApiInterface>,
         kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_sme2_dot_interface, DataType::QAI8, MatMulOp::GEMV,
         test::cpu_has_sme2),
+    RegisterBenchmark(
+        "kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot",
+        kai_benchmark_matmul<MatMulUkernelApiInterface>,
+        kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot_interface, DataType::QAI8, MatMulOp::GEMV,
+        test::cpu_has_sme),
 
     // matmul_clamp_qai8_qai8p_qsi8cxp
     RegisterBenchmark(
