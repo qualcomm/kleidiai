@@ -346,6 +346,79 @@ const MatMulKernel& get_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8v
     return uker;
 }
 
+const MatMulKernel& get_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8vs_qmx_mopa() {
+    static const kai_matmul_uker_config config{};
+    static const kai_matmul_uker_api api = kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8vs_qmx_mopa();
+
+    static MatMulKernel uker{};
+
+    uker.get_m_step = []() -> size_t {
+        const kai_matmul_uker_dim_args step = api.get_step(&config);
+        return step.m;
+    };
+
+    uker.get_n_step = []() -> size_t {
+        const kai_matmul_uker_dim_args step = api.get_step(&config);
+        return step.n;
+    };
+
+    uker.get_mr = []() -> size_t { return 4 * get_sme_vector_scale(); };
+    uker.get_nr = []() -> size_t { return 4 * get_sme_vector_scale(); };
+    uker.get_kr = []() -> size_t { return 4; };
+    uker.get_sr = []() -> size_t { return 1; };
+
+    uker.get_packed_lhs_offset = [](size_t m_idx, size_t k) -> size_t {
+        const kai_matmul_uker_lhs_dim_args shape = {1, k};
+        const kai_matmul_uker_lhs_stride_args stride = api.get_lhs_stride(&config, &shape);
+        const kai_matmul_uker_lhs_dim_args index = {m_idx, 0};
+        return api.get_lhs_offset(&config, &index, &stride);
+    };
+
+    uker.get_packed_rhs_offset = [](size_t n_idx, size_t k) -> size_t {
+        const kai_matmul_uker_rhs_dim_args shape = {1, k};
+        const kai_matmul_uker_rhs_stride_args stride = api.get_rhs_stride(&config, &shape);
+        const kai_matmul_uker_rhs_dim_args index = {n_idx, 0};
+        return api.get_rhs_offset(&config, &index, &stride);
+    };
+
+    uker.get_dst_offset = [](size_t m_idx, size_t n_idx, size_t dst_stride_row) -> size_t {
+        const kai_matmul_uker_dst_dim_args index = {m_idx, n_idx};
+        const kai_matmul_uker_dst_stride_args stride = {dst_stride_row};
+        return api.get_dst_offset(&config, &index, &stride);
+    };
+
+    uker.get_dst_size = [](size_t m, size_t n) -> size_t {
+        const kai_matmul_uker_dst_dim_args shape = {m, n};
+        const kai_matmul_uker_dst_stride_args stride = api.get_dst_stride(&config, &shape);
+        return api.get_dst_size(&config, &shape, &stride);
+    };
+
+    uker.matmul = [](size_t m, size_t n, size_t k, const void* lhs_packed, const void* rhs_packed, void* dst,
+                     size_t dst_stride_row, [[maybe_unused]] size_t dst_stride_col,
+                     const struct kai_matmul_requantize32_params* params) -> void {
+        const kai_matmul_uker_lhs_dim_args lhs_shape = {m, k};
+        const kai_matmul_uker_rhs_dim_args rhs_shape = {n, k};
+
+        kai_matmul_uker_args args{};
+
+        args.flags = KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP;
+        args.shape = {m, n, k};
+        args.operand.lhs.ptr = lhs_packed;
+        args.operand.lhs.stride = api.get_lhs_stride(&config, &lhs_shape);
+        args.operand.rhs.ptr = rhs_packed;
+        args.operand.rhs.stride = api.get_rhs_stride(&config, &rhs_shape);
+        args.operand.bias.scale_bias_global.ptr = &params->output_zero_point;
+        args.operand.dst.ptr = dst;
+        args.operand.dst.stride = {dst_stride_row};
+        args.activation.clamp.min_ptr = &params->min_value;
+        args.activation.clamp.max_ptr = &params->max_value;
+
+        api.run(&config, &args);
+    };
+
+    return uker;
+}
+
 const MatMulKernel& get_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_sme2_dot() {
     static const kai_matmul_uker_config config{};
     static const kai_matmul_uker_api api = kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_sme2_dot();
@@ -569,7 +642,7 @@ struct IndirectMatMulVariant {
 };
 
 const auto& get_gemm_variants() {
-    static std::array<MatMulVariant, 3> variants;
+    static std::array<MatMulVariant, 4> variants;
     static const kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel& ukernel_sme2 =
         get_matmul_clamp_qai8_qai8p2vlx4_qsi8cxpsb2vlx4_2vlx2vl_sme2_mopa_interface();
     static const kai_matmul_clamp_qai8_qai8p_qsi8cxpsb_ukernel& ukernel_sme =
@@ -630,6 +703,18 @@ const auto& get_gemm_variants() {
     variants[2].lhs_pack = get_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
     variants[2].rhs_pack = get_matmul_pack_rhs_kxn_qsi8cxp4vsx4bi32sf32_qsi8_i32_f32_sme();
     variants[2].matmul = get_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8vs_sme2_mopa();
+
+    variants[3].name = "matmul_clamp_qai8_qai8p4vsx4_qai8p4vsx4bi32sf32_8vsx8vs_qmx_mopa";
+    variants[3].acc_pack.m = 4 * get_sme_vector_scale();
+    variants[3].acc_pack.n = 4 * get_sme_vector_scale();
+    variants[3].acc_pack.k = 4;
+    variants[3].acc_step.m = 4 * get_sme_vector_scale();
+    variants[3].acc_step.n = 4 * get_sme_vector_scale();
+    variants[3].acc_step.k = 4;
+    variants[3].is_supported = cpu_has_sme;
+    variants[3].lhs_pack = get_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
+    variants[3].rhs_pack = get_matmul_pack_rhs_kxn_qsi8cxp4vsx4bi32sf32_qsi8_i32_f32_sme();
+    variants[3].matmul = get_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8vs_qmx_mopa();
 
     return variants;
 }
