@@ -1578,8 +1578,11 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(MatMulShapes),          //
         testing::ValuesIn(MatrixPortions),        //
         testing::Values(BiasMode::PROVIDED),      //
-        testing::ValuesIn(
-            std::initializer_list<std::optional<float>>({std::nullopt, 1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1589,8 +1592,11 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(MatMulShapes),                          //
         testing::ValuesIn(MatrixPortions),                        //
         testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),  //
-        testing::ValuesIn(
-            std::initializer_list<std::optional<float>>({std::nullopt, 1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1619,8 +1625,11 @@ INSTANTIATE_TEST_SUITE_P(
             MatrixPortion(0, 0.75, 1, .25)  // right row section
             ),
         testing::Values(BiasMode::PROVIDED),  //
-        testing::ValuesIn(
-            std::initializer_list<std::optional<float>>({std::nullopt, 1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 
 
