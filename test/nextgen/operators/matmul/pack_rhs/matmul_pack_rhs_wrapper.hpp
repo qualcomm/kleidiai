@@ -50,4 +50,18 @@ namespace kai::test {
 [[nodiscard]] bool is_shape_suitable_rhs_f32p2vlx1_f32p2vlx1biasf32_sme2_mopa(
     size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
 
+/// Creates a wrapper for kai_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme kernel.
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme();
+
+/// Creates a wrapper for kai_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme kernel.
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme();
+
+/// Checks if the portion produces non-empty RHS packing tiles for the x8p4vsx4 NxK matmul operator.
+[[nodiscard]] bool is_shape_suitable_rhs_nxk_x8p4vsx4_x8_sme(
+    size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
+
+/// Checks if the portion produces non-empty RHS packing tiles for the x8p4vsx4 KxN matmul operator.
+[[nodiscard]] bool is_shape_suitable_rhs_kxn_x8p4vsx4_x8_sme(
+    size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
+
 }  // namespace kai::test

@@ -83,6 +83,11 @@ uint64_t get_sme_vector_length<4>() {
     return res;
 }
 
+uint64_t get_sme_vector_scale() {
+    static constexpr uint64_t VSCALE_UNIT_BYTES = 16;
+    return get_sme_vector_length<uint8_t>() / VSCALE_UNIT_BYTES;
+}
+
 }  // namespace kai::test
 
 #endif  // Architectural features check.

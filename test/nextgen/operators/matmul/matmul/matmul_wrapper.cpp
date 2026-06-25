@@ -13,6 +13,7 @@
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4cxp4vlx4_1vlx4vl_sme_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_sme2_sdot.h"
+#include "kai/ukernels/matmul/kai_matmul.h"
 #include "test/common/data_type.hpp"
 #include "test/common/sme.hpp"
 #include "test/nextgen/format/block2d_row_format.hpp"
@@ -156,6 +157,33 @@ std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_f32_f32p4vsx1_f3
             std::array<DataType, 0>{}),
         make_poly<Block2dRowFormat>(
             1 * get_sme_vector_length<float>(), 1, 1, false, DataType::FP32, std::array{DataType::FP32},
+            std::array<DataType, 0>{}),
+        make_poly<PlainFormat>(DataType::FP32));
+}
+
+std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_sme2_mopa() {
+    return std::make_unique<MatMulUkerApiWrapper>(
+        "matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_sme2_mopa",
+        kai_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_sme2_mopa(),
+        make_poly<Block2dRowFormat>(
+            4 * get_sme_vector_length<float>(), 4, 4, false, DataType::U8, std::array<DataType, 0>{},
+            std::array<DataType, 0>{}),
+        make_poly<Block2dRowFormat>(
+            4 * get_sme_vector_length<float>(), 4, 4, false, DataType::U8, std::array<DataType, 0>{},
+            std::array<DataType, 0>{}),
+        make_poly<PlainFormat>(DataType::I32));
+}
+
+std::unique_ptr<KernelWrapper<MatMulShape>>
+create_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_sme2_mopa() {
+    return std::make_unique<MatMulUkerApiWrapper>(
+        "matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_sme2_mopa",
+        kai_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_sme2_mopa(),
+        make_poly<Block2dRowFormat>(
+            4 * get_sme_vector_length<float>(), 4, 4, false, DataType::U8, std::array<DataType, 0>{},
+            std::array<DataType, 0>{}),
+        make_poly<Block2dRowFormat>(
+            4 * get_sme_vector_length<float>(), 4, 4, false, DataType::U8, std::array<DataType, 0>{},
             std::array<DataType, 0>{}),
         make_poly<PlainFormat>(DataType::FP32));
 }

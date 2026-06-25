@@ -12,6 +12,7 @@
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1vlx4_qsi4cxp4vlx4_1vlx4vl_sme_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_sme2_sdot.h"
+#include "kai/ukernels/matmul/kai_matmul_pack_rhs.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_f32p2vlx1biasf32_f32_f32_sme.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4cxps1s0_qsu4cxs1s0_neon.h"
 #include "test/common/data_type.hpp"
@@ -172,4 +173,53 @@ bool is_shape_suitable_rhs_nxk_x32p4vsx1bx32_x32_x32_sme(
 
     return portion_non_empty(shape_n, shape_k, block_n, block_k, portion);
 }
+
+std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme() {
+    return std::make_unique<MatMulPackRhsUkerApiTWrapper>(
+        "matmul_pack_rhs_nxk_x8p4vsx4_x8_sme", kai_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme(),
+        make_poly<PlainFormat>(DataType::U8), make_poly<PlainFormat>(DataType::U8),
+        make_poly<Block2dRowFormat>(
+            4 * get_sme_vector_length<float>(), 4, 4, false, DataType::U8, std::array<DataType, 0>{},
+            std::array<DataType, 0>{}));
+}
+
+std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme() {
+    return std::make_unique<MatMulPackRhsUkerApiWrapper>(
+        "matmul_pack_rhs_kxn_x8p4vsx4_x8_sme", kai_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme(),
+        make_poly<PlainFormat>(DataType::U8), make_poly<PlainFormat>(DataType::U8),
+        make_poly<Block2dRowFormat>(
+            4 * get_sme_vector_length<float>(), 4, 4, false, DataType::U8, std::array<DataType, 0>{},
+            std::array<DataType, 0>{}));
+}
+
+bool is_shape_suitable_rhs_nxk_x8p4vsx4_x8_sme(
+    [[maybe_unused]] size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion) {
+    if (shape_n == 0 || shape_k == 0) {
+        return false;
+    }
+
+    const kai_matmul_pack_rhs_uker_api api = kai_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme();
+    const kai_matmul_pack_rhs_uker_config config = {};
+    const kai_matmul_pack_rhs_uker_dim_args step = api.get_step(&config);
+    const size_t block_n = (step.n == 0) ? shape_n : step.n;
+    const size_t block_k = (step.k == 0) ? shape_k : step.k;
+
+    return portion_non_empty(shape_n, shape_k, block_n, block_k, portion);
+}
+
+bool is_shape_suitable_rhs_kxn_x8p4vsx4_x8_sme(
+    [[maybe_unused]] size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion) {
+    if (shape_n == 0 || shape_k == 0) {
+        return false;
+    }
+
+    const kai_matmul_pack_rhs_uker_api api = kai_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme();
+    const kai_matmul_pack_rhs_uker_config config = {};
+    const kai_matmul_pack_rhs_uker_dim_args step = api.get_step(&config);
+    const size_t block_n = (step.n == 0) ? shape_n : step.n;
+    const size_t block_k = (step.k == 0) ? shape_k : step.k;
+
+    return portion_non_empty(shape_n, shape_k, block_n, block_k, portion);
+}
+
 }  // namespace kai::test

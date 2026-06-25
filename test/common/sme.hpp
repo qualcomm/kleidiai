@@ -21,4 +21,7 @@ uint64_t get_sme_vector_length() {
     return get_sme_vector_length<sizeof(T)>();
 }
 
+/// Gets the SME vector scale
+uint64_t get_sme_vector_scale();
+
 }  // namespace kai::test

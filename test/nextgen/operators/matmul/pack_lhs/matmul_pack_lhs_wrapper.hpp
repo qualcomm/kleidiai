@@ -46,4 +46,11 @@ namespace kai::test {
 [[nodiscard]] bool is_shape_suitable_lhs_f32p2vlx1_f32p2vlx1biasf32_sme2_mopa(
     size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
 
+/// Creates a wrapper for kai_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme.
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
+
+/// Checks if the portion produces non-empty LHS packing tiles for the x8p4vsx4 matmul operator.
+[[nodiscard]] bool is_shape_suitable_lhs_x8p4vsx4_x8_sme(
+    size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
+
 }  // namespace kai::test
