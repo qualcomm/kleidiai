@@ -161,8 +161,7 @@ void kai_run_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_qmx_sdot(
         " mov     x21, %[lhs_packed]                                        \n"
         " ptrue   p0.b                                                      \n"
         " .inst 0x25b31562 // whilelt p2.s, x11, x19\n"
-        " mov     w9, #0xf0                                                 \n"
-        " dup     z28.b, w9                                                 \n"
+        " dup     z28.b, #0xf0                                              \n"
         " dup     z30.s, %w[scalar_min]                                     \n"
         " dup     z31.s, %w[scalar_max]                                     \n"
         "1:                                                                 \n"
@@ -366,7 +365,7 @@ void kai_run_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_qmx_sdot(
           [rhs_packed] "r"(rhs_packed), [dst_stride_row] "r"(dst_stride_row), [scalar_min] "r"(scalar_min),
           [scalar_max] "r"(scalar_max), [k_internal] "r"(k_internal), [lhs_stride] "r"(lhs_stride),
           [rhs_stride] "r"(rhs_stride), [nr] "r"(nr), [rhs_row_bytes] "r"(rhs_row_bytes), [lhs_end_ptr] "r"(lhs_end_ptr)
-        : "x9", "x11", "x15", "x17", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "p0", "p1", "p2", "p3", "p8", "p9",
+        : "x11", "x15", "x17", "x19", "x20", "x21", "x22", "x23", "x24", "x25", "x26", "x27", "x28", "p0", "p1", "p2", "p3", "p8", "p9",
           "p10", "p11", "p12", "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7", "z8", "z9", "z10", "z11", "z12", "z13",
           "z14", "z15", "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23", "z24", "z25", "z26", "z27", "z28",
           "z29", "z30", "z31",
