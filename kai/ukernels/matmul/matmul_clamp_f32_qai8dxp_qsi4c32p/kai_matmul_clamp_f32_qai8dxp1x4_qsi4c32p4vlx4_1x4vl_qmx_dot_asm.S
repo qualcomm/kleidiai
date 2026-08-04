@@ -97,7 +97,7 @@
     //      k_loop: K blocks (size bl)
     //        zero ZA
     //        ld1rqb LHS
-    //        ld1b + luti4 RHS
+    //        ld1b + lsl/and decode RHS (s4s0)
     //        sdot accumulate
     //      load RHS scales (lsl#16)
     //      extract ZA → f32
@@ -142,6 +142,7 @@ KAI_ASM_LABEL(n_loop)                     // RHS matrix row loop (N-tile iterati
     dup z29.s, #0
     dup z30.s, #0
     dup z31.s, #0
+    dup z3.b, #-16                        // 0xf0 mask for the s4s0 high-nibble decode below
 KAI_ASM_LABEL(k_loop)
     mov     x13, x7
     KAI_ASM_INST(0x25b8c004)             // dup z4.s, #0 
@@ -183,70 +184,45 @@ KAI_ASM_LABEL(k_block_loop)
     KAI_ASM_INST(0xa401b715)             //    ld1b z21.b, p5/Z, [x24, #1, MUL VL]
     KAI_ASM_INST(0xa402bb16)             //    ld1b z22.b, p6/Z, [x24, #2, MUL VL]
     KAI_ASM_INST(0xa403bf17)             //    ld1b z23.b, p7/Z, [x24, #3, MUL VL]
-    KAI_ASM_INST(0x0523c203)             //    mov z3.b, p0/m, z16.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9e10)             //    lsl z16.b, z16.b, #4
-    KAI_ASM_INST(0x042c9210)             //    asr z16.b, z16.b, #4
-    KAI_ASM_INST(0x05236218)             //    zip1 z24.b, z16.b, z3.b
-    KAI_ASM_INST(0x05236619)             //    zip2 z25.b, z16.b, z3.b
-    KAI_ASM_INST(0x0523c223)             //    mov z3.b, p0/m, z17.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9e31)             //    lsl z17.b, z17.b, #4
-    KAI_ASM_INST(0x042c9231)             //    asr z17.b, z17.b, #4
-    KAI_ASM_INST(0x0523623a)             //    zip1 z26.b, z17.b, z3.b
-    KAI_ASM_INST(0x0523663b)             //    zip2 z27.b, z17.b, z3.b
-    KAI_ASM_INST(0x44a00304)             //    sdot z4.s,  z24.b,  z0.b[0]
-    KAI_ASM_INST(0x44a00325)             //    sdot z5.s,  z25.b,  z0.b[0]
-    KAI_ASM_INST(0x44a00346)             //    sdot z6.s,  z26.b,  z0.b[0]
-    KAI_ASM_INST(0x44a00367)             //    sdot z7.s,  z27.b,  z0.b[0]
-    KAI_ASM_INST(0x0523c243)             //    mov z3.b, p0/m, z18.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9e52)             //    lsl z18.b, z18.b, #4
-    KAI_ASM_INST(0x042c9252)             //    asr z18.b, z18.b, #4
-    KAI_ASM_INST(0x0523624c)             //    zip1 z12.b, z18.b, z3.b
-    KAI_ASM_INST(0x0523664d)             //    zip2 z13.b, z18.b, z3.b
-    KAI_ASM_INST(0x0523c263)             //    mov z3.b, p0/m, z19.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9e73)             //    lsl z19.b, z19.b, #4
-    KAI_ASM_INST(0x042c9273)             //    asr z19.b, z19.b, #4
-    KAI_ASM_INST(0x0523626e)             //    zip1 z14.b, z19.b, z3.b
-    KAI_ASM_INST(0x0523666f)             //    zip2 z15.b, z19.b, z3.b
-    KAI_ASM_INST(0x44a80184)             //    sdot z4.s,  z12.b,  z0.b[1]
-    KAI_ASM_INST(0x44a801a5)             //    sdot z5.s,  z13.b,  z0.b[1]
-    KAI_ASM_INST(0x44a801c6)             //    sdot z6.s,  z14.b,  z0.b[1]
-    KAI_ASM_INST(0x44a801e7)             //    sdot z7.s,  z15.b,  z0.b[1]
-    KAI_ASM_INST(0x0523c283)             //    mov z3.b, p0/m, z20.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9e94)             //    lsl z20.b, z20.b, #4
-    KAI_ASM_INST(0x042c9294)             //    asr z20.b, z20.b, #4
-    KAI_ASM_INST(0x05236288)             //    zip1 z8.b, z20.b, z3.b
-    KAI_ASM_INST(0x05236689)             //    zip2 z9.b, z20.b, z3.b
-    KAI_ASM_INST(0x0523c2a3)             //    mov z3.b, p0/m, z21.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9eb5)             //    lsl z21.b, z21.b, #4
-    KAI_ASM_INST(0x042c92b5)             //    asr z21.b, z21.b, #4
-    KAI_ASM_INST(0x052362aa)             //    zip1 z10.b, z21.b, z3.b
-    KAI_ASM_INST(0x052366ab)             //    zip2 z11.b, z21.b, z3.b
-    KAI_ASM_INST(0x44b00104)             //    sdot z4.s,  z8.b,  z0.b[2]
-    KAI_ASM_INST(0x44b00125)             //    sdot z5.s,  z9.b,  z0.b[2]
-    KAI_ASM_INST(0x44b00146)             //    sdot z6.s,  z10.b,  z0.b[2]
-    KAI_ASM_INST(0x44b00167)             //    sdot z7.s,  z11.b,  z0.b[2]
-    KAI_ASM_INST(0x0523c2c3)             //    mov z3.b, p0/m, z22.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9ed6)             //    lsl z22.b, z22.b, #4
-    KAI_ASM_INST(0x042c92d6)             //    asr z22.b, z22.b, #4
-    KAI_ASM_INST(0x052362cc)             //    zip1 z12.b, z22.b, z3.b
-    KAI_ASM_INST(0x052366cd)             //    zip2 z13.b, z22.b, z3.b
-    KAI_ASM_INST(0x0523c2e3)             //    mov z3.b, p0/m, z23.b
-    KAI_ASM_INST(0x042c9063)             //    asr z3.b, z3.b, #4
-    KAI_ASM_INST(0x042c9ef7)             //    lsl z23.b, z23.b, #4
-    KAI_ASM_INST(0x042c92f7)             //    asr z23.b, z23.b, #4
-    KAI_ASM_INST(0x052362ee)             //    zip1 z14.b, z23.b, z3.b
-    KAI_ASM_INST(0x052366ef)             //    zip2 z15.b, z23.b, z3.b
-    KAI_ASM_INST(0x44b80184)             //    sdot z4.s,  z12.b,  z0.b[3]
-    KAI_ASM_INST(0x44b801a5)             //    sdot z5.s,  z13.b,  z0.b[3]
-    KAI_ASM_INST(0x44b801c6)             //    sdot z6.s,  z14.b,  z0.b[3]
-    KAI_ASM_INST(0x44b801e7)             //    sdot z7.s,  z15.b,  z0.b[3]
+    // s4s0 decode: low nibble shifted into upper 4 bits (lsl #4) holds K[p..p+3] for these 4
+    // columns; high nibble masked with 0xf0 (via z3) holds K[p+4..p+7] for the SAME 4 columns.
+    // Both halves accumulate into the SAME target register (one per 4-column group: z4/z5/z6/z7),
+    // using consecutive z0.b[] lane indices (low half -> index i, high half -> index i+1) since
+    // both halves cover the same columns, just different K sub-ranges. Both operands end up 16x
+    // too large in the decoded position; the RHS per-block scale loaded below has already been
+    // pre-divided by 1/16 by the packer to compensate, so no extra runtime correction is needed.
+    lsl z24.b, z16.b, #4
+    and z25.d, z16.d, z3.d
+    sdot z4.s, z24.b, z0.b[0]
+    sdot z4.s, z25.b, z0.b[1]
+    lsl z26.b, z17.b, #4
+    and z27.d, z17.d, z3.d
+    sdot z5.s, z26.b, z0.b[0]
+    sdot z5.s, z27.b, z0.b[1]
+    lsl z12.b, z18.b, #4
+    and z13.d, z18.d, z3.d
+    sdot z6.s, z12.b, z0.b[0]
+    sdot z6.s, z13.b, z0.b[1]
+    lsl z14.b, z19.b, #4
+    and z15.d, z19.d, z3.d
+    sdot z7.s, z14.b, z0.b[0]
+    sdot z7.s, z15.b, z0.b[1]
+    lsl z8.b, z20.b, #4
+    and z9.d, z20.d, z3.d
+    sdot z4.s, z8.b, z0.b[2]
+    sdot z4.s, z9.b, z0.b[3]
+    lsl z10.b, z21.b, #4
+    and z11.d, z21.d, z3.d
+    sdot z5.s, z10.b, z0.b[2]
+    sdot z5.s, z11.b, z0.b[3]
+    lsl z12.b, z22.b, #4
+    and z13.d, z22.d, z3.d
+    sdot z6.s, z12.b, z0.b[2]
+    sdot z6.s, z13.b, z0.b[3]
+    lsl z14.b, z23.b, #4
+    and z15.d, z23.d, z3.d
+    sdot z7.s, z14.b, z0.b[2]
+    sdot z7.s, z15.b, z0.b[3]
     KAI_ASM_INST(0x04385098)             //    addvl   x24, x24, #4
     KAI_ASM_INST(0x0438509c)             //    addvl   x28, x24, #4
     subs x13, x13, #16
