@@ -3,6 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
     #define KAI_ASM_FUNCTION_TYPE(name)
@@ -47,6 +51,8 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p1vlx2_qsi4c32p4vlx2_1vlx4
     KAI_ASM_INST(0xd503477f)        // smstart
     cntw x14
     ptrue p2.b, all
+    // 0xF0 mask for high-nibble isolation in the Block loop's decode.
+    dup z22.b, #-16                 // 0xF0 mask
     ldr x19, [x0, #0x58]            // lut
     //KAI_ASM_INST(0xe11f8260) //ldr zt0, [x19]
     mov x8, #0
@@ -98,23 +104,21 @@ KAI_ASM_LABEL(label_4) // Block loop
     inch x20, all
     KAI_ASM_INST(0xa540a2e6)// ld1w {z6.s}, p0/z, [x23]
     //KAI_ASM_INST(0xc08a9088) // luti4 {z8.h - z11.h}, zt0, z4[0]
-    // SVE replacement: extract nibbles, interleave, convert to FP16
-    mov z18.d, z4.d                 // Copy z4 to z18 for lower nibbles
-    lsr z19.b, z4.b, #4             // Extract upper nibbles (bits 7:4) from z4
-    and z18.b, z18.b, #0x0F         // Extract lower nibbles (bits 3:0)
+    // SVE replacement: extract nibbles, interleave, convert to FP16.
+    // Nibbles top-justified (lsl #4 / and 0xF0); packed byte already
+    // XOR-0x88'd at pack time, so signed widen needs no zero-point sub
+    // (values come out scaled by 16 -- packer pre-divides the scale by 16).
+    lsl z18.b, z4.b, #4             // Low nibble -> top-justified (bits 7:4)
+    and z19.d, z4.d, z22.d          // High nibble already top-justified (bits 7:4)
     zip1 z20.b, z18.b, z19.b        // Interleave lower and upper nibbles (lower half)
     zip2 z21.b, z18.b, z19.b        // Interleave lower and upper nibbles (upper half)
     // Process lower half (z8, z9)
-    uunpklo z8.h, z20.b             // Unpack lower part of z20
-    uunpkhi z9.h, z20.b             // Unpack upper part of z20
+    sunpklo z8.h, z20.b              // Signed unpack lower part of z20
+    sunpkhi z9.h, z20.b              // Signed unpack upper part of z20
     // Process upper half (z10, z11)
-    uunpklo z10.h, z21.b            // Unpack lower part of z21
-    uunpkhi z11.h, z21.b            // Unpack upper part of z21
-    // Convert all four registers from [0,15] to [-8,7] and then to FP16
-    sub z8.h, z8.h, #8
-    sub z9.h, z9.h, #8
-    sub z10.h, z10.h, #8
-    sub z11.h, z11.h, #8
+    sunpklo z10.h, z21.b             // Signed unpack lower part of z21
+    sunpkhi z11.h, z21.b             // Signed unpack upper part of z21
+    // Convert (already-scaled-by-16, zero-point-corrected) values to FP16.
     scvtf z8.h, p2/m, z8.h
     scvtf z9.h, p2/m, z9.h
     scvtf z10.h, p2/m, z10.h
@@ -130,23 +134,17 @@ KAI_ASM_LABEL(label_4) // Block loop
     KAI_ASM_INST(0xa54e42e7) // ld1w {z7.s}, p0/z, [x23, x14, lsl 2]
     add x23, x23, x14, lsl 3
     //KAI_ASM_INST(0xc08a90ac) // luti4 {z12.h - z15.h}, zt0, z5[0]
-    // SVE replacement: extract nibbles, interleave, convert to FP16 for z5
-    mov z18.d, z5.d                 // Copy z5 to z18 for lower nibbles
-    lsr z19.b, z5.b, #4             // Extract upper nibbles (bits 7:4) from z5
-    and z18.b, z18.b, #0x0F         // Extract lower nibbles (bits 3:0)
+    lsl z18.b, z5.b, #4             // Low nibble -> top-justified (bits 7:4)
+    and z19.d, z5.d, z22.d          // High nibble already top-justified (bits 7:4)
     zip1 z20.b, z18.b, z19.b        // Interleave lower and upper nibbles (lower half)
     zip2 z21.b, z18.b, z19.b        // Interleave lower and upper nibbles (upper half)
     // Process lower half (z12, z13)
-    uunpklo z12.h, z20.b            // Unpack lower part of z20
-    uunpkhi z13.h, z20.b            // Unpack upper part of z20
+    sunpklo z12.h, z20.b             // Signed unpack lower part of z20
+    sunpkhi z13.h, z20.b             // Signed unpack upper part of z20
     // Process upper half (z14, z15)
-    uunpklo z14.h, z21.b            // Unpack lower part of z21
-    uunpkhi z15.h, z21.b            // Unpack upper part of z21
-    // Convert all four registers from [0,15] to [-8,7] and then to FP16
-    sub z12.h, z12.h, #8
-    sub z13.h, z13.h, #8
-    sub z14.h, z14.h, #8
-    sub z15.h, z15.h, #8
+    sunpklo z14.h, z21.b             // Signed unpack lower part of z21
+    sunpkhi z15.h, z21.b             // Signed unpack upper part of z21
+    // Convert (already-scaled-by-16, zero-point-corrected) values to FP16.
     scvtf z12.h, p2/m, z12.h
     scvtf z13.h, p2/m, z13.h
     scvtf z14.h, p2/m, z14.h
@@ -198,7 +196,7 @@ KAI_ASM_LABEL(label_5) // store tiles
     st1w z3.s, p5, [x24, #3, MUL VL]
     decw  x8, all
     decw  x8, all
-    decw  x8, all   
+    decw  x8, all
     ldr x5, [x0, #0x20] // dst_stride_row
     add x24, x24, x5
     add w12, w12, #4
