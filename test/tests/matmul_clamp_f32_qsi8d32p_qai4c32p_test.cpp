@@ -26,7 +26,9 @@
 #include "kai/ukernels/matmul/pack/kai_lhs_quant_pack_qsi8d32pscalef32_f32_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qai4c32p_qau4c32s0s1_f32_f32_f32_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon.h"
+#include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1xor88pkt_f32_f32_f32.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon.h"
+#include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0xor88pkt_f32_f32_f32.h"
 #include "test/common/abi_checker.hpp"
 #include "test/common/buffer.hpp"
 #include "test/common/compare.hpp"
@@ -95,10 +97,10 @@ static const std::array<
              rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon, false),
          UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f32_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_qmx_dot, cpu_has_sme, lhs_quant_pack_qsi8d32pscalef32_f32_neon,
-             rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon, false),
+             rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0xor88pkt_f32_f32_f32, false),
          UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f32_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_qmx_mopa, cpu_has_sme,
-             lhs_quant_pack_qsi8d32pscalef32_f32_neon, rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon,
+             lhs_quant_pack_qsi8d32pscalef32_f32_neon, rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0xor88pkt_f32_f32_f32,
              false),
          UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f32_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa, cpu_has_sme2,
@@ -109,10 +111,10 @@ static const std::array<
              rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon, true),
         UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f32_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_qmx_dot, cpu_has_sme, lhs_quant_pack_qsi8d32pscalef32_f32_neon,
-             rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon, true),
+             rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1xor88pkt_f32_f32_f32, true),
         UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f32_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_qmx_mopa, cpu_has_sme,
-             lhs_quant_pack_qsi8d32pscalef32_f32_neon, rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon,
+             lhs_quant_pack_qsi8d32pscalef32_f32_neon, rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1xor88pkt_f32_f32_f32,
              true),
          UKERNEL_MATMUL_PACK_VARIANT(
              clamp_f32_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa, cpu_has_sme2,

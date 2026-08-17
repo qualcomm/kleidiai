@@ -3,6 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
@@ -83,29 +87,39 @@ KAI_ASM_LABEL(label_2)              // M Loop
 KAI_ASM_LABEL(label_3)              // K Loop
     KAI_ASM_INST(0xc00800ff)  // zero	{za}
     mov x11, x4
-KAI_ASM_LABEL(label_4)              // BL Loop
-    KAI_ASM_INST(0xa540a342)  // ld1w	{z2.s}, p0/z, [x26]
-    KAI_ASM_INST(0xa541a343)  // ld1w	{z3.s}, p0/z, [x26, #1, mul vl]
-    KAI_ASM_INST(0x043a505a)  // addvl	x26, x26, #2
-    KAI_ASM_INST(0xa4a0a068)  // ld1h	{z8.h}, p0/z, [x3]
-    KAI_ASM_INST(0x04235023)  // addvl	x3, x3, #1
-    KAI_ASM_INST(0x042c9447)  // lsr	z7.b, z2.b, #4
-    KAI_ASM_INST(0x05800662)  // and	z2.b, z2.b, #0xf
-    KAI_ASM_INST(0x05276044)  // zip1	z4.b, z2.b, z7.b
-    KAI_ASM_INST(0x05276445)  // zip2	z5.b, z2.b, z7.b
-    KAI_ASM_INST(0x2521c104)  // sub	z4.b, z4.b, #8
-    KAI_ASM_INST(0x2521c105)  // sub	z5.b, z5.b, #8
-    KAI_ASM_INST(0x042c9467)  // lsr	z7.b, z3.b, #4
-    KAI_ASM_INST(0x05800663)  // and	z3.b, z3.b, #0xf
-    KAI_ASM_INST(0x05276066)  // zip1	z6.b, z3.b, z7.b
-    KAI_ASM_INST(0x05276467)  // zip2	z7.b, z3.b, z7.b
-    KAI_ASM_INST(0x2521c106)  // sub	z6.b, z6.b, #8
-    KAI_ASM_INST(0x2521c107)  // sub	z7.b, z7.b, #8
-    KAI_ASM_INST(0xa0840100)        // smopa za0.s, p0/m, p0/m, z8.b, z4.b
-    KAI_ASM_INST(0xa0850101)        // smopa za1.s, p0/m, p0/m, z8.b, z5.b
-    KAI_ASM_INST(0xa0860102)        // smopa za2.s, p0/m, p0/m, z8.b, z6.b
-    KAI_ASM_INST(0xa0870103)        // smopa za3.s, p0/m, p0/m, z8.b, z7.b
-    subs x11, x11, #4
+KAI_ASM_LABEL(label_4)              // Block Loop (8-K packet, packet decode, no zip/sub)
+    // LHS: z8 = 4-K quartet (lo) across mr rows, z2 = next quartet (hi), for this packet.
+    // z2 is safe as scratch here: it is only reloaded (real value) right after this loop exits.
+    ld1b {z8.b}, p0/z, [x3]
+    ld1b {z2.b}, p0/z, [x3, #1, mul vl]
+    addvl x3, x3, #2
+
+    ld1b {z12.b}, p0/z, [x26]
+    ld1b {z13.b}, p0/z, [x26, #1, mul vl]
+    ld1b {z14.b}, p0/z, [x26, #2, mul vl]
+    ld1b {z15.b}, p0/z, [x26, #3, mul vl]
+    addvl x26, x26, #4
+
+    lsl  z4.b, z12.b, #4
+    lsl  z5.b, z13.b, #4
+    lsl  z6.b, z14.b, #4
+    lsl  z7.b, z15.b, #4
+
+    smopa za0.s, p0/m, p0/m, z8.b, z4.b
+    smopa za1.s, p0/m, p0/m, z8.b, z5.b
+    smopa za2.s, p0/m, p0/m, z8.b, z6.b
+    smopa za3.s, p0/m, p0/m, z8.b, z7.b
+
+    and  z12.b, z12.b, #0xf0
+    and  z13.b, z13.b, #0xf0
+    and  z14.b, z14.b, #0xf0
+    and  z15.b, z15.b, #0xf0
+
+    smopa za0.s, p0/m, p0/m, z2.b, z12.b
+    smopa za1.s, p0/m, p0/m, z2.b, z13.b
+    smopa za2.s, p0/m, p0/m, z2.b, z14.b
+    smopa za3.s, p0/m, p0/m, z2.b, z15.b
+    subs x11, x11, #8
     b.gt label_4
     mov w12, #0
     mov x25, x24
