@@ -3,6 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 
 #pragma once
 
@@ -16,8 +20,25 @@ extern "C" {
 ///
 /// -# @ref kai_run_lhs_quant_pack_qsi8d32pscalef32_f16_neon to dynamically quantize and pack the LHS matrix in a single
 /// step.
-/// -# @ref kai_run_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon or @ref
-/// kai_run_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1_f32_f32_f32_neon pack the RHS NxK matrix.
+/// -# @ref kai_run_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0xor88pkt_f32_f32_f32 or @ref
+/// kai_run_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s0s1xor88pkt_f32_f32_f32 pack the RHS NxK matrix.
+/// Pick the variant matching the source nibble order: s1s0 (k=2c in the low nibble) or s0s1
+/// (k=2c in the high nibble).
+///
+/// This is a zip-free QMX micro-kernel: unlike the FEAT_LUT/luti4-based sibling
+/// @ref kai_run_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_sme2_mopa, it decodes the
+/// nibbles with plain SVE2 arithmetic. The xor88pkt packers fold the RHS zero point into the
+/// nibbles at pack time (XOR 0x88), group K into 8-value packets, and pre-divide the per-block
+/// scale by 16, so each 32-bit slot spans four K-adjacent values and SMOPA's own 4-way
+/// reduction consumes it directly -- no zip1/zip2, no lsr and no runtime zero-point
+/// subtraction. The same packers serve the SDOT sibling
+/// @ref kai_run_matmul_clamp_f16_qsi8d32p1x4_qai4c32p4vlx4_1x4vl_qmx_dot.
+///
+/// WARNING: the xor88pkt packers are NOT interchangeable with the plain
+/// @ref kai_run_rhs_pack_nxk_qai4c32ps1s0nrx4_qau4c32s1s0_f32_f32_f32_neon packers used by the
+/// other kernels in this family. They emit the same packed size, strides and offsets, so a
+/// mismatch is not rejected by any assert -- it silently produces wrong results.
+
 
 /// --------------------------------------------------
 
@@ -115,7 +136,7 @@ size_t kai_get_dst_size_matmul_clamp_f16_qsi8d32p1vlx4_qai4c32p4vlx4_1vlx4vl_qmx
 /// RHS matrix: Quantized Asymmetric Signed 4-bit with per-block (multiple of 32) quantization (qai4c32) and packed.
 /// Output tile: (rows x cols) = 1 VL  x 4 VL (Vector Length)
 ///
-/// Instruction used: qmx (MOPA)
+/// Instruction used: qmx (smopa), zip-free decode
 ///
 /// @param[in]  m              The number of output rows written.
 /// @param[in]  n              The number of output columns written.
