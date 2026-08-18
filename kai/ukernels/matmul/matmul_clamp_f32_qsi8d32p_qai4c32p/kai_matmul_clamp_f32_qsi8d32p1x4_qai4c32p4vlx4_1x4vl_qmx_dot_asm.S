@@ -3,7 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
@@ -64,7 +67,6 @@ KAI_ASM_LABEL(label_1)              // N loop
     dup z25.s, #0
     dup z26.s, #0
     dup z27.s, #0
-    mov w8, #0
     mov x6, #0
     whilelt p1.s, x6, x19
     b.eq label_4                    // b.none label_4
@@ -74,84 +76,112 @@ KAI_ASM_LABEL(label_2)              // K Loop
     KAI_ASM_INST(0x25b8c012)  // mov	z18.s, #0
     KAI_ASM_INST(0x25b8c013)  // mov	z19.s, #0
     mov x13, x20
-KAI_ASM_LABEL(label_3)              // BL loop
+KAI_ASM_LABEL(label_3)              // 32-K sub-block loop (packet decode, no zip)
+    // LHS: z0 holds k=0..15, z1 holds k=16..31 of this 32-K sub-block.
+    // RHS is grouped into four 8-K packets (K[8p..8p+7]); register (packet p, accumulator r)
+    // holds, for its N-rows, one byte per K-quartet: low nibble = k=8p+byte, high nibble =
+    // k=8p+byte+4 (pre-XOR-0x88'd, pre-scaled). Each nibble stream is already K-sequential,
+    // so SDOT's own indexed 4-way reduction consumes it directly -- no zip1/zip2 needed.
     ld1rqb  { z0.b }, p2/z , [x21]
     add x21, x21, #16
-    KAI_ASM_INST(0xa4a0aaec)  // ld1h	{z12.h}, p2/z, [x23]
-    KAI_ASM_INST(0xa4a1aaed)  // ld1h	{z13.h}, p2/z, [x23, #1, mul vl]
-    KAI_ASM_INST(0xa4a2aaee)  // ld1h	{z14.h}, p2/z, [x23, #2, mul vl]
-    KAI_ASM_INST(0xa4a3aaef)  // ld1h	{z15.h}, p2/z, [x23, #3, mul vl]
-    addvl x23, x23, #4
-    KAI_ASM_INST(0x042c9594)  // lsr	z20.b, z12.b, #4
-    KAI_ASM_INST(0x0580066c)  // and	z12.b, z12.b, #0xf
-    KAI_ASM_INST(0x05346184)  // zip1	z4.b, z12.b, z20.b
-    KAI_ASM_INST(0x05346585)  // zip2	z5.b, z12.b, z20.b
-    KAI_ASM_INST(0x2521c104)  // sub	z4.b, z4.b, #8
-    KAI_ASM_INST(0x2521c105)  // sub	z5.b, z5.b, #8
-    KAI_ASM_INST(0x042c95b4)  // lsr	z20.b, z13.b, #4
-    KAI_ASM_INST(0x0580066d)  // and	z13.b, z13.b, #0xf
-    KAI_ASM_INST(0x053461a6)  // zip1	z6.b, z13.b, z20.b
-    KAI_ASM_INST(0x053465a7)  // zip2	z7.b, z13.b, z20.b
-    KAI_ASM_INST(0x2521c106)  // sub	z6.b, z6.b, #8
-    KAI_ASM_INST(0x2521c107)  // sub	z7.b, z7.b, #8
-    KAI_ASM_INST(0x042c95d4)  // lsr	z20.b, z14.b, #4
-    KAI_ASM_INST(0x0580066e)  // and	z14.b, z14.b, #0xf
-    KAI_ASM_INST(0x053461c8)  // zip1	z8.b, z14.b, z20.b
-    KAI_ASM_INST(0x053465c9)  // zip2	z9.b, z14.b, z20.b
-    KAI_ASM_INST(0x2521c108)  // sub	z8.b, z8.b, #8
-    KAI_ASM_INST(0x2521c109)  // sub	z9.b, z9.b, #8
-    KAI_ASM_INST(0x042c95f4)  // lsr	z20.b, z15.b, #4
-    KAI_ASM_INST(0x0580066f)  // and	z15.b, z15.b, #0xf
-    KAI_ASM_INST(0x053461ea)  // zip1	z10.b, z15.b, z20.b
-    KAI_ASM_INST(0x053465eb)  // zip2	z11.b, z15.b, z20.b
-    KAI_ASM_INST(0x2521c10a)  // sub	z10.b, z10.b, #8
-    KAI_ASM_INST(0x2521c10b)  // sub	z11.b, z11.b, #8
-    KAI_ASM_INST(0x44a00090)  // sdot	z16.s, z4.b, z0.b[0]
-    KAI_ASM_INST(0x44a000b1)  // sdot	z17.s, z5.b, z0.b[0]
-    KAI_ASM_INST(0x44a000d2)  // sdot	z18.s, z6.b, z0.b[0]
-    KAI_ASM_INST(0x44a000f3)  // sdot	z19.s, z7.b, z0.b[0]
-    KAI_ASM_INST(0x44a80110)  // sdot	z16.s, z8.b, z0.b[1]
-    KAI_ASM_INST(0x44a80131)  // sdot	z17.s, z9.b, z0.b[1]
-    KAI_ASM_INST(0x44a80152)  // sdot	z18.s, z10.b, z0.b[1]
-    KAI_ASM_INST(0x44a80173)  // sdot	z19.s, z11.b, z0.b[1]
-    KAI_ASM_INST(0xa4a0aaec)  // ld1h	{z12.h}, p2/z, [x23]
-    KAI_ASM_INST(0xa4a1aaed)  // ld1h	{z13.h}, p2/z, [x23, #1, mul vl]
-    KAI_ASM_INST(0xa4a2aaee)  // ld1h	{z14.h}, p2/z, [x23, #2, mul vl]
-    KAI_ASM_INST(0xa4a3aaef)  // ld1h	{z15.h}, p2/z, [x23, #3, mul vl]
-    addvl x23, x23, #4
-    KAI_ASM_INST(0x042c9594)  // lsr	z20.b, z12.b, #4
-    KAI_ASM_INST(0x0580066c)  // and	z12.b, z12.b, #0xf
-    KAI_ASM_INST(0x05346184)  // zip1	z4.b, z12.b, z20.b
-    KAI_ASM_INST(0x05346585)  // zip2	z5.b, z12.b, z20.b
-    KAI_ASM_INST(0x2521c104)  // sub	z4.b, z4.b, #8
-    KAI_ASM_INST(0x2521c105)  // sub	z5.b, z5.b, #8
-    KAI_ASM_INST(0x042c95b4)  // lsr	z20.b, z13.b, #4
-    KAI_ASM_INST(0x0580066d)  // and	z13.b, z13.b, #0xf
-    KAI_ASM_INST(0x053461a6)  // zip1	z6.b, z13.b, z20.b
-    KAI_ASM_INST(0x053465a7)  // zip2	z7.b, z13.b, z20.b
-    KAI_ASM_INST(0x2521c106)  // sub	z6.b, z6.b, #8
-    KAI_ASM_INST(0x2521c107)  // sub	z7.b, z7.b, #8
-    KAI_ASM_INST(0x042c95d4)  // lsr	z20.b, z14.b, #4
-    KAI_ASM_INST(0x0580066e)  // and	z14.b, z14.b, #0xf
-    KAI_ASM_INST(0x053461c8)  // zip1	z8.b, z14.b, z20.b
-    KAI_ASM_INST(0x053465c9)  // zip2	z9.b, z14.b, z20.b
-    KAI_ASM_INST(0x2521c108)  // sub	z8.b, z8.b, #8
-    KAI_ASM_INST(0x2521c109)  // sub	z9.b, z9.b, #8
-    KAI_ASM_INST(0x042c95f4)  // lsr	z20.b, z15.b, #4
-    KAI_ASM_INST(0x0580066f)  // and	z15.b, z15.b, #0xf
-    KAI_ASM_INST(0x053461ea)  // zip1	z10.b, z15.b, z20.b
-    KAI_ASM_INST(0x053465eb)  // zip2	z11.b, z15.b, z20.b
-    KAI_ASM_INST(0x2521c10a)  // sub	z10.b, z10.b, #8
-    KAI_ASM_INST(0x2521c10b)  // sub	z11.b, z11.b, #8
-    KAI_ASM_INST(0x44b00090)  // sdot	z16.s, z4.b, z0.b[2]
-    KAI_ASM_INST(0x44b000b1)  // sdot	z17.s, z5.b, z0.b[2]
-    KAI_ASM_INST(0x44b000d2)  // sdot	z18.s, z6.b, z0.b[2]
-    KAI_ASM_INST(0x44b000f3)  // sdot	z19.s, z7.b, z0.b[2]
-    KAI_ASM_INST(0x44b80110)  // sdot	z16.s, z8.b, z0.b[3]
-    KAI_ASM_INST(0x44b80131)  // sdot	z17.s, z9.b, z0.b[3]
-    KAI_ASM_INST(0x44b80152)  // sdot	z18.s, z10.b, z0.b[3]
-    KAI_ASM_INST(0x44b80173)  // sdot	z19.s, z11.b, z0.b[3]
-    subs x13, x13, #16
+    ld1rqb  { z1.b }, p2/z , [x21]
+    add x21, x21, #16
+
+    // Each 8-K packet feeds one group of 4 N-accumulators. Within a group the four
+    // (load, shift, mask) chains use independent registers, so the 4 loads issue back to
+    // back and their latency overlaps the previous group's SDOTs instead of serialising
+    // through a single shared scratch pair. The high-nibble mask is folded into an
+    // immediate AND, so no mask register is needed.
+
+    ld1b z4.b, p2/z, [x23]
+    ld1b z12.b, p2/z, [x23, #1, mul vl]
+    ld1b z14.b, p2/z, [x23, #2, mul vl]
+    ld1b z6.b, p2/z, [x23, #3, mul vl]
+    lsl  z5.b, z4.b, #4
+    lsl  z13.b, z12.b, #4
+    lsl  z15.b, z14.b, #4
+    lsl  z7.b, z6.b, #4
+    and  z4.b, z4.b, #0xf0
+    and  z12.b, z12.b, #0xf0
+    and  z14.b, z14.b, #0xf0
+    and  z6.b, z6.b, #0xf0
+    sdot z16.s, z5.b, z0.b[0]
+    sdot z17.s, z13.b, z0.b[0]
+    sdot z18.s, z15.b, z0.b[0]
+    sdot z19.s, z7.b, z0.b[0]
+    sdot z16.s, z4.b, z0.b[1]
+    sdot z17.s, z12.b, z0.b[1]
+    sdot z18.s, z14.b, z0.b[1]
+    sdot z19.s, z6.b, z0.b[1]
+
+    ld1b z4.b, p2/z, [x23, #4, mul vl]
+    ld1b z12.b, p2/z, [x23, #5, mul vl]
+    ld1b z14.b, p2/z, [x23, #6, mul vl]
+    ld1b z6.b, p2/z, [x23, #7, mul vl]
+    lsl  z5.b, z4.b, #4
+    lsl  z13.b, z12.b, #4
+    lsl  z15.b, z14.b, #4
+    lsl  z7.b, z6.b, #4
+    and  z4.b, z4.b, #0xf0
+    and  z12.b, z12.b, #0xf0
+    and  z14.b, z14.b, #0xf0
+    and  z6.b, z6.b, #0xf0
+    sdot z16.s, z5.b, z0.b[2]
+    sdot z17.s, z13.b, z0.b[2]
+    sdot z18.s, z15.b, z0.b[2]
+    sdot z19.s, z7.b, z0.b[2]
+    sdot z16.s, z4.b, z0.b[3]
+    sdot z17.s, z12.b, z0.b[3]
+    sdot z18.s, z14.b, z0.b[3]
+    sdot z19.s, z6.b, z0.b[3]
+
+    addvl x23, x23, #8
+
+    ld1b z4.b, p2/z, [x23]
+    ld1b z12.b, p2/z, [x23, #1, mul vl]
+    ld1b z14.b, p2/z, [x23, #2, mul vl]
+    ld1b z6.b, p2/z, [x23, #3, mul vl]
+    lsl  z5.b, z4.b, #4
+    lsl  z13.b, z12.b, #4
+    lsl  z15.b, z14.b, #4
+    lsl  z7.b, z6.b, #4
+    and  z4.b, z4.b, #0xf0
+    and  z12.b, z12.b, #0xf0
+    and  z14.b, z14.b, #0xf0
+    and  z6.b, z6.b, #0xf0
+    sdot z16.s, z5.b, z1.b[0]
+    sdot z17.s, z13.b, z1.b[0]
+    sdot z18.s, z15.b, z1.b[0]
+    sdot z19.s, z7.b, z1.b[0]
+    sdot z16.s, z4.b, z1.b[1]
+    sdot z17.s, z12.b, z1.b[1]
+    sdot z18.s, z14.b, z1.b[1]
+    sdot z19.s, z6.b, z1.b[1]
+
+    ld1b z4.b, p2/z, [x23, #4, mul vl]
+    ld1b z12.b, p2/z, [x23, #5, mul vl]
+    ld1b z14.b, p2/z, [x23, #6, mul vl]
+    ld1b z6.b, p2/z, [x23, #7, mul vl]
+    lsl  z5.b, z4.b, #4
+    lsl  z13.b, z12.b, #4
+    lsl  z15.b, z14.b, #4
+    lsl  z7.b, z6.b, #4
+    and  z4.b, z4.b, #0xf0
+    and  z12.b, z12.b, #0xf0
+    and  z14.b, z14.b, #0xf0
+    and  z6.b, z6.b, #0xf0
+    sdot z16.s, z5.b, z1.b[2]
+    sdot z17.s, z13.b, z1.b[2]
+    sdot z18.s, z15.b, z1.b[2]
+    sdot z19.s, z7.b, z1.b[2]
+    sdot z16.s, z4.b, z1.b[3]
+    sdot z17.s, z12.b, z1.b[3]
+    sdot z18.s, z14.b, z1.b[3]
+    sdot z19.s, z6.b, z1.b[3]
+
+    addvl x23, x23, #8
+
+    subs x13, x13, #32
     b.gt label_3
     KAI_ASM_INST(0x8540caa1)        // ld1rw z1.s, p2/z, [x21]     // sum
     KAI_ASM_INST(0x8541caa2)        // ld1rw z2.s, p2/z, [x21, #4] // scale
@@ -160,12 +190,11 @@ KAI_ASM_LABEL(label_3)              // BL loop
     KAI_ASM_INST(0xa541aae5)  // ld1w	{z5.s}, p2/z, [x23, #1, mul vl]
     KAI_ASM_INST(0xa542aae6)  // ld1w	{z6.s}, p2/z, [x23, #2, mul vl]
     KAI_ASM_INST(0xa543aae7)  // ld1w	{z7.s}, p2/z, [x23, #3, mul vl]
-    addvl x23, x23, #4
-    KAI_ASM_INST(0xa540aae8)  // ld1w	{z8.s}, p2/z, [x23]
-    KAI_ASM_INST(0xa541aae9)  // ld1w	{z9.s}, p2/z, [x23, #1, mul vl]
-    KAI_ASM_INST(0xa542aaea)  // ld1w	{z10.s}, p2/z, [x23, #2, mul vl]
-    KAI_ASM_INST(0xa543aaeb)  // ld1w	{z11.s}, p2/z, [x23, #3, mul vl]
-    addvl x23, x23, #4
+    KAI_ASM_INST(0xa544aae8)  // ld1w	{z8.s}, p2/z, [x23, #4, mul vl]
+    KAI_ASM_INST(0xa545aae9)  // ld1w	{z9.s}, p2/z, [x23, #5, mul vl]
+    KAI_ASM_INST(0xa546aaea)  // ld1w	{z10.s}, p2/z, [x23, #6, mul vl]
+    KAI_ASM_INST(0xa547aaeb)  // ld1w	{z11.s}, p2/z, [x23, #7, mul vl]
+    addvl x23, x23, #8
     KAI_ASM_INST(0x6594aa10)  // scvtf	z16.s, p2/m, z16.s
     KAI_ASM_INST(0x6594aa31)  // scvtf	z17.s, p2/m, z17.s
     KAI_ASM_INST(0x6594aa52)  // scvtf	z18.s, p2/m, z18.s
