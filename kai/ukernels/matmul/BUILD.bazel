@@ -14,6 +14,8 @@ load(
     "kai_cpu_neon",
     "kai_cpu_sme",
     "kai_cpu_sme2",
+    "kai_cpu_sme2p1",
+    "kai_cpu_sme_mop4",
     "kai_cpu_sve",
     "kai_cpu_sve2",
 )
@@ -295,6 +297,16 @@ SME2_KERNELS = [
     "matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_sme2_sdot",
     "matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_sme2_mopa",
     "matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p4vlx4_1x4vl_sme2_sdot",
+]
+
+# buildifier: keep sorted
+SME2P1_MOP4_KERNELS_NOHDR = [
+    "matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4sf32bi32_8vsx8vs_sme2p1_mop4_mopa",
+]
+
+# buildifier: keep sorted
+SME2P1_MOP4_KERNELS_ASM_ONLY = [
+    "matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4sf32bi32_2vsx32vs_sme2p1_mop4",
 ]
 
 # buildifier: keep sorted
@@ -632,6 +644,17 @@ kai_c_library(
 )
 
 kai_c_library(
+    name = "sme2p1_mop4_impl_asm",
+    cpu_uarch = kai_cpu_sme2p1() + kai_cpu_sme_mop4(),
+    kernels_asm_only = SME2P1_MOP4_KERNELS_ASM_ONLY,
+    kernels_nohdr = SME2P1_MOP4_KERNELS_NOHDR,
+    textual_hdrs = [
+        "kai_matmul.h",
+        "kai_matmul_types.h",
+    ],
+)
+
+kai_c_library(
     name = "matmul",
     visibility = ["//visibility:public"],
     deps = [
@@ -654,6 +677,7 @@ kai_c_library(
         ":scalar_impl",
         ":sme2_impl",
         ":sme2_impl_asm",
+        ":sme2p1_mop4_impl_asm",
         ":sme_impl",
         ":sme_impl_asm",
         ":sve2p1_impl_asm",
