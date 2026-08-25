@@ -20,6 +20,7 @@
 #include "kai/ukernels/matmul/matmul_clamp_f32_f16p_qsi4c32p/kai_matmul_clamp_f32_f16p_qsi4c32p_interface.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_pack_f16pmrx2_f32_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon.h"
+#include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon.h"
 #include "test/common/abi_checker.hpp"
 #include "test/common/buffer.hpp"
 #include "test/common/cache.hpp"
@@ -146,7 +147,7 @@ const std::array<Variant, 2> variants_kai_matmul_clamp_f32_f16p_qsi4c32p = {
             lhs_pack_f16pmrx2_f32_neon, rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon, false),
         UKERNEL_MATMUL_PACK_VARIANT(
             clamp_f32_f16p1vlx2_qsi4c32p4vlx2_1vlx4vl_qmx_mopa, (cpu_check<cpu_has_sme, cpu_has_fp16>),
-            lhs_pack_f16pmrx2_f32_neon, rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon, false),
+            lhs_pack_f16pmrx2_f32_neon, rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon, false),
     },
 };
 
