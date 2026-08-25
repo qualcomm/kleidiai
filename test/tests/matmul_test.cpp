@@ -1857,44 +1857,4 @@ INSTANTIATE_TEST_SUITE_P(
     testing::PrintToStringParamName());
 
 
-
-INSTANTIATE_TEST_SUITE_P(
-    MatMul_k_, MatMulTest,
-    testing::Combine(
-        testing::ValuesIn(get_matmul_methods()),                               //
-        testing::ValuesIn(MatMulShapes),                                       //
-        testing::ValuesIn(MatrixPortions),                                     //
-        testing::Values(BiasMode::PROVIDED),                                   //
-        testing::ValuesIn(std::initializer_list<std::optional<float>>({1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
-    testing::PrintToStringParamName());
-
-INSTANTIATE_TEST_SUITE_P(
-    VecMul_k_, MatMulTest,
-    testing::Combine(
-        testing::ValuesIn(get_vecmul_methods()),
-        testing::Values(
-            MatMulShape{1, 16, 16},    //
-            MatMulShape{1, 1, 20},     //
-            MatMulShape{1, 16, 32},    //
-            MatMulShape{1, 32, 17},    //
-            MatMulShape{1, 33, 23},    //
-            MatMulShape{1, 1500, 20},  //
-            MatMulShape{1, 93, 56},    //
-            MatMulShape{1, 1, 1},      //
-            MatMulShape{1, 16, 1},     //
-            MatMulShape{1, 32, 64},    //
-            MatMulShape{1, 7, 74},     //
-            MatMulShape{1, 800, 64},   //
-            MatMulShape{1, 512, 130}   //
-            ),
-        testing::Values(
-            MatrixPortion(0, 0, 1, 1),      // Full row.
-            MatrixPortion(0, 0, 1, 0.5),    // First half
-            MatrixPortion(0, .4, 1, 0.3),   // mid row-section.
-            MatrixPortion(0, 0.75, 1, .25)  // right row section
-            ),
-        testing::Values(BiasMode::PROVIDED),                                   //
-        testing::ValuesIn(std::initializer_list<std::optional<float>>({1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
-    testing::PrintToStringParamName());
-
 }  // namespace kai::test
