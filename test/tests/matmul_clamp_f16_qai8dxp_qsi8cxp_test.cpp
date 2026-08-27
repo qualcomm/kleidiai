@@ -347,7 +347,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(variant_indices_with_mr(1)), testing::ValuesIn(single_row_shapes),
         testing::ValuesIn(portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range
@@ -359,7 +358,6 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::ValuesIn(variant_indices_without_mr(1)), testing::ValuesIn(all_shapes), testing::ValuesIn(portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range

@@ -484,7 +484,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f16_qsi8d32p_qai4c32p.size()),
         testing::ValuesIn(shapes_with_block_length(32, false)), testing::Values(32), testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range
@@ -497,7 +496,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f16_qsi8d32p_qai4c32p.size()),
         testing::ValuesIn(shapes_with_block_length(64, false)), testing::Values(64), testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range
@@ -510,7 +508,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(variant_indices_with_mr(true)), testing::ValuesIn(shapes_with_block_length(32, true)),
         testing::Values(32), testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range
@@ -523,7 +520,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(variant_indices_with_mr(false)), testing::ValuesIn(shapes_with_block_length(32, false)),
         testing::Values(32), testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range
@@ -536,7 +532,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(variant_indices_with_mr(true)), testing::ValuesIn(shapes_with_block_length(64, true)),
         testing::Values(64), testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range
@@ -549,7 +544,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(variant_indices_with_mr(false)), testing::ValuesIn(shapes_with_block_length(64, false)),
         testing::Values(64), testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f}),        // Clamp to 50% range

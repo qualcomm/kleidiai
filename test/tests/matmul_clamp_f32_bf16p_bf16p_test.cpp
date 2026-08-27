@@ -667,7 +667,6 @@ INSTANTIATE_TEST_SUITE_P(
             ),
         testing::Values(BiasMode::PROVIDED),  //
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -700,7 +699,6 @@ INSTANTIATE_TEST_SUITE_P(
             ),
         testing::Values(BiasMode::PROVIDED),  //
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range

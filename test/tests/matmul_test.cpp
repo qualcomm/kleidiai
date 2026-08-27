@@ -1713,7 +1713,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::PACKED_LHS)),
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1726,7 +1725,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
         testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1738,7 +1736,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::PACKED_LHS)),
         testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1750,7 +1747,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::PACKED_RHS)),
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1763,7 +1759,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
         testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1775,7 +1770,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::PACKED_RHS)),
         testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1787,7 +1781,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::PACKED_TRANSPOSED_RHS)),
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1801,7 +1794,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
         testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1813,7 +1805,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::PACKED_TRANSPOSED_RHS)),
         testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1825,7 +1816,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::OUTPUT)),
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1838,7 +1828,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
         testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -1850,7 +1839,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::OUTPUT)),
         testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range

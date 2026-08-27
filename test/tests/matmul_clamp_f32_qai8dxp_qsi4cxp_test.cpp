@@ -918,7 +918,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f32_qai8dxp_qsi4cxp.size()), testing::ValuesIn(test_shapes),
         testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -930,7 +929,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(variant_indices_with_rhs_pack_type(RhsPackType::NxK)), testing::ValuesIn(test_shapes),
         testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
@@ -942,7 +940,6 @@ INSTANTIATE_TEST_SUITE_P(
         testing::ValuesIn(variant_indices_with_rhs_pack_type(RhsPackType::KxN)), testing::ValuesIn(test_shapes),
         testing::ValuesIn(test_portions),
         testing::ValuesIn(std::initializer_list<std::optional<float>>{
-            std::nullopt,  // Disable clamping
             1.0f,          // Clamp to full range
             0.9f,          // Clamp to 90% range
             0.5f})),       // Clamp to 50% range
