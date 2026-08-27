@@ -20,6 +20,7 @@
 #include "test/nextgen/operators/matmul/pack_rhs/matmul_pack_rhs_wrapper_registry.hpp"
 #include "test/nextgen/quantization/asymm_linear_quantizer.hpp"
 #include "test/nextgen/quantization/symm_linear_quantizer.hpp"
+#include "test/nextgen/quantization/two_level_asym_block_quantizer.hpp"
 
 namespace kai::test {
 
@@ -50,7 +51,7 @@ const MatMulBiasModeSet acc_bias_per_m_per_n_scale_bias_per_n{
 }  // namespace
 
 Span<const MatMulOperator> get_available_matmul_operators() {
-    static std::array<MatMulOperator, 26> operators;
+    static std::array<MatMulOperator, 28> operators;
 
     // matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa
     operators[0].name = "matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa";
@@ -535,61 +536,60 @@ Span<const MatMulOperator> get_available_matmul_operators() {
     operators[19].pack_rhs = create_matmul_pack_rhs_kxn_qsi8cxp4vsx4bi32sf32_qsi8_i32_f32_sme();
     operators[19].matmul = create_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4sf32bi32_8vsx8vs_sme2p1_mop4_mopa();
 
-    // kai_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa - KxN RHS pack
-    operators[20].name = "matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa_rhs_kxn";
+    // matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_sme2_mopa
+    operators[20].name = "matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_sme2_mopa";
 
-    operators[20].is_cpu_supported = cpu_has_sme;
+    operators[20].is_cpu_supported = cpu_check<cpu_has_sme2, cpu_has_fp16>;
     operators[20].is_shape_suitable = all_true<  //
-        is_shape_suitable_lhs_x8p4vsx4_x8_sme,  //
-        is_shape_suitable_rhs_kxn_x8p4vsx4_x8_sme>;
-    operators[20].supported_bias_mode_sets = {acc_bias_per_m_per_n};
-    operators[20].clamp_mode = MatMulClampMode::UNSUPPORTED;
+        is_shape_suitable_lhs_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_sme2_mopa,
+        is_shape_suitable_rhs_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme>;
+    operators[20].supported_bias_mode_sets = {no_bias};
+    operators[20].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[20].lhs_cvt_dtype = DataType::FP16;
     operators[20].lhs_quant = std::nullopt;
-    operators[20].rhs_quant = std::nullopt;
+    operators[20].rhs_quant = std::make_unique<TwoLevelAsymBlockQuantizer>(qai4c32k256_format_config);
     operators[20].bias_quant = std::nullopt;
-    operators[20].lhs_dtype = DataType::U8;
-    operators[20].rhs_dtype = DataType::U8;
-    operators[20].bias_dtype = DataType::I32;
-    operators[20].acc_dtype = DataType::I32;
-    operators[20].dst_dtype = DataType::I32;
-    operators[20].ref_dtype = DataType::I32;
+    operators[20].lhs_dtype = DataType::FP32;
+    operators[20].rhs_dtype = DataType::FP32;
+    operators[20].bias_dtype = DataType::FP32;
+    operators[20].acc_dtype = DataType::FP32;
+    operators[20].dst_dtype = DataType::FP32;
+    operators[20].pack_lhs = create_matmul_lhs_pack_f16p4vsx2_f32_neon();
+    operators[20].pack_rhs = create_matmul_pack_rhs_nxk_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme();
+    operators[20].matmul = create_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_sme2_mopa();
 
-    operators[20].pack_lhs = create_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
-    operators[20].pack_rhs = create_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme();
-    operators[20].matmul = create_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa();
+    // matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot
+    operators[21].name = "matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot";
 
-    // kai_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa - NxK RHS pack
-    operators[21].name = "matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa_rhs_nxk";
-
-    operators[21].is_cpu_supported = cpu_has_sme;
+    operators[21].is_cpu_supported = cpu_has_sme2;
     operators[21].is_shape_suitable = all_true<  //
-        is_shape_suitable_lhs_x8p4vsx4_x8_sme,  //
-        is_shape_suitable_rhs_nxk_x8p4vsx4_x8_sme>;
-    operators[21].supported_bias_mode_sets = {acc_bias_per_m_per_n};
-    operators[21].clamp_mode = MatMulClampMode::UNSUPPORTED;
-    operators[21].lhs_quant = std::nullopt;
-    operators[21].rhs_quant = std::nullopt;
+        is_shape_suitable_lhs_vector,            //
+        is_shape_suitable_lhs_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot,
+        is_shape_suitable_rhs_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme>;
+    operators[21].supported_bias_mode_sets = {no_bias};
+    operators[21].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[21].lhs_quant =
+        std::make_unique<SymmLinearQuantizer>(DataType::I8, DataType::FP32, RoundMode::CURRENT, 1, 32);
+    operators[21].rhs_quant = std::make_unique<TwoLevelAsymBlockQuantizer>(qai4c32k256_format_config);
     operators[21].bias_quant = std::nullopt;
-    operators[21].lhs_dtype = DataType::U8;
-    operators[21].rhs_dtype = DataType::U8;
-    operators[21].bias_dtype = DataType::I32;
-    operators[21].acc_dtype = DataType::I32;
-    operators[21].dst_dtype = DataType::I32;
-    operators[21].ref_dtype = DataType::I32;
+    operators[21].lhs_dtype = DataType::FP32;
+    operators[21].rhs_dtype = DataType::FP32;
+    operators[21].bias_dtype = DataType::FP32;
+    operators[21].acc_dtype = DataType::FP32;
+    operators[21].dst_dtype = DataType::FP32;
+    operators[21].pack_lhs = create_matmul_matmul_pack_lhs_mxk_qsi8d32p1x4sf16_f32_neon();
+    operators[21].pack_rhs = create_matmul_pack_rhs_nxk_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme();
+    operators[21].matmul = create_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot();
 
-    operators[21].pack_lhs = create_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
-    operators[21].pack_rhs = create_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme();
-    operators[21].matmul = create_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa();
-
-    // kai_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa - KxN RHS pack
-    operators[22].name = "matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa_rhs_kxn";
+    // kai_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa - KxN RHS pack
+    operators[22].name = "matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa_rhs_kxn";
 
     operators[22].is_cpu_supported = cpu_has_sme;
     operators[22].is_shape_suitable = all_true<  //
         is_shape_suitable_lhs_x8p4vsx4_x8_sme,  //
         is_shape_suitable_rhs_kxn_x8p4vsx4_x8_sme>;
-    operators[22].supported_bias_mode_sets = {acc_bias_per_m_per_n_scale_bias_per_n};
-    operators[22].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[22].supported_bias_mode_sets = {acc_bias_per_m_per_n};
+    operators[22].clamp_mode = MatMulClampMode::UNSUPPORTED;
     operators[22].lhs_quant = std::nullopt;
     operators[22].rhs_quant = std::nullopt;
     operators[22].bias_quant = std::nullopt;
@@ -597,22 +597,22 @@ Span<const MatMulOperator> get_available_matmul_operators() {
     operators[22].rhs_dtype = DataType::U8;
     operators[22].bias_dtype = DataType::I32;
     operators[22].acc_dtype = DataType::I32;
-    operators[22].dst_dtype = DataType::FP32;
+    operators[22].dst_dtype = DataType::I32;
     operators[22].ref_dtype = DataType::I32;
 
     operators[22].pack_lhs = create_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
     operators[22].pack_rhs = create_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme();
-    operators[22].matmul = create_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa();
+    operators[22].matmul = create_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa();
 
-    // kai_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa - NxK RHS pack
-    operators[23].name = "matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa_rhs_nxk";
+    // kai_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa - NxK RHS pack
+    operators[23].name = "matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa_rhs_nxk";
 
     operators[23].is_cpu_supported = cpu_has_sme;
     operators[23].is_shape_suitable = all_true<  //
-        is_shape_suitable_lhs_x8p4vsx4_x8_sme,   //
+        is_shape_suitable_lhs_x8p4vsx4_x8_sme,  //
         is_shape_suitable_rhs_nxk_x8p4vsx4_x8_sme>;
-    operators[23].supported_bias_mode_sets = {acc_bias_per_m_per_n_scale_bias_per_n};
-    operators[23].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[23].supported_bias_mode_sets = {acc_bias_per_m_per_n};
+    operators[23].clamp_mode = MatMulClampMode::UNSUPPORTED;
     operators[23].lhs_quant = std::nullopt;
     operators[23].rhs_quant = std::nullopt;
     operators[23].bias_quant = std::nullopt;
@@ -620,58 +620,104 @@ Span<const MatMulOperator> get_available_matmul_operators() {
     operators[23].rhs_dtype = DataType::U8;
     operators[23].bias_dtype = DataType::I32;
     operators[23].acc_dtype = DataType::I32;
-    operators[23].dst_dtype = DataType::FP32;
+    operators[23].dst_dtype = DataType::I32;
     operators[23].ref_dtype = DataType::I32;
 
     operators[23].pack_lhs = create_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
     operators[23].pack_rhs = create_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme();
-    operators[23].matmul = create_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa();
+    operators[23].matmul = create_matmul_i32_u8p4vsx4_u8p4vsx4_i32_i32_8vsx8vs_qmx_mopa();
 
-    // kai_matmul_clamp_f32_f32_f32p4vsx1b_1x32vs_qmx_mla - non-transposed RHS.
-    operators[24].name = "matmul_clamp_f32_f32_f32p4vsx1b_1x32vs_qmx_mla";
+    // kai_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa - KxN RHS pack
+    operators[24].name = "matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa_rhs_kxn";
 
     operators[24].is_cpu_supported = cpu_has_sme;
-    operators[24].is_shape_suitable = all_true<   //
-        is_shape_suitable_lhs_vector,             //
-        is_shape_suitable_lhs_x32p4vsx1_x32_sme,  //
-        is_shape_suitable_rhs_kxn_x32p4vsx1bx32_x32_x32_sme>;
-    operators[24].supported_bias_mode_sets = {acc_bias_per_n};
+    operators[24].is_shape_suitable = all_true<  //
+        is_shape_suitable_lhs_x8p4vsx4_x8_sme,  //
+        is_shape_suitable_rhs_kxn_x8p4vsx4_x8_sme>;
+    operators[24].supported_bias_mode_sets = {acc_bias_per_m_per_n_scale_bias_per_n};
     operators[24].clamp_mode = MatMulClampMode::OPTIONAL;
     operators[24].lhs_quant = std::nullopt;
     operators[24].rhs_quant = std::nullopt;
     operators[24].bias_quant = std::nullopt;
-    operators[24].lhs_dtype = DataType::FP32;
-    operators[24].rhs_dtype = DataType::FP32;
-    operators[24].bias_dtype = DataType::FP32;
-    operators[24].acc_dtype = DataType::FP32;
+    operators[24].lhs_dtype = DataType::U8;
+    operators[24].rhs_dtype = DataType::U8;
+    operators[24].bias_dtype = DataType::I32;
+    operators[24].acc_dtype = DataType::I32;
     operators[24].dst_dtype = DataType::FP32;
+    operators[24].ref_dtype = DataType::I32;
 
-    operators[24].pack_lhs = std::nullopt;
-    operators[24].pack_rhs = create_matmul_pack_rhs_kxn_x32p4vsx1bx32_x32_x32_sme();
-    operators[24].matmul = create_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla();
+    operators[24].pack_lhs = create_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
+    operators[24].pack_rhs = create_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme();
+    operators[24].matmul = create_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa();
 
-    // kai_matmul_clamp_f32_f32_f32p4vsx1b_1x32vs_qmx_mla - transposed RHS.
-    operators[25].name = "matmul_clamp_t_f32_f32_f32p4vsx1b_1x32vs_qmx_mla";
+    // kai_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa - NxK RHS pack
+    operators[25].name = "matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa_rhs_nxk";
 
     operators[25].is_cpu_supported = cpu_has_sme;
-    operators[25].is_shape_suitable = all_true<   //
-        is_shape_suitable_lhs_vector,             //
-        is_shape_suitable_lhs_x32p4vsx1_x32_sme,  //
-        is_shape_suitable_rhs_nxk_x32p4vsx1bx32_x32_x32_sme>;
-    operators[25].supported_bias_mode_sets = {acc_bias_per_n};
+    operators[25].is_shape_suitable = all_true<  //
+        is_shape_suitable_lhs_x8p4vsx4_x8_sme,   //
+        is_shape_suitable_rhs_nxk_x8p4vsx4_x8_sme>;
+    operators[25].supported_bias_mode_sets = {acc_bias_per_m_per_n_scale_bias_per_n};
     operators[25].clamp_mode = MatMulClampMode::OPTIONAL;
     operators[25].lhs_quant = std::nullopt;
     operators[25].rhs_quant = std::nullopt;
     operators[25].bias_quant = std::nullopt;
-    operators[25].lhs_dtype = DataType::FP32;
-    operators[25].rhs_dtype = DataType::FP32;
-    operators[25].bias_dtype = DataType::FP32;
-    operators[25].acc_dtype = DataType::FP32;
+    operators[25].lhs_dtype = DataType::U8;
+    operators[25].rhs_dtype = DataType::U8;
+    operators[25].bias_dtype = DataType::I32;
+    operators[25].acc_dtype = DataType::I32;
     operators[25].dst_dtype = DataType::FP32;
+    operators[25].ref_dtype = DataType::I32;
 
-    operators[25].pack_lhs = std::nullopt;
-    operators[25].pack_rhs = create_matmul_pack_rhs_nxk_x32p4vsx1bx32_x32_x32_sme();
-    operators[25].matmul = create_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla();
+    operators[25].pack_lhs = create_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme();
+    operators[25].pack_rhs = create_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme();
+    operators[25].matmul = create_matmul_clamp_f32_u8p4vsx4_u8p4vsx4_i32_i32_f32_f32_8vsx8vs_qmx_mopa();
+
+    // kai_matmul_clamp_f32_f32_f32p4vsx1b_1x32vs_qmx_mla - non-transposed RHS.
+    operators[26].name = "matmul_clamp_f32_f32_f32p4vsx1b_1x32vs_qmx_mla";
+
+    operators[26].is_cpu_supported = cpu_has_sme;
+    operators[26].is_shape_suitable = all_true<   //
+        is_shape_suitable_lhs_vector,             //
+        is_shape_suitable_lhs_x32p4vsx1_x32_sme,  //
+        is_shape_suitable_rhs_kxn_x32p4vsx1bx32_x32_x32_sme>;
+    operators[26].supported_bias_mode_sets = {acc_bias_per_n};
+    operators[26].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[26].lhs_quant = std::nullopt;
+    operators[26].rhs_quant = std::nullopt;
+    operators[26].bias_quant = std::nullopt;
+    operators[26].lhs_dtype = DataType::FP32;
+    operators[26].rhs_dtype = DataType::FP32;
+    operators[26].bias_dtype = DataType::FP32;
+    operators[26].acc_dtype = DataType::FP32;
+    operators[26].dst_dtype = DataType::FP32;
+
+    operators[26].pack_lhs = std::nullopt;
+    operators[26].pack_rhs = create_matmul_pack_rhs_kxn_x32p4vsx1bx32_x32_x32_sme();
+    operators[26].matmul = create_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla();
+
+    // kai_matmul_clamp_f32_f32_f32p4vsx1b_1x32vs_qmx_mla - transposed RHS.
+    operators[27].name = "matmul_clamp_t_f32_f32_f32p4vsx1b_1x32vs_qmx_mla";
+
+    operators[27].is_cpu_supported = cpu_has_sme;
+    operators[27].is_shape_suitable = all_true<   //
+        is_shape_suitable_lhs_vector,             //
+        is_shape_suitable_lhs_x32p4vsx1_x32_sme,  //
+        is_shape_suitable_rhs_nxk_x32p4vsx1bx32_x32_x32_sme>;
+    operators[27].supported_bias_mode_sets = {acc_bias_per_n};
+    operators[27].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[27].lhs_quant = std::nullopt;
+    operators[27].rhs_quant = std::nullopt;
+    operators[27].bias_quant = std::nullopt;
+    operators[27].lhs_dtype = DataType::FP32;
+    operators[27].rhs_dtype = DataType::FP32;
+    operators[27].bias_dtype = DataType::FP32;
+    operators[27].acc_dtype = DataType::FP32;
+    operators[27].dst_dtype = DataType::FP32;
+
+    operators[27].pack_lhs = std::nullopt;
+    operators[27].pack_rhs = create_matmul_pack_rhs_nxk_x32p4vsx1bx32_x32_x32_sme();
+    operators[27].matmul = create_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla();
 
     return operators;
 }
