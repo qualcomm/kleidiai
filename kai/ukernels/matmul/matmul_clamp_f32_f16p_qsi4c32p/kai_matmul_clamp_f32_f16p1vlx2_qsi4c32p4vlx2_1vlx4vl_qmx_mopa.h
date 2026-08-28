@@ -3,6 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 
 #pragma once
 
@@ -15,7 +19,11 @@ extern "C" {
 /// Micro-kernel dependencies
 ///
 /// -# @ref kai_lhs_pack_f16pmrx2_f32_neon to dynamically quantize and pack the LHS matrix in a single step.
-/// -# @ref kai_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon to pack the RHS NxK matrix.
+/// -# @ref kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon to pack the RHS NxK matrix.
+///
+/// NOTE: NOT interchangeable with @ref kai_run_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon
+/// (used by the LUTI4-based sme2_mopa sibling) -- same packed size/stride, so a mismatch is not
+/// asserted; it silently scrambles K order and scale by 16x.
 
 /// --------------------------------------------------
 

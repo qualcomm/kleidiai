@@ -3,6 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
     #define KAI_ASM_FUNCTION_TYPE(name)
@@ -47,8 +51,8 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p1vlx2_qsi4c32p4vlx2_1vlx4
     KAI_ASM_INST(0xd503477f)        // smstart
     cntw x14
     ptrue p2.b, all
-    ldr x19, [x0, #0x58]            // lut
-    //KAI_ASM_INST(0xe11f8260) //ldr zt0, [x19]
+    mov z31.b, #-16                 // 0xF0 high-nibble mask
+    // args.lut unused (arithmetic decode, no luti4); keep KernelArgs offsets unchanged
     mov x8, #0
     ldr x16, [x0, #0x10] // rhs_packed
     ldr x17, [x0, #0x18] // rhs_scales
@@ -64,14 +68,18 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p1vlx2_qsi4c32p4vlx2_1vlx4
     b.eq label_9                    // b.none label_9
 KAI_ASM_LABEL(label_1) // N loop
     ldr x9, [x0, #0x38] // M
-    KAI_ASM_INST(0x25261501) // whilelt p1.b, x8, x6
+    // p6 = whilelt.h for the high half of this N panel's columns; loop-invariant, keep at top
+    // (whilelt writes NZCV, must not clobber the tail's b.mi)
+    inch x8, all
+    whilelt p6.h, x8, x6
+    dech x8, all
     ldr x22, [x0, #0x8] // lhs_packed
     mov x24, x4 // dst
 KAI_ASM_LABEL(label_2) // M loop
     KAI_ASM_INST(0xc00800ff) // zero {za}
     KAI_ASM_INST(0x25a917e0)// whilelt p0.s, xzr, x9
     mov x23, x22
-    mov x20, #0
+    mov x20, x16 // running RHS packet pointer, reset per M iteration
     mov x21, #0
     ldr x10, [x0, #0x48] // K
     cmp x10, #0
@@ -81,10 +89,7 @@ KAI_ASM_LABEL(label_3) // K loop
     //KAI_ASM_INST(0xa0052220) // ld1h {z0.h - z1.h}, pn8/z, [x17, x5, lsl #1]
     ld1h z0.h, p3/z, [x17, x5, lsl #1]
     add x13, x17, x5, lsl #1
-    inch x8, all
-    whilelt p5.h, x8, x6
-    dech x8, all
-    ld1h z1.h, p5/z, [x13, #1, MUL VL]
+    ld1h z1.h, p6/z, [x13, #1, MUL VL]
     //KAI_ASM_INST(0xc160d018) // zip {z24.h - z25.h}, z0.h, z0.h
     zip1 z24.h, z0.h, z0.h
     zip2 z25.h, z0.h, z0.h
@@ -92,74 +97,96 @@ KAI_ASM_LABEL(label_3) // K loop
     zip1 z26.h, z1.h, z1.h
     zip2 z27.h, z1.h, z1.h
     ldr x11, [x0, #0x50] //bl
-KAI_ASM_LABEL(label_4) // Block loop
-    lsl x5, x20, 2
-    KAI_ASM_INST(0xa425c604) // ld2b {z4.b, z5.b}, p1/z, [x16, x5]
-    inch x20, all
-    KAI_ASM_INST(0xa540a2e6)// ld1w {z6.s}, p0/z, [x23]
-    //KAI_ASM_INST(0xc08a9088) // luti4 {z8.h - z11.h}, zt0, z4[0]
-    // SVE replacement: extract nibbles, interleave, convert to FP16
-    mov z18.d, z4.d                 // Copy z4 to z18 for lower nibbles
-    lsr z19.b, z4.b, #4             // Extract upper nibbles (bits 7:4) from z4
-    and z18.b, z18.b, #0x0F         // Extract lower nibbles (bits 3:0)
-    zip1 z20.b, z18.b, z19.b        // Interleave lower and upper nibbles (lower half)
-    zip2 z21.b, z18.b, z19.b        // Interleave lower and upper nibbles (upper half)
-    // Process lower half (z8, z9)
-    uunpklo z8.h, z20.b             // Unpack lower part of z20
-    uunpkhi z9.h, z20.b             // Unpack upper part of z20
-    // Process upper half (z10, z11)
-    uunpklo z10.h, z21.b            // Unpack lower part of z21
-    uunpkhi z11.h, z21.b            // Unpack upper part of z21
-    // Convert all four registers from [0,15] to [-8,7] and then to FP16
-    sub z8.h, z8.h, #8
-    sub z9.h, z9.h, #8
-    sub z10.h, z10.h, #8
-    sub z11.h, z11.h, #8
-    scvtf z8.h, p2/m, z8.h
-    scvtf z9.h, p2/m, z9.h
+KAI_ASM_LABEL(label_4) // Block loop: one 8-K packet of the s4s0sf16 layout
+    // packet: byte b = low nibble K[8p+b], high nibble K[8p+b+4]; nibbles pre-XOR 0x88, scale pre-/16
+    // ld2h de-interleave reproduces the old ld4b+zip byte layout; #2 MUL VL offset must stay exactly 2
+    ld2h {z2.h, z3.h},   p3/z, [x20]
+    ld2h {z12.h, z13.h}, p6/z, [x20, #2, MUL VL]
+    addvl x20, x20, #4
+    // LHS: one packet consumes 4 sequential K-pair groups z16->(k0,k1) .. z19->(k6,k7)
+    ld1w z16.s, p0/z, [x23]
+    ld1w z17.s, p0/z, [x23, #1, MUL VL]
+    ld1w z18.s, p0/z, [x23, #2, MUL VL]
+    ld1w z19.s, p0/z, [x23, #3, MUL VL]
+    addvl x23, x23, #4
+    // top-justified nibble * scale/16 == value*scale; z31 mask keeps extracts non-destructive
+    // ---- group (k0,k1): low nibbles of the (byte0,byte1) pairs ----
+    lsl z20.b, z2.b, #4
+    lsl z21.b, z12.b, #4
+    sunpklo z8.h,  z20.b
+    sunpkhi z9.h,  z20.b
+    sunpklo z10.h, z21.b
+    sunpkhi z11.h, z21.b
+    scvtf z8.h,  p2/m, z8.h
+    scvtf z9.h,  p2/m, z9.h
     scvtf z10.h, p2/m, z10.h
     scvtf z11.h, p2/m, z11.h
-    KAI_ASM_INST(0x65580908) // fmul  z8.h,  z8.h, z24.h
-    KAI_ASM_INST(0x65590929) // fmul  z9.h,  z9.h, z25.h
-    KAI_ASM_INST(0x655a094a) // fmul z10.h, z10.h, z26.h
-    KAI_ASM_INST(0x655b096b) // fmul z11.h, z11.h, z27.h
-    KAI_ASM_INST(0x81a848c0) // fmopa za0.s, p2/m, p2/m, z6.h,  z8.h
-    KAI_ASM_INST(0x81a948c1) // fmopa za1.s, p2/m, p2/m, z6.h,  z9.h
-    KAI_ASM_INST(0x81aa48c2) // fmopa za2.s, p2/m, p2/m, z6.h, z10.h
-    KAI_ASM_INST(0x81ab48c3) // fmopa za3.s, p2/m, p2/m, z6.h, z11.h
-    KAI_ASM_INST(0xa54e42e7) // ld1w {z7.s}, p0/z, [x23, x14, lsl 2]
-    add x23, x23, x14, lsl 3
-    //KAI_ASM_INST(0xc08a90ac) // luti4 {z12.h - z15.h}, zt0, z5[0]
-    // SVE replacement: extract nibbles, interleave, convert to FP16 for z5
-    mov z18.d, z5.d                 // Copy z5 to z18 for lower nibbles
-    lsr z19.b, z5.b, #4             // Extract upper nibbles (bits 7:4) from z5
-    and z18.b, z18.b, #0x0F         // Extract lower nibbles (bits 3:0)
-    zip1 z20.b, z18.b, z19.b        // Interleave lower and upper nibbles (lower half)
-    zip2 z21.b, z18.b, z19.b        // Interleave lower and upper nibbles (upper half)
-    // Process lower half (z12, z13)
-    uunpklo z12.h, z20.b            // Unpack lower part of z20
-    uunpkhi z13.h, z20.b            // Unpack upper part of z20
-    // Process upper half (z14, z15)
-    uunpklo z14.h, z21.b            // Unpack lower part of z21
-    uunpkhi z15.h, z21.b            // Unpack upper part of z21
-    // Convert all four registers from [0,15] to [-8,7] and then to FP16
-    sub z12.h, z12.h, #8
-    sub z13.h, z13.h, #8
-    sub z14.h, z14.h, #8
-    sub z15.h, z15.h, #8
-    scvtf z12.h, p2/m, z12.h
-    scvtf z13.h, p2/m, z13.h
-    scvtf z14.h, p2/m, z14.h
-    scvtf z15.h, p2/m, z15.h
-    KAI_ASM_INST(0x6558098c) // fmul z12.h, z12.h, z24.h
-    KAI_ASM_INST(0x655909ad) // fmul z13.h, z13.h, z25.h
-    KAI_ASM_INST(0x655a09ce) // fmul z14.h, z14.h, z26.h
-    KAI_ASM_INST(0x655b09ef) // fmul z15.h, z15.h, z27.h
-    KAI_ASM_INST(0x81ac48e0) // fmopa za0.s, p2/m, p2/m, z7.h, z12.h
-    KAI_ASM_INST(0x81ad48e1) // fmopa za1.s, p2/m, p2/m, z7.h, z13.h
-    KAI_ASM_INST(0x81ae48e2) // fmopa za2.s, p2/m, p2/m, z7.h, z14.h
-    KAI_ASM_INST(0x81af48e3) // fmopa za3.s, p2/m, p2/m, z7.h, z15.h
-    subs x11, x11, #4
+    fmul z8.h,  z8.h,  z24.h
+    fmul z9.h,  z9.h,  z25.h
+    fmul z10.h, z10.h, z26.h
+    fmul z11.h, z11.h, z27.h
+    fmopa za0.s, p2/m, p2/m, z16.h, z8.h
+    fmopa za1.s, p2/m, p2/m, z16.h, z9.h
+    fmopa za2.s, p2/m, p2/m, z16.h, z10.h
+    fmopa za3.s, p2/m, p2/m, z16.h, z11.h
+    // ---- group (k2,k3): low nibbles of the (byte2,byte3) pairs ----
+    lsl z20.b, z3.b, #4
+    lsl z21.b, z13.b, #4
+    sunpklo z8.h,  z20.b
+    sunpkhi z9.h,  z20.b
+    sunpklo z10.h, z21.b
+    sunpkhi z11.h, z21.b
+    scvtf z8.h,  p2/m, z8.h
+    scvtf z9.h,  p2/m, z9.h
+    scvtf z10.h, p2/m, z10.h
+    scvtf z11.h, p2/m, z11.h
+    fmul z8.h,  z8.h,  z24.h
+    fmul z9.h,  z9.h,  z25.h
+    fmul z10.h, z10.h, z26.h
+    fmul z11.h, z11.h, z27.h
+    fmopa za0.s, p2/m, p2/m, z17.h, z8.h
+    fmopa za1.s, p2/m, p2/m, z17.h, z9.h
+    fmopa za2.s, p2/m, p2/m, z17.h, z10.h
+    fmopa za3.s, p2/m, p2/m, z17.h, z11.h
+    // ---- group (k4,k5): high nibbles of the (byte0,byte1) pairs ----
+    and z20.d, z2.d, z31.d
+    and z21.d, z12.d, z31.d
+    sunpklo z8.h,  z20.b
+    sunpkhi z9.h,  z20.b
+    sunpklo z10.h, z21.b
+    sunpkhi z11.h, z21.b
+    scvtf z8.h,  p2/m, z8.h
+    scvtf z9.h,  p2/m, z9.h
+    scvtf z10.h, p2/m, z10.h
+    scvtf z11.h, p2/m, z11.h
+    fmul z8.h,  z8.h,  z24.h
+    fmul z9.h,  z9.h,  z25.h
+    fmul z10.h, z10.h, z26.h
+    fmul z11.h, z11.h, z27.h
+    fmopa za0.s, p2/m, p2/m, z18.h, z8.h
+    fmopa za1.s, p2/m, p2/m, z18.h, z9.h
+    fmopa za2.s, p2/m, p2/m, z18.h, z10.h
+    fmopa za3.s, p2/m, p2/m, z18.h, z11.h
+    // ---- group (k6,k7): high nibbles of the (byte2,byte3) pairs ----
+    and z20.d, z3.d, z31.d
+    and z21.d, z13.d, z31.d
+    sunpklo z8.h,  z20.b
+    sunpkhi z9.h,  z20.b
+    sunpklo z10.h, z21.b
+    sunpkhi z11.h, z21.b
+    scvtf z8.h,  p2/m, z8.h
+    scvtf z9.h,  p2/m, z9.h
+    scvtf z10.h, p2/m, z10.h
+    scvtf z11.h, p2/m, z11.h
+    fmul z8.h,  z8.h,  z24.h
+    fmul z9.h,  z9.h,  z25.h
+    fmul z10.h, z10.h, z26.h
+    fmul z11.h, z11.h, z27.h
+    fmopa za0.s, p2/m, p2/m, z19.h, z8.h
+    fmopa za1.s, p2/m, p2/m, z19.h, z9.h
+    fmopa za2.s, p2/m, p2/m, z19.h, z10.h
+    fmopa za3.s, p2/m, p2/m, z19.h, z11.h
+    subs x11, x11, #8
     b.gt label_4
     ldr x5, [x0, #0x50] // bl
     subs x10, x10, x5
@@ -185,6 +212,8 @@ KAI_ASM_LABEL(label_5) // store tiles
     fmax z2.s, p2/m, z2.s, z28.s
     fmin z3.s, p2/m, z3.s, z29.s
     fmax z3.s, p2/m, z3.s, z28.s
+    // store masks are loop-invariant here (loop walks only w12/x24); hoisting was tried and
+    // measured no net gain since this runs once per row vs. label_4's K/8 iterations
     //KAI_ASM_INST(0xa060c700) // st1w {z0.s - z3.s}, pn9, [x24]
     st1w z0.s, p4, [x24]
     incw  x8, all
@@ -198,7 +227,7 @@ KAI_ASM_LABEL(label_5) // store tiles
     st1w z3.s, p5, [x24, #3, MUL VL]
     decw  x8, all
     decw  x8, all
-    decw  x8, all   
+    decw  x8, all
     ldr x5, [x0, #0x20] // dst_stride_row
     add x24, x24, x5
     add w12, w12, #4
