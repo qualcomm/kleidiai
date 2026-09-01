@@ -444,6 +444,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[6].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
 
     matmul_methods[7].name = "matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa";
+    matmul_methods[7].capabilities = capabilities_all;
     matmul_methods[7].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[7].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[7].dst_format = DataFormat(DataType::FP16);
@@ -500,6 +501,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[7].fn_matmul_f16_f16p_f16p = kai_run_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa;
 
     matmul_methods[8].name = "matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_qmx_mopa";
+    matmul_methods[8].capabilities = capabilities_all;
     matmul_methods[8].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[8].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[8].dst_format = DataFormat(DataType::FP32);
@@ -792,6 +794,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[4].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla;
 
     vecmul_methods[5].name = "matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_qmx_dot";
+    vecmul_methods[5].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[5].m0 = 1;
     vecmul_methods[5].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[5].dst_format = DataFormat(DataType::FP16);
@@ -836,6 +839,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[5].fn_matmul_f16_f16_f16p = kai_run_matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_qmx_dot;
 
     vecmul_methods[6].name = "matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_qmx_mla";
+    vecmul_methods[6].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[6].m0 = 1;
     vecmul_methods[6].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[6].dst_format = DataFormat(DataType::FP32);
@@ -881,6 +885,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[6].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_qmx_mla;
 
     vecmul_methods[7].name = "matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_qmx_mla";
+    vecmul_methods[7].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[7].m0 = 1;
     vecmul_methods[7].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[7].dst_format = DataFormat(DataType::FP32);
