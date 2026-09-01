@@ -34,7 +34,7 @@
 #include "test/reference/matmul.hpp"
 #include "test/reference/pack.hpp"
 
-// matmul_clamp_f32_bf16p_bf16p
+// Advanced SIMD kernels
 #include "kai/ukernels/matmul/matmul_clamp_f32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p1x4_bf16p12x4b_1x36_neon_dot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p8x4_bf16p12x4b_8x12_neon_mmla.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_pack_bf16p8x4_f16_neon.h"
@@ -43,10 +43,12 @@
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_bf16p12x4biasf32_f16_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_quant_pack_kxn_bf16p12x4biasf32_f32_neon.h"
 
-// SME files here.
+// SME kernels
 #include "kai/ukernels/matmul/matmul_clamp_fp32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_fp32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_fp32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_pack_bf16p2vlx2_f32_sme.h"
+#include "kai/ukernels/matmul/pack/kai_lhs_pack_bf16p2vlx2_f32_sme2.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme.h"
 
 namespace kai::test {
@@ -54,8 +56,8 @@ namespace kai::test {
 /// List of supported matrix multiplication methods.
 namespace {
 
-static const std::array<MatMulMethod, 6>& get_gemm_methods() {
-    static std::array<MatMulMethod, 6> gemm_methods{};
+static const std::array<MatMulMethod, 7>& get_gemm_methods() {
+    static std::array<MatMulMethod, 7> gemm_methods{};
     gemm_methods[0].name = "matmul_nt_nt_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa";
     gemm_methods[0].m0 = 2 * get_sme_vector_length<float>();
     gemm_methods[0].n0 = 2 * get_sme_vector_length<float>();
@@ -78,11 +80,11 @@ static const std::array<MatMulMethod, 6>& get_gemm_methods() {
     gemm_methods[0].fn_get_main_m_step = kai_get_m_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa;
     gemm_methods[0].fn_get_pack_rhs_n_step = kai_get_n_step_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
     gemm_methods[0].fn_get_main_n_step = kai_get_n_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa;
-    gemm_methods[0].fn_get_lhs_offset = kai_get_lhs_offset_lhs_pack_bf16p2vlx2_f32_sme;
-    gemm_methods[0].fn_get_packed_lhs_size = kai_get_lhs_packed_size_lhs_pack_bf16p2vlx2_f32_sme;
+    gemm_methods[0].fn_get_lhs_offset = kai_get_lhs_offset_lhs_pack_bf16p2vlx2_f32_sme2;
+    gemm_methods[0].fn_get_packed_lhs_size = kai_get_lhs_packed_size_lhs_pack_bf16p2vlx2_f32_sme2;
     gemm_methods[0].fn_get_packed_lhs_offset =
         kai_get_lhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa;
-    gemm_methods[0].fn_pack_lhs = kai_run_lhs_pack_bf16p2vlx2_f32_sme;
+    gemm_methods[0].fn_pack_lhs = kai_run_lhs_pack_bf16p2vlx2_f32_sme2;
     gemm_methods[0].fn_get_rhs_offset = kai_get_rhs_offset_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
     gemm_methods[0].fn_get_packed_rhs_size = kai_get_rhs_packed_size_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
     gemm_methods[0].fn_get_main_packed_rhs_offset =
@@ -235,7 +237,7 @@ static const std::array<MatMulMethod, 6>& get_gemm_methods() {
     gemm_methods[4].fn_get_dst_size = kai_get_dst_size_matmul_clamp_f32_bf16p8x4_bf16p12x4b_8x12_neon_mmla;
     gemm_methods[4].fn_matmul_f32_bf16p_bf16p = kai_run_matmul_clamp_f32_bf16p8x4_bf16p12x4b_8x12_neon_mmla;
 
-    gemm_methods[5].name = "matmul_nt_nt_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa";
+    gemm_methods[5].name = "matmul_nt_nt_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa";
     gemm_methods[5].m0 = 2 * get_sme_vector_length<float>();
     gemm_methods[5].n0 = 2 * get_sme_vector_length<float>();
     gemm_methods[5].k0 = 2;
@@ -250,27 +252,64 @@ static const std::array<MatMulMethod, 6>& get_gemm_methods() {
         DataType::UNKNOWN, 2 * get_sme_vector_length<float>(), 2);
     gemm_methods[5].bias_format = DataFormat(DataType::FP32);
     gemm_methods[5].fn_is_supported = cpu_has_sme;
-    gemm_methods[5].fn_get_mr = kai_get_mr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
-    gemm_methods[5].fn_get_nr = kai_get_nr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
-    gemm_methods[5].fn_get_kr = kai_get_kr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
-    gemm_methods[5].fn_get_sr = kai_get_sr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
-    gemm_methods[5].fn_get_main_m_step = kai_get_m_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[5].fn_get_mr = kai_get_mr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
+    gemm_methods[5].fn_get_nr = kai_get_nr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
+    gemm_methods[5].fn_get_kr = kai_get_kr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
+    gemm_methods[5].fn_get_sr = kai_get_sr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
+    gemm_methods[5].fn_get_main_m_step = kai_get_m_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
     gemm_methods[5].fn_get_pack_rhs_n_step = kai_get_n_step_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
-    gemm_methods[5].fn_get_main_n_step = kai_get_n_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[5].fn_get_main_n_step = kai_get_n_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
     gemm_methods[5].fn_get_lhs_offset = kai_get_lhs_offset_lhs_pack_bf16p2vlx2_f32_sme;
     gemm_methods[5].fn_get_packed_lhs_size = kai_get_lhs_packed_size_lhs_pack_bf16p2vlx2_f32_sme;
     gemm_methods[5].fn_get_packed_lhs_offset =
-        kai_get_lhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+        kai_get_lhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
     gemm_methods[5].fn_pack_lhs = kai_run_lhs_pack_bf16p2vlx2_f32_sme;
     gemm_methods[5].fn_get_rhs_offset = kai_get_rhs_offset_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
     gemm_methods[5].fn_get_packed_rhs_size = kai_get_rhs_packed_size_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
     gemm_methods[5].fn_get_main_packed_rhs_offset =
-        kai_get_rhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+        kai_get_rhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
     gemm_methods[5].fn_pack_rhs = kai_run_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
     gemm_methods[5].fn_get_bias_offset = kai_get_bias_offset_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
-    gemm_methods[5].fn_get_dst_offset = kai_get_dst_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
-    gemm_methods[5].fn_get_dst_size = kai_get_dst_size_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
-    gemm_methods[5].fn_matmul_f32_bf16p_bf16p = kai_run_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[5].fn_get_dst_offset = kai_get_dst_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
+    gemm_methods[5].fn_get_dst_size = kai_get_dst_size_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
+    gemm_methods[5].fn_matmul_f32_bf16p_bf16p = kai_run_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa;
+
+    gemm_methods[6].name = "matmul_nt_nt_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa";
+    gemm_methods[6].m0 = 2 * get_sme_vector_length<float>();
+    gemm_methods[6].n0 = 2 * get_sme_vector_length<float>();
+    gemm_methods[6].k0 = 2;
+    gemm_methods[6].dst_format = DataFormat(DataType::FP32);
+    gemm_methods[6].lhs_format = DataFormat(DataType::FP32);
+    gemm_methods[6].packed_lhs_format = DataFormat(
+        DataType::BF16, 2 * get_sme_vector_length<float>(), 2, DataFormat::PackFormat::NONE, DataType::FP32,
+        DataType::UNKNOWN, 2 * get_sme_vector_length<float>(), 2);
+    gemm_methods[6].rhs_format = DataFormat(DataType::FP32);
+    gemm_methods[6].packed_rhs_format = DataFormat(
+        DataType::BF16, 2 * get_sme_vector_length<float>(), 2, DataFormat::PackFormat::BIAS_PER_ROW, DataType::FP32,
+        DataType::UNKNOWN, 2 * get_sme_vector_length<float>(), 2);
+    gemm_methods[6].bias_format = DataFormat(DataType::FP32);
+    gemm_methods[6].fn_is_supported = cpu_has_sme;
+    gemm_methods[6].fn_get_mr = kai_get_mr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_get_nr = kai_get_nr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_get_kr = kai_get_kr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_get_sr = kai_get_sr_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_get_main_m_step = kai_get_m_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_get_pack_rhs_n_step = kai_get_n_step_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
+    gemm_methods[6].fn_get_main_n_step = kai_get_n_step_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_get_lhs_offset = kai_get_lhs_offset_lhs_pack_bf16p2vlx2_f32_sme;
+    gemm_methods[6].fn_get_packed_lhs_size = kai_get_lhs_packed_size_lhs_pack_bf16p2vlx2_f32_sme;
+    gemm_methods[6].fn_get_packed_lhs_offset =
+        kai_get_lhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_pack_lhs = kai_run_lhs_pack_bf16p2vlx2_f32_sme;
+    gemm_methods[6].fn_get_rhs_offset = kai_get_rhs_offset_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
+    gemm_methods[6].fn_get_packed_rhs_size = kai_get_rhs_packed_size_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
+    gemm_methods[6].fn_get_main_packed_rhs_offset =
+        kai_get_rhs_packed_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_pack_rhs = kai_run_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
+    gemm_methods[6].fn_get_bias_offset = kai_get_bias_offset_rhs_pack_kxn_bf16p2vlx2b_f32_x32_sme;
+    gemm_methods[6].fn_get_dst_offset = kai_get_dst_offset_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_get_dst_size = kai_get_dst_size_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
+    gemm_methods[6].fn_matmul_f32_bf16p_bf16p = kai_run_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_qmx_mopa;
 
     return gemm_methods;
 }
@@ -382,7 +421,7 @@ protected:
         // Creates a unique seed for the test data.
         const auto key = std::string(method.name) + "_" + std::to_string(info.m) + "x" + std::to_string(info.n) + "x" +
             std::to_string(info.k) + "_" + (bias_mode == BiasMode::INTERNAL ? "internal" : "provided") + ":" +
-            (clamp_keep_ratio.has_value() ? std::to_string(clamp_keep_ratio.value()) : std::string("noclamp"));
+            (clamp_keep_ratio ? std::to_string(clamp_keep_ratio.value()) : "noclamp");
         auto& feed = seed_stream(key);
 
         // If the test data is already available, returns it.
@@ -604,7 +643,7 @@ TEST_P(MatMulTestBf16, Output) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul_e_Gemm, MatMulTestBf16,
+    MatMulGemm, MatMulTestBf16,
     testing::Combine(
         testing::ValuesIn(get_gemm_methods()),
         testing::Values(
@@ -626,12 +665,15 @@ INSTANTIATE_TEST_SUITE_P(
             MatrixPortion(0.75, 0, 1, 1),      // Partial rows
             MatrixPortion(0.4, 0.5, 0.6, 0.8)  // Somewhere Middle
             ),
-        testing::Values(BiasMode::PROVIDED),                                   //
-        testing::ValuesIn(std::initializer_list<std::optional<float>>({1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::Values(BiasMode::PROVIDED),  //
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul_e_Gemv, MatMulTestBf16,
+    MatMulGemv, MatMulTestBf16,
     testing::Combine(
         testing::ValuesIn(get_gemv_methods()),
         testing::Values(
@@ -642,6 +684,7 @@ INSTANTIATE_TEST_SUITE_P(
             MatMulShape{1, 37, 23},      //
             MatMulShape{1, 57, 89},      //
             MatMulShape{1, 36, 89},      //
+            MatMulShape{1, 71, 32},      //
             MatMulShape{1, 98, 23},      //
             MatMulShape{1, 64, 1024},    // Nice shapes - Long Rhs Rect
             MatMulShape{1, 1024, 64},    // Nice shapes - Wide Rhs Rect
@@ -654,7 +697,10 @@ INSTANTIATE_TEST_SUITE_P(
             MatrixPortion(0, 0.75, 1, 1),  // Rightmost portion.
             MatrixPortion(0, 0.5, 1, 0.8)  // Somewhere Middle
             ),
-        testing::Values(BiasMode::PROVIDED),                                   //
-        testing::ValuesIn(std::initializer_list<std::optional<float>>({1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::Values(BiasMode::PROVIDED),  //
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 }  // namespace kai::test

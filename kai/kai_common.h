@@ -134,7 +134,7 @@ enum {
 ///
 /// @return Project version as a string literal.
 inline const char* kai_get_version(void) {
-    return "1.26.0";
+    return "1.30.0";
 }
 
 /// KleidiAI data types
@@ -256,6 +256,11 @@ inline static uint64_t kai_get_sve_vector_length_u16(void) {
 /// Gets the SVE vector length for 32-bit elements.
 inline static uint64_t kai_get_sve_vector_length_u32(void) {
     return kai_get_sve_vector_length_u8() / 4;
+}
+
+/// Gets the vscale scale factor for SVE
+inline static uint64_t kai_get_sve_vscale(void) {
+    return kai_get_sve_vector_length_u8() / KAI_VSCALE_UNIT_BYTES;
 }
 
 /// Extends the sign bit of int 4-bit value (stored in int8_t variable)

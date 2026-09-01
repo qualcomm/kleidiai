@@ -47,6 +47,7 @@ add_library(kleidiai_test_framework
 
     test/nextgen/common/test_config.cpp
     test/nextgen/common/test_registry.cpp
+    test/nextgen/harness/tensor_cache.cpp
     test/nextgen/reference/unary_elementwise.cpp
     test/nextgen/reference/binary_elementwise.cpp
     test/nextgen/reference/reduce.cpp
@@ -61,14 +62,14 @@ add_library(kleidiai_test_framework
     test/nextgen/format/block2d_row_format.cpp
     test/nextgen/quantization/asymm_linear_quantizer.cpp
     test/nextgen/quantization/symm_linear_quantizer.cpp
-    test/nextgen/operators/matmul/pack_lhs/matmul_pack_lhs_wrapper.cpp
+    test/nextgen/operators/matmul/pack_lhs/matmul_pack_lhs_wrapper_registry.cpp
     test/nextgen/operators/matmul/pack_lhs/matmul_pack_lhs_dq_wrapper.cpp
     test/nextgen/operators/matmul/pack_lhs/matmul_pack_lhs_fp_wrapper.cpp
     test/nextgen/operators/matmul/pack_lhs/matmul_pack_lhs_ukerapi_wrapper.cpp
-    test/nextgen/operators/matmul/pack_rhs/matmul_pack_rhs_wrapper.cpp
+    test/nextgen/operators/matmul/pack_rhs/matmul_pack_rhs_wrapper_registry.cpp
     test/nextgen/operators/matmul/pack_rhs/matmul_pack_rhs_quant_wrapper.cpp
     test/nextgen/operators/matmul/pack_rhs/matmul_pack_rhs_fp_nt_wrapper.cpp
-    test/nextgen/operators/matmul/matmul/matmul_wrapper.cpp
+    test/nextgen/operators/matmul/matmul/matmul_wrapper_registry.cpp
     test/nextgen/operators/matmul/matmul/matmul_dq_wrapper.cpp
     test/nextgen/operators/matmul/matmul/matmul_fp_wrapper.cpp
     test/nextgen/operators/matmul/matmul/matmul_ukerapi_wrapper.cpp
@@ -103,16 +104,20 @@ target_link_libraries(kleidiai_test_framework
 if(MSVC)
     set(KLEIDIAI_FILES_TESTS
         test/tests/bfloat16_test.cpp
+        test/tests/clamp_hard_test.cpp
         test/tests/float16_test.cpp
         test/tests/matmul_clamp_f32_qai8dxp_qsu2cxp_test.cpp
         test/tests/matmul_clamp_f32_qsi8d32p_qai4c32p_test.cpp
         test/tests/matmul_clamp_bf16_qai8dxp_qsi4cxp_test.cpp
         test/tests/matmul_clamp_qai8dxp_qsi4c32p_test.cpp
+        test/tests/matmul_clamp_f32_qai8dxp_qsi4cxp_test.cpp
+        test/tests/matmul_clamp_f32_qai8dxp_qsi8cxp_test.cpp
     )
 else()
     set(KLEIDIAI_FILES_TESTS
         test/tests/bfloat16_test.cpp
         test/tests/buffer_test.cpp
+        test/tests/clamp_hard_test.cpp
         test/tests/float16_test.cpp
         test/tests/imatmul_test.cpp
         test/tests/dwconv_test.cpp
@@ -128,6 +133,7 @@ else()
         test/tests/matmul_clamp_f16_qsi8d32p_qai4c32p_test.cpp
         test/tests/matmul_clamp_f16_qai8dxp_qsi4cxp_test.cpp
         test/tests/matmul_clamp_f16_qai8dxp_qsi8cxp_test.cpp
+        test/tests/matmul_clamp_qai8_qai8p_qsi4cxp_test.cpp
         test/tests/matmul_clamp_qai8_qai8p_qsi8cxp_test.cpp
         test/tests/matmul_clamp_qai8dxp_qsi4c32p_test.cpp
         test/tests/matmul_test.cpp
@@ -141,6 +147,7 @@ else()
         test/tests/matmul_clamp_f16_bf16p_bf16p_test.cpp
         test/tests/matmul_clamp_f32_bf16p_bf16p_test.cpp
         test/tests/matmul_clamp_f32_qai8dxp_qsi4cxp_test.cpp
+        test/tests/matmul_clamp_qai8_qai8p_qsi4cxp_test.cpp
         test/tests/matmul_clamp_qai8_qai8p_qsi8cxp_test.cpp
         test/tests/matmul_test.cpp
         PROPERTIES COMPILE_FLAGS "-Wpedantic")

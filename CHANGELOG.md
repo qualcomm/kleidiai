@@ -8,6 +8,40 @@
 
 KleidiAI follows the [Semantic Versioning](https://semver.org/) specification for releases.
 
+## Upcoming Release
+
+## v1.30.0
+
+- New SME2 micro-kernels
+  - Matrix multiplication (MxN) micro-kernel of QAI8 LHS and QSI4CXP RHS with QAI8 output.
+  - Matrix multiplication (1xN) micro-kernel of QAI8 LHS and QSI4CXP RHS with QAI8 output.
+
+## v1.29.0
+
+- New SME2 micro-kernels
+  - Matrix Multiplication (1xN) Micro-Kernel of QAI8DXP LHS and QSI4CXP RHS with F16 output.
+- Improve performance of SME2 F32 elastic GEMM micro-kernels.
+- Added MSVC support for NEON Dotprod and I8MM matmul micro-kernels:
+  - kai_matmul_clamp_f32_qai8dxp4x8_qsi4cxp4x4_16x4x32_neon_dotprod
+  - kai_matmul_clamp_f32_qai8dxp4x8_qsi4cxp8x8_8x8x32_neon_i8mm
+  - kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4x4_1x4_neon_dotprod
+  - kai_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm
+
+## v1.28.0
+
+- New SVE2.1 micro-kernels:
+  - Matrix multiplication (MxN) for FP16 inputs/output with F32 accumulation.
+
+## v1.27.0
+
+- New SME micro-kernels:
+  - Matrix multiplication (MxN) for BF16 inputs with F32 output.
+- New SME2 micro-kernels
+  - Matrix Multiplication (MxN) Micro-Kernel of QAI8DXP LHS and QSI4CXP RHS with F16 output.
+  - Added `kai_lhs_pack_bf16p2vlx2_f32_sme2`, which is renaming of the `kai_lhs_pack_bf16p2vlx2_f32_sme` SME2 implementation.
+- Fixes
+  - Updated `kai_lhs_pack_bf16p2vlx2_f32_sme` to avoid SME2-only instructions.
+
 ## v1.26.0
 
 - New SME micro-kernels

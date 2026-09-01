@@ -12,10 +12,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <map>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 #include "kai/kai_common.h"
 #include "test/common/abi_checker.hpp"
@@ -80,11 +83,19 @@
 
 namespace kai::test {
 
+static constexpr auto capabilities_pack_rhs_output =
+    MatMulMethodCapability::PACKED_RHS | MatMulMethodCapability::OUTPUT;
+static constexpr auto capabilities_all = MatMulMethodCapability::PACKED_LHS | MatMulMethodCapability::PACKED_RHS |
+    MatMulMethodCapability::PACKED_TRANSPOSED_RHS | MatMulMethodCapability::OUTPUT;
+static constexpr auto capabilities_pack_rhs_transposed_output =
+    MatMulMethodCapability::PACKED_RHS | MatMulMethodCapability::PACKED_TRANSPOSED_RHS | MatMulMethodCapability::OUTPUT;
+
 static const auto& get_matmul_methods() {
     // List of supported matrix multiplication methods.
     static std::array<MatMulMethod, 9> matmul_methods{};
 
     matmul_methods[0].name = "matmul_clamp_f16_f16_f16p16x1biasf16_6x16x8_neon_mla";
+    matmul_methods[0].capabilities = capabilities_pack_rhs_output;
     matmul_methods[0].m0 = 6;
     matmul_methods[0].n0 = 16;
     matmul_methods[0].dst_format = DataFormat(DataType::FP16);
@@ -125,6 +136,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[0].fn_matmul_f16_f16_f16p = kai_run_matmul_clamp_f16_f16_f16p16x1biasf16_6x16x8_neon_mla;
 
     matmul_methods[1].name = "matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme2_mopa";
+    matmul_methods[1].capabilities = capabilities_all;
     matmul_methods[1].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[1].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[1].dst_format = DataFormat(DataType::FP16);
@@ -139,6 +151,7 @@ static const auto& get_matmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     matmul_methods[1].bias_format = DataFormat(DataType::FP16);
+    matmul_methods[1].acc_dt = DataType::FP32;
     matmul_methods[1].fn_generate_lhs = [](size_t rows, size_t cols, SeedFeed& feed) {
         return UniformRandomGenerator<Float16>(-1.0, 1.0, feed())(rows, cols);
     };
@@ -181,6 +194,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[1].fn_matmul_f16_f16p_f16p = kai_run_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_sme2_mopa;
 
     matmul_methods[2].name = "matmul_nt_nt_fp32_fp32_fp32_6x8_neon_mla";
+    matmul_methods[2].capabilities = capabilities_pack_rhs_output;
     matmul_methods[2].m0 = 6;
     matmul_methods[2].n0 = 8;
     matmul_methods[2].dst_format = DataFormat(DataType::FP32);
@@ -221,6 +235,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[2].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p8x1biasf32_6x8x4_neon_mla;
 
     matmul_methods[3].name = "matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_sme2_mopa";
+    matmul_methods[3].capabilities = capabilities_all;
     matmul_methods[3].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[3].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[3].dst_format = DataFormat(DataType::FP32);
@@ -275,6 +290,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[3].fn_matmul_f32_f32p_f32p = kai_run_matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_sme2_mopa;
 
     matmul_methods[4].name = "matmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme_mopa";
+    matmul_methods[4].capabilities = capabilities_all;
     matmul_methods[4].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[4].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[4].dst_format = DataFormat(DataType::FP32);
@@ -329,6 +345,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[4].fn_matmul_f32_f32p_f32p = kai_run_matmul_clamp_f32_f32p2vlx1_f32p2vlx1b_2vlx2vl_sme_mopa;
 
     matmul_methods[5].name = "matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa";
+    matmul_methods[5].capabilities = capabilities_all;
     matmul_methods[5].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[5].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[5].dst_format = DataFormat(DataType::FP16);
@@ -343,6 +360,7 @@ static const auto& get_matmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     matmul_methods[5].bias_format = DataFormat(DataType::FP16);
+    matmul_methods[5].acc_dt = DataType::FP32;
     matmul_methods[5].fn_generate_lhs = [](size_t rows, size_t cols, SeedFeed& feed) {
         return UniformRandomGenerator<Float16>(-1.0, 1.0, feed())(rows, cols);
     };
@@ -385,6 +403,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[5].fn_matmul_f16_f16p_f16p = kai_run_matmul_clamp_f16_f16p2vlx2_f16p2vlx2b_2vlx2vl_sme_mopa;
 
     matmul_methods[6].name = "matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla";
+    matmul_methods[6].capabilities = capabilities_pack_rhs_output;
     matmul_methods[6].m0 = 1;
     matmul_methods[6].n0 = 4 * get_sve_vector_length<float>();
     matmul_methods[6].dst_format = DataFormat(DataType::FP32);
@@ -425,6 +444,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[6].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p4vlx1b_6x4vl_sve_mla;
 
     matmul_methods[7].name = "matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa";
+    matmul_methods[7].capabilities = capabilities_all;
     matmul_methods[7].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[7].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[7].dst_format = DataFormat(DataType::FP16);
@@ -481,6 +501,7 @@ static const auto& get_matmul_methods() {
     matmul_methods[7].fn_matmul_f16_f16p_f16p = kai_run_matmul_clamp_f16_f16p2vlx2_f16p2vlx2_2vlx2vl_qmx_mopa;
 
     matmul_methods[8].name = "matmul_clamp_f32_f32p2vlx1_f32p2vlx1biasf32_qmx_mopa";
+    matmul_methods[8].capabilities = capabilities_all;
     matmul_methods[8].m0 = 2 * get_sme_vector_length<float>();
     matmul_methods[8].n0 = 2 * get_sme_vector_length<float>();
     matmul_methods[8].dst_format = DataFormat(DataType::FP32);
@@ -543,6 +564,7 @@ static const auto& get_vecmul_methods() {
     static std::array<MatMulMethod, 8> vecmul_methods{};
 
     vecmul_methods[0].name = "matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_sme2_dot";
+    vecmul_methods[0].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[0].m0 = 1;
     vecmul_methods[0].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[0].dst_format = DataFormat(DataType::FP16);
@@ -557,6 +579,7 @@ static const auto& get_vecmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     vecmul_methods[0].bias_format = DataFormat(DataType::FP16);
+    vecmul_methods[0].acc_dt = DataType::FP32;
     vecmul_methods[0].fn_generate_lhs = [](size_t rows, size_t cols, SeedFeed& feed) {
         return UniformRandomGenerator<Float16>(-1.0, 1.0, feed())(rows, cols);
     };
@@ -587,6 +610,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[0].fn_matmul_f16_f16_f16p = kai_run_matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_sme2_dot;
 
     vecmul_methods[1].name = "matmul_clamp_f16_f16_f16p2vlx2b_1x8vl_sme_mla";
+    vecmul_methods[1].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[1].m0 = 1;
     vecmul_methods[1].n0 = 8 * get_sme_vector_length<float>();
     vecmul_methods[1].dst_format = DataFormat(DataType::FP16);
@@ -601,6 +625,7 @@ static const auto& get_vecmul_methods() {
         DataType::UNKNOWN,                       // Scaling type
         2 * get_sme_vector_length<float>(), 2);  // Sub-block
     vecmul_methods[1].bias_format = DataFormat(DataType::FP16);
+    vecmul_methods[1].acc_dt = DataType::FP32;
     vecmul_methods[1].fn_generate_lhs = [](size_t rows, size_t cols, SeedFeed& feed) {
         return UniformRandomGenerator<Float16>(-1.0, 1.0, feed())(rows, cols);
     };
@@ -631,6 +656,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[1].fn_matmul_f16_f16_f16p = kai_run_matmul_clamp_f16_f16_f16p2vlx2b_1x8vl_sme_mla;
 
     vecmul_methods[2].name = "matmul_clamp_f32_f32_f32p2vlx1b_1x8vl_sme_mla";
+    vecmul_methods[2].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[2].m0 = 1;
     vecmul_methods[2].n0 = 8 * get_sme_vector_length<float>();
     vecmul_methods[2].dst_format = DataFormat(DataType::FP32);
@@ -676,6 +702,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[2].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p2vlx1b_1x8vl_sme_mla;
 
     vecmul_methods[3].name = "matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla";
+    vecmul_methods[3].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[3].m0 = 1;
     vecmul_methods[3].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[3].dst_format = DataFormat(DataType::FP32);
@@ -721,6 +748,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[3].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_sme2_mla;
 
     vecmul_methods[4].name = "matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla";
+    vecmul_methods[4].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[4].m0 = 1;
     vecmul_methods[4].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[4].dst_format = DataFormat(DataType::FP32);
@@ -766,6 +794,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[4].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_sme2_mla;
 
     vecmul_methods[5].name = "matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_qmx_dot";
+    vecmul_methods[5].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[5].m0 = 1;
     vecmul_methods[5].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[5].dst_format = DataFormat(DataType::FP16);
@@ -810,6 +839,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[5].fn_matmul_f16_f16_f16p = kai_run_matmul_clamp_f16_f16_f16p2vlx2b_1x16vl_qmx_dot;
 
     vecmul_methods[6].name = "matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_qmx_mla";
+    vecmul_methods[6].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[6].m0 = 1;
     vecmul_methods[6].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[6].dst_format = DataFormat(DataType::FP32);
@@ -855,6 +885,7 @@ static const auto& get_vecmul_methods() {
     vecmul_methods[6].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p2vlx1b_1x16vl_qmx_mla;
 
     vecmul_methods[7].name = "matmul_clamp_f32_f32_f32p16vlx1b_1x16vl_qmx_mla";
+    vecmul_methods[7].capabilities = capabilities_pack_rhs_output;
     vecmul_methods[7].m0 = 1;
     vecmul_methods[7].n0 = 16 * get_sme_vector_length<float>();
     vecmul_methods[7].dst_format = DataFormat(DataType::FP32);
@@ -906,6 +937,7 @@ static const auto& get_nullbias_matmul_methods() {
     static std::array<MatMulMethod, 4> nullbias_matmul_methods{};
 
     nullbias_matmul_methods[0].name = "matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla";
+    nullbias_matmul_methods[0].capabilities = capabilities_pack_rhs_transposed_output;
     nullbias_matmul_methods[0].m0 = 6;
     nullbias_matmul_methods[0].n0 = 16;
     nullbias_matmul_methods[0].dst_format = DataFormat(DataType::FP32);
@@ -959,6 +991,7 @@ static const auto& get_nullbias_matmul_methods() {
     nullbias_matmul_methods[0].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla;
 
     nullbias_matmul_methods[1].name = "matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_cortexa55";
+    nullbias_matmul_methods[1].capabilities = capabilities_pack_rhs_transposed_output;
     nullbias_matmul_methods[1].m0 = 6;
     nullbias_matmul_methods[1].n0 = 16;
     nullbias_matmul_methods[1].dst_format = DataFormat(DataType::FP32);
@@ -1017,6 +1050,7 @@ static const auto& get_nullbias_matmul_methods() {
     nullbias_matmul_methods[1].fn_matmul_f32_f32_f32p = kai_run_matmul_clamp_f32_f32_f32p16x1b_6x16_neon_mla_cortexa55;
 
     nullbias_matmul_methods[2].name = "matmul_clamp_f16_f16_f16p32x1b_6x32_neon_mla";
+    nullbias_matmul_methods[2].capabilities = capabilities_pack_rhs_transposed_output;
     nullbias_matmul_methods[2].m0 = 6;
     nullbias_matmul_methods[2].n0 = 32;
     nullbias_matmul_methods[2].dst_format = DataFormat(DataType::FP16);
@@ -1070,6 +1104,7 @@ static const auto& get_nullbias_matmul_methods() {
     nullbias_matmul_methods[2].fn_matmul_f16_f16_f16p = kai_run_matmul_clamp_f16_f16_f16p32x1b_6x32_neon_mla;
 
     nullbias_matmul_methods[3].name = "matmul_clamp_f16_f16_f16p32x1b_6x32_neon_mla_cortexa55";
+    nullbias_matmul_methods[3].capabilities = capabilities_pack_rhs_transposed_output;
     nullbias_matmul_methods[3].m0 = 6;
     nullbias_matmul_methods[3].n0 = 32;
     nullbias_matmul_methods[3].dst_format = DataFormat(DataType::FP16);
@@ -1132,11 +1167,87 @@ static const auto& get_nullbias_matmul_methods() {
 
 using MatMulClampTestParams = std::tuple<MatMulMethod, MatMulShape, MatrixPortion, BiasMode, std::optional<float>>;
 
+template <typename Methods>
+static std::vector<MatMulMethod> methods_with_capability(
+    const Methods& methods, const MatMulMethodCapability capability) {
+    std::vector<MatMulMethod> filtered_methods;
+    for (const auto& method : methods) {
+        if (method.has_capability(capability)) {
+            filtered_methods.emplace_back(method);
+        }
+    }
+    return filtered_methods;
+}
+
+template <typename Methods>
+static void expect_method_metadata_is_consistent(const Methods& methods) {
+    for (const auto& method : methods) {
+        SCOPED_TRACE(std::string(method.name));
+
+        EXPECT_FALSE(method.name.empty());
+        EXPECT_TRUE(static_cast<bool>(method.fn_generate_lhs));
+        EXPECT_TRUE(static_cast<bool>(method.fn_generate_rhs));
+        EXPECT_TRUE(static_cast<bool>(method.fn_generate_bias));
+        EXPECT_TRUE(static_cast<bool>(method.fn_is_supported));
+
+        EXPECT_EQ(method.has_capability(MatMulMethodCapability::PACKED_LHS), method.is_pack_lhs_needed());
+        EXPECT_EQ(method.has_capability(MatMulMethodCapability::PACKED_RHS), method.is_pack_rhs_needed());
+        EXPECT_EQ(
+            method.has_capability(MatMulMethodCapability::PACKED_TRANSPOSED_RHS), method.is_pack_rhs_nxk_needed());
+        EXPECT_EQ(method.has_capability(MatMulMethodCapability::OUTPUT), method.has_main_kernel());
+
+        if (method.has_capability(MatMulMethodCapability::PACKED_LHS)) {
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_lhs));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_mr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_kr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_sr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_lhs_offset));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_packed_lhs_size));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_packed_lhs_offset));
+        }
+
+        if (method.has_capability(MatMulMethodCapability::PACKED_RHS)) {
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_rhs));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_nr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_kr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_sr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_pack_rhs_n_step));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_rhs_offset));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_packed_rhs_size));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_pack_rhs_packed_rhs_offset));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_bias_offset));
+        }
+
+        if (method.has_capability(MatMulMethodCapability::PACKED_TRANSPOSED_RHS)) {
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_rhs_nxk));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_nr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_kr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_sr));
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_rhs_nxk_get_n_step));
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_rhs_nxk_get_rhs_offset));
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_rhs_nxk_get_bias_offset));
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_rhs_nxk_get_packed_rhs_offset));
+            EXPECT_TRUE(static_cast<bool>(method.fn_pack_rhs_nxk_get_packed_rhs_size));
+        }
+
+        if (method.has_capability(MatMulMethodCapability::OUTPUT)) {
+            EXPECT_TRUE(method.has_main_kernel());
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_main_m_step));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_main_n_step));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_dst_offset));
+            EXPECT_TRUE(static_cast<bool>(method.fn_get_dst_size));
+            if (method.has_capability(MatMulMethodCapability::PACKED_RHS)) {
+                EXPECT_TRUE(static_cast<bool>(method.fn_get_main_packed_rhs_offset));
+            }
+        }
+    }
+}
+
 /// Matrix multiplication test fixture.
-class MatMulTest : public testing::TestWithParam<MatMulClampTestParams> {
+class MatMulTestBase : public testing::TestWithParam<MatMulClampTestParams> {
 private:
     /// Unique ID: m, n, k, method_id.
-    using TestDataId = std::tuple<size_t, size_t, size_t, std::string_view, BiasMode, std::optional<float>>;
+    using TestDataId = std::tuple<size_t, size_t, size_t, std::string_view, BiasMode, std::optional<float>, DataType>;
 
 protected:
     /// Cached test data that is shared between multiple test case.
@@ -1156,12 +1267,13 @@ protected:
     /// Gets the test data for the current test case.
     static const TestData& test_data() {
         const auto& [method, info, portion, bias_mode, clamp_keep_ratio] = GetParam();
-        const TestDataId data_id{info.m, info.n, info.k, method.name, bias_mode, clamp_keep_ratio};
+        const TestDataId data_id{info.m, info.n, info.k, method.name, bias_mode, clamp_keep_ratio, method.acc_dt};
 
         // Creates a unique seed for the test data.
         const auto key = std::string(method.name) + "_" + std::to_string(info.m) + "x" + std::to_string(info.n) + "x" +
             std::to_string(info.k) + "_" + (bias_mode == BiasMode::INTERNAL ? "internal" : "provided") + "_" +
-            (clamp_keep_ratio.has_value() ? std::to_string(clamp_keep_ratio.value()) : "noclamp");
+            (clamp_keep_ratio.has_value() ? std::to_string(clamp_keep_ratio.value()) : "noclamp") + "_" +
+            to_cstring(method.acc_dt);
         auto& feed = seed_stream(key);
 
         // If the test data is already available, returns it.
@@ -1223,7 +1335,7 @@ protected:
             rhs.data(), rhs_scales.data(), nullptr, method.rhs_format.data_type(),  //
             bias.data(), nullptr, nullptr, method.bias_format.data_type(),          //
             method.dst_format.data_type(),                                          //
-            info.m, info.n, info.k, false, false);
+            info.m, info.n, info.k, false, false, method.acc_dt);
 
         const auto [clamp_min, clamp_max] =
             find_clamp_range(method.dst_format.data_type(), ref_dst.data(), info.m * info.n, clamp_keep_ratio);
@@ -1251,20 +1363,32 @@ private:
 };
 
 // NOLINTBEGIN(cppcoreguidelines-avoid-non-const-global-variables)
-std::map<MatMulTest::TestDataId, MatMulTest::TestData> MatMulTest::_data;
+std::map<MatMulTestBase::TestDataId, MatMulTestBase::TestData> MatMulTestBase::_data;
 // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 
+class MatMulPackedLhsTest : public MatMulTestBase {};
+class MatMulPackedRhsTest : public MatMulTestBase {};
+class MatMulPackedTransposedRhsTest : public MatMulTestBase {};
+class MatMulOutputTest : public MatMulTestBase {};
+
+// Capability filtering happens during parameter generation, so inconsistent
+// method metadata can silently omit tests. Keep this guard automatic rather
+// than pinning exact method lists.
+TEST(MatMulMethodMetadataTest, MethodCapabilityMetadataIsConsistent) {
+    expect_method_metadata_is_consistent(get_matmul_methods());
+    expect_method_metadata_is_consistent(get_nullbias_matmul_methods());
+    expect_method_metadata_is_consistent(get_vecmul_methods());
+}
+
 /// Tests the LHS packing micro-kernel.
-TEST_P(MatMulTest, PackedLhs) {
+TEST_P(MatMulPackedLhsTest, PackedLhs) {
     const auto& [method, info, portion, bias_mode, clamp_keep_ratio] = GetParam();
 
     if (method.fn_is_supported && !method.fn_is_supported()) {
         GTEST_SKIP() << "Unsupported CPU feature";
     }
 
-    if (!method.is_pack_lhs_needed()) {
-        GTEST_SKIP() << "Test not valid w/o LHS pack";
-    }
+    ASSERT_TRUE(method.is_pack_lhs_needed());
 
     const auto& data = test_data();
     const auto lhs_h = info.m;
@@ -1307,16 +1431,14 @@ TEST_P(MatMulTest, PackedLhs) {
 }
 
 /// Tests the RHS packing micro-kernel.
-TEST_P(MatMulTest, PackedRhs) {
+TEST_P(MatMulPackedRhsTest, PackedRhs) {
     const auto& [method, info, portion, bias_mode, clamp_keep_ratio] = GetParam();
 
     if (method.fn_is_supported && !method.fn_is_supported()) {
         GTEST_SKIP() << "Unsupported CPU feature";
     }
 
-    if (!method.is_pack_rhs_needed()) {
-        GTEST_SKIP() << "Test not valid w/o RHS pack";
-    }
+    ASSERT_TRUE(method.is_pack_rhs_needed());
 
     const auto& data = test_data();
     const auto rhs_full_width = info.n;
@@ -1386,16 +1508,14 @@ TEST_P(MatMulTest, PackedRhs) {
 }
 
 /// Tests the transposed RHS packing micro-kernel.
-TEST_P(MatMulTest, PackedTransposedRhs) {
+TEST_P(MatMulPackedTransposedRhsTest, PackedTransposedRhs) {
     const auto& [method, info, portion, bias_mode, clamp_keep_ratio] = GetParam();
 
     if (method.fn_is_supported && !method.fn_is_supported()) {
         GTEST_SKIP() << "Unsupported CPU feature";
     }
 
-    if (!method.is_pack_rhs_nxk_needed()) {
-        GTEST_SKIP() << "Test not valid w/o pre-processing of transposed RHS matrix";
-    }
+    ASSERT_TRUE(method.is_pack_rhs_nxk_needed());
 
     const auto& data = test_data();
     const bool null_bias_mode = bias_mode == BiasMode::INTERNAL;
@@ -1454,16 +1574,14 @@ TEST_P(MatMulTest, PackedTransposedRhs) {
 }
 
 /// Tests the output.
-TEST_P(MatMulTest, Output) {
+TEST_P(MatMulOutputTest, Output) {
     const auto& [method, info, portion, bias_mode, clamp_keep_ratio] = GetParam();
 
     if (method.fn_is_supported && !method.fn_is_supported()) {
         GTEST_SKIP() << "Unsupported CPU feature";
     }
 
-    if (!method.has_main_kernel()) {
-        GTEST_SKIP() << "No main kernel available";
-    }
+    ASSERT_TRUE(method.has_main_kernel());
 
     const auto& data = test_data();
     const auto m_step = method.fn_get_main_m_step();
@@ -1571,97 +1689,165 @@ const std::vector<MatMulShape> MatMulShapes = {
     {87, 93, 56},  //
 };
 
+const std::vector<MatMulShape> VecMulShapes = {
+    {1, 16, 16},    //
+    {1, 1, 20},     //
+    {1, 16, 32},    //
+    {1, 32, 17},    //
+    {1, 33, 23},    //
+    {1, 1500, 20},  //
+    {1, 93, 56},    //
+    {1, 1, 1},      //
+    {1, 16, 1},     //
+    {1, 32, 64},    //
+    {1, 7, 74},     //
+    {1, 800, 64},   //
+    {1, 512, 130}   //
+};
+
+const std::vector<MatrixPortion> VecMulPortions = {
+    {0, 0, 1, 1},      // Full row.
+    {0, 0, 1, 0.5},    // First half
+    {0, .4, 1, 0.3},   // mid row-section.
+    {0, 0.75, 1, .25}  // right row section
+};
+
 INSTANTIATE_TEST_SUITE_P(
-    MatMul, MatMulTest,
+    MatMul, MatMulPackedLhsTest,
     testing::Combine(
-        testing::ValuesIn(get_matmul_methods()),  //
-        testing::ValuesIn(MatMulShapes),          //
-        testing::ValuesIn(MatrixPortions),        //
-        testing::Values(BiasMode::PROVIDED),      //
+        testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::PACKED_LHS)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    NullBiasMatMul, MatMulPackedLhsTest,
+    testing::Combine(
+        testing::ValuesIn(methods_with_capability(get_nullbias_matmul_methods(), MatMulMethodCapability::PACKED_LHS)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
+        testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    VecMul, MatMulPackedLhsTest,
+    testing::Combine(
+        testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::PACKED_LHS)),
+        testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    MatMul, MatMulPackedRhsTest,
+    testing::Combine(
+        testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::PACKED_RHS)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    NullBiasMatMul, MatMulPackedRhsTest,
+    testing::Combine(
+        testing::ValuesIn(methods_with_capability(get_nullbias_matmul_methods(), MatMulMethodCapability::PACKED_RHS)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
+        testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    VecMul, MatMulPackedRhsTest,
+    testing::Combine(
+        testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::PACKED_RHS)),
+        testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    MatMul, MatMulPackedTransposedRhsTest,
+    testing::Combine(
+        testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::PACKED_TRANSPOSED_RHS)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    NullBiasMatMul, MatMulPackedTransposedRhsTest,
+    testing::Combine(
         testing::ValuesIn(
-            std::initializer_list<std::optional<float>>({std::nullopt, 1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+            methods_with_capability(get_nullbias_matmul_methods(), MatMulMethodCapability::PACKED_TRANSPOSED_RHS)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
+        testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    NullBiasMatMul, MatMulTest,
+    VecMul, MatMulPackedTransposedRhsTest,
     testing::Combine(
-        testing::ValuesIn(get_nullbias_matmul_methods()),         //
-        testing::ValuesIn(MatMulShapes),                          //
-        testing::ValuesIn(MatrixPortions),                        //
-        testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),  //
-        testing::ValuesIn(
-            std::initializer_list<std::optional<float>>({std::nullopt, 1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::PACKED_TRANSPOSED_RHS)),
+        testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    VecMul, MatMulTest,
+    MatMul, MatMulOutputTest,
     testing::Combine(
-        testing::ValuesIn(get_vecmul_methods()),
-        testing::Values(
-            MatMulShape{1, 16, 16},    //
-            MatMulShape{1, 1, 20},     //
-            MatMulShape{1, 16, 32},    //
-            MatMulShape{1, 32, 17},    //
-            MatMulShape{1, 33, 23},    //
-            MatMulShape{1, 1500, 20},  //
-            MatMulShape{1, 93, 56},    //
-            MatMulShape{1, 1, 1},      //
-            MatMulShape{1, 16, 1},     //
-            MatMulShape{1, 32, 64},    //
-            MatMulShape{1, 7, 74},     //
-            MatMulShape{1, 800, 64},   //
-            MatMulShape{1, 512, 130}   //
-            ),
-        testing::Values(
-            MatrixPortion(0, 0, 1, 1),      // Full row.
-            MatrixPortion(0, 0, 1, 0.5),    // First half
-            MatrixPortion(0, .4, 1, 0.3),   // mid row-section.
-            MatrixPortion(0, 0.75, 1, .25)  // right row section
-            ),
-        testing::Values(BiasMode::PROVIDED),  //
-        testing::ValuesIn(
-            std::initializer_list<std::optional<float>>({std::nullopt, 1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
-    testing::PrintToStringParamName());
-
-
-
-INSTANTIATE_TEST_SUITE_P(
-    MatMul_k_, MatMulTest,
-    testing::Combine(
-        testing::ValuesIn(get_matmul_methods()),                               //
-        testing::ValuesIn(MatMulShapes),                                       //
-        testing::ValuesIn(MatrixPortions),                                     //
-        testing::Values(BiasMode::PROVIDED),                                   //
-        testing::ValuesIn(std::initializer_list<std::optional<float>>({1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::ValuesIn(methods_with_capability(get_matmul_methods(), MatMulMethodCapability::OUTPUT)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    VecMul_k_, MatMulTest,
+    NullBiasMatMul, MatMulOutputTest,
     testing::Combine(
-        testing::ValuesIn(get_vecmul_methods()),
-        testing::Values(
-            MatMulShape{1, 16, 16},    //
-            MatMulShape{1, 1, 20},     //
-            MatMulShape{1, 16, 32},    //
-            MatMulShape{1, 32, 17},    //
-            MatMulShape{1, 33, 23},    //
-            MatMulShape{1, 1500, 20},  //
-            MatMulShape{1, 93, 56},    //
-            MatMulShape{1, 1, 1},      //
-            MatMulShape{1, 16, 1},     //
-            MatMulShape{1, 32, 64},    //
-            MatMulShape{1, 7, 74},     //
-            MatMulShape{1, 800, 64},   //
-            MatMulShape{1, 512, 130}   //
-            ),
-        testing::Values(
-            MatrixPortion(0, 0, 1, 1),      // Full row.
-            MatrixPortion(0, 0, 1, 0.5),    // First half
-            MatrixPortion(0, .4, 1, 0.3),   // mid row-section.
-            MatrixPortion(0, 0.75, 1, .25)  // right row section
-            ),
-        testing::Values(BiasMode::PROVIDED),                                   //
-        testing::ValuesIn(std::initializer_list<std::optional<float>>({1.0f, 0.9f, 0.5f}))),  // clamp_keep_ratio
+        testing::ValuesIn(methods_with_capability(get_nullbias_matmul_methods(), MatMulMethodCapability::OUTPUT)),
+        testing::ValuesIn(MatMulShapes), testing::ValuesIn(MatrixPortions),
+        testing::Values(BiasMode::INTERNAL, BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
     testing::PrintToStringParamName());
+
+INSTANTIATE_TEST_SUITE_P(
+    VecMul, MatMulOutputTest,
+    testing::Combine(
+        testing::ValuesIn(methods_with_capability(get_vecmul_methods(), MatMulMethodCapability::OUTPUT)),
+        testing::ValuesIn(VecMulShapes), testing::ValuesIn(VecMulPortions), testing::Values(BiasMode::PROVIDED),
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            1.0f,          // Clamp to full range
+            0.9f,          // Clamp to 90% range
+            0.5f})),       // Clamp to 50% range
+    testing::PrintToStringParamName());
+
 
 }  // namespace kai::test

@@ -13,7 +13,6 @@
 #include <limits>
 #include <sstream>
 #include <string>
-#include <optional>
 #include <tuple>
 #include <vector>
 
@@ -82,7 +81,8 @@ Bf16Qai8Qsi4CacheData ReferenceGenerator<Bf16Qai8Qsi4CacheDataId, Bf16Qai8Qsi4Ca
     const auto key = std::string("Bf16Qai8Qsi4_cache:") + std::to_string(M) + "x" + std::to_string(N) + "x" +
         std::to_string(K) + ":" + std::to_string(static_cast<uint32_t>(lhs_format.data_type())) + ":" +
         std::to_string(static_cast<uint32_t>(rhs_format.data_type())) + ":" +
-        std::to_string(static_cast<uint32_t>(bias_format.data_type())) + ":" + (clamp_keep_ratio.has_value() ? std::to_string(clamp_keep_ratio.value()) : "noclamp");
+        std::to_string(static_cast<uint32_t>(bias_format.data_type())) + ":" +
+        (clamp_keep_ratio.has_value() ? std::to_string(clamp_keep_ratio.value()) : "noclamp");
     auto& feed = seed_stream(key);
 
     bool has_bias = bias_format.data_type() != DataType::UNKNOWN;
@@ -165,6 +165,8 @@ static const std::array<UkernelVariant<kai_matmul_clamp_bf16_qai8dxp_qsi4cxp_uke
          "kai_matmul_clamp_bf16_qai8dxp4x8_qsi4cxp8x8_8x8_neon_i8mm", cpu_has_i8mm_and_bf16},
     }};
 
+using MatMulClampTestPortionedParamsWithBias =
+    std::tuple<size_t, MatMulShape, MatrixPortion, std::optional<float>, bool>;
 class MatMulTest_bf16_qai8dxp_qsi4cxp : public ::testing::TestWithParam<MatMulClampTestPortionedParamsWithBias> {};
 
 TEST_P(MatMulTest_bf16_qai8dxp_qsi4cxp, EndToEnd_RHS_NxK) {
@@ -386,6 +388,7 @@ INSTANTIATE_TEST_SUITE_P(
             MatMulShape{1, 3, 32},    //
             MatMulShape{1, 4, 32},    //
             MatMulShape{1, 5, 32},    //
+            MatMulShape{1, 71, 32},   //
             MatMulShape{3, 3, 32},    //
             MatMulShape{4, 4, 32},    //
             MatMulShape{5, 5, 32},    //
@@ -405,7 +408,11 @@ INSTANTIATE_TEST_SUITE_P(
             MatrixPortion(0.75, 0, 1, 1),      // Partial rows
             MatrixPortion(0.4, 0.5, 0.6, 0.8)  // Somewhere Middle
             ),
-        testing::ValuesIn(std::initializer_list<std::optional<float>>{1.0f, 0.9f, 0.5f}),  //
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping completely
+            1.0f,          // Keep 100% of range
+            0.9f,          // Keep 90% of range
+            0.5f}),        // Keep 50% of range
         testing::Bool()),
     [](const auto& info) -> std::string {
         const auto variant_idx = std::get<0>(info.param);
