@@ -161,6 +161,23 @@ struct kai_matmul_uker_api kai_matmul_clamp_f16_f16_f16p16vsx2bf16_6x16vs_sve2p1
 /// @return The micro-kernel API.
 struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8p8vsx4_qsi4cxp8vsx4sf32bi32_8vsx8vs_sme2_mopa(void);
 
+/// Quantized 8-bit integer matrix multiplication with 4-bit RHS using QMX MOPA instruction.
+///
+/// Requires the "s4s0" RHS layout from
+/// @ref kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_f32_i32_sme (or its kxn/qsu4cx
+/// siblings), whose payload is arranged so each decoded nibble plane is already an SMOPA operand.
+/// QMX lacks FEAT_LUT, so the i4 -> i8 expansion is arithmetic; that layout makes it 3 ops per
+/// vector with no zip.
+///
+/// WARNING: NOT interchangeable with the plain
+/// @ref kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4sf32bi32_qsi4cx_f32_i32_sme used by the LUTI4-based
+/// @ref kai_matmul_clamp_qai8_qai8p8vsx4_qsi4cxp8vsx4sf32bi32_8vsx8vs_sme2_mopa. Both emit the same
+/// packed size, stride and offsets, so a mismatch is not rejected by any assert -- it silently
+/// produces wrong results (scrambled K order).
+///
+/// @return The micro-kernel API.
+struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8p8vsx4_qsi4cxp8vsx4sf32bi32_8vsx8vs_qmx_mopa(void);
+
 /// Single-precision floating-point vector-matrix multiplication using QMX MLA instruction.
 ///
 /// Required operands:
@@ -256,6 +273,45 @@ struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32v
 ///
 /// @return The micro-kernel API.
 struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8_qsi4cxp8vsx4sf32bi32_1x64vs_sme2_dot(void);
+
+/// Statically quantized INT8 vector-matrix multiplication with packed INT4 RHS using SME1 (QMX)
+/// SDOT instructions.
+///
+/// QMX counterpart of @ref kai_matmul_clamp_qai8_qai8_qsi4cxp8vsx4sf32bi32_1x64vs_sme2_dot. FEAT_LUT
+/// is unavailable, so the INT4 -> INT8 expansion is arithmetic rather than a LUTI4 table lookup.
+///
+/// The RHS must be packed by one of:
+///   * @ref kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_f32_i32_sme
+///   * @ref kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsu4cx_f32_i32_sme
+///   * @ref kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_f32_i32_sme
+///   * @ref kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsu4cx_f32_i32_sme
+/// i.e. the same "s4s0" packed buffer consumed by the
+/// @ref kai_matmul_clamp_qai8_qai8p8vsx4_qsi4cxp8vsx4sf32bi32_8vsx8vs_qmx_mopa GEMM kernel, so a
+/// single packed RHS can serve both the GEMM and the GEMV path.
+///
+/// The plain "sf32bi32" packers used by the sme2_dot sibling are NOT interchangeable with these:
+/// every stride, offset and packed size is identical and only the arrangement of nibbles within the
+/// payload differs, so a mismatch is not rejected by any assert -- it silently produces wrong
+/// results.
+///
+/// Required CPU features:
+///   * FEAT_SME
+///
+/// Required operands:
+///   * dst
+///   * lhs
+///   * rhs - Packed RHS matrix with per-N bias and per-N scale.
+///   * bias
+///     * scale_bias_global - Output zero point as an I32 scalar.
+///
+/// Optional arguments:
+///   * clamp - I32 output clamp values if KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP flag is set.
+///
+/// Supported flags:
+///   * KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP - Clamp output data.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8_qsi4cxp8vsx4s4s0sf32bi32_1x8vs_qmx_dot(void);
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -197,6 +197,9 @@ struct MatMulVariant {
 
     kai_matmul_uker_api api;
     bool lhs_is_packed;
+    /// Selects the "s4s0" RHS payload layout, required by the QMX kernel's zip-free decode.
+    /// The two layouts share container, strides and offsets, so a mismatch asserts nowhere.
+    bool rhs_s4s0;
 };
 
 const kai_matmul_uker_config matmul_config{};
@@ -208,16 +211,34 @@ const kai_matmul_pack_rhs_uker_api rhs_pack_nxk_qsi4_api =
     kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4sf32bi32_qsi4cx_f32_i32_sme();
 const kai_matmul_pack_rhs_uker_api rhs_pack_nxk_qsu4_api =
     kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4sf32bi32_qsu4cx_f32_i32_sme();
+const kai_matmul_pack_rhs_uker_api rhs_pack_kxn_qsi4_s4s0_api =
+    kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_f32_i32_sme();
+const kai_matmul_pack_rhs_uker_api rhs_pack_kxn_qsu4_s4s0_api =
+    kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsu4cx_f32_i32_sme();
+const kai_matmul_pack_rhs_uker_api rhs_pack_nxk_qsi4_s4s0_api =
+    kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_f32_i32_sme();
+const kai_matmul_pack_rhs_uker_api rhs_pack_nxk_qsu4_s4s0_api =
+    kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsu4cx_f32_i32_sme();
 
 const auto& get_gemm_variants() {
     static const size_t sme_vscale = get_sme_vector_scale();
-    static const std::array<MatMulVariant, 1> variants{{
+    static const std::array<MatMulVariant, 2> variants{{
         {
             "qai8_qai8p_qsi4cxp_8vsx8vs_sme2_mopa",
             {8 * sme_vscale, 8 * sme_vscale, 4},
             {8 * sme_vscale, 8 * sme_vscale, 4},
             cpu_has_sme2,
             kai_matmul_clamp_qai8_qai8p8vsx4_qsi4cxp8vsx4sf32bi32_8vsx8vs_sme2_mopa(),
+            true,
+            false,
+        },
+        {
+            "qai8_qai8p_qsi4cxp_8vsx8vs_qmx_mopa",
+            {8 * sme_vscale, 8 * sme_vscale, 4},
+            {8 * sme_vscale, 8 * sme_vscale, 4},
+            cpu_has_sme,
+            kai_matmul_clamp_qai8_qai8p8vsx4_qsi4cxp8vsx4sf32bi32_8vsx8vs_qmx_mopa(),
+            true,
             true,
         },
     }};
@@ -226,7 +247,7 @@ const auto& get_gemm_variants() {
 
 const auto& get_gemv_variants() {
     static const size_t sme_vscale = get_sme_vector_scale();
-    static const std::array<MatMulVariant, 1> variants{{
+    static const std::array<MatMulVariant, 2> variants{{
         {
             "qai8_qai8_qsi4cxp_1x64vs_sme2_dot",
             {1, 8 * sme_vscale, 4},
@@ -234,6 +255,18 @@ const auto& get_gemv_variants() {
             cpu_has_sme2,
             kai_matmul_clamp_qai8_qai8_qsi4cxp8vsx4sf32bi32_1x64vs_sme2_dot(),
             false,
+            false,
+        },
+        {
+            // Consumes the same s4s0 packed RHS as the 8vsx8vs_qmx_mopa GEMM kernel; steps one nr
+            // panel at a time because SME1 has only the single-vector SDOT form.
+            "qai8_qai8_qsi4cxp_1x8vs_qmx_dot",
+            {1, 8 * sme_vscale, 4},
+            {1, 8 * sme_vscale, 4},
+            cpu_has_sme,
+            kai_matmul_clamp_qai8_qai8_qsi4cxp8vsx4s4s0sf32bi32_1x8vs_qmx_dot(),
+            false,
+            true,
         },
     }};
     return variants;
@@ -450,7 +483,16 @@ TEST_P(MatMulClampQai8Qsi4cxpTest, EndToEnd) {
             SCOPED_TRACE(testing::Message() << "RHS zero point " << rhs_zero_point);
 
             const int32_t lhs_zero_point = reference.lhs_quantization.zero_point;
-            const float scale_multiplier = reference.lhs_quantization.scale / reference.dst_quantization.scale;
+            // Mirror the guard in quantize_asymmetric() (test/reference/quantize.cpp): it uses
+            // inv_scale = (scale != 0 ? 1/scale : 0), so a zero dst scale means every output maps to
+            // the zero point. Dividing here without the same guard would hand the micro-kernel an
+            // infinite scale, which no requantising kernel can turn back into the zero point --
+            // fmul by inf then fcvtzs saturates to INT32_MAX/MIN, and adding the zero point on top
+            // overflows into the clamp floor. A degenerate dst scale arises when the reference
+            // output range collapses, which happens for M=1 (GEMV) shapes.
+            const float dst_scale_ref = reference.dst_quantization.scale;
+            const float scale_multiplier =
+                dst_scale_ref != 0.0F ? reference.lhs_quantization.scale / dst_scale_ref : 0.0F;
 
             const auto test_rhs_packer = [&](const kai_matmul_pack_rhs_uker_api& api, const Buffer& rhs,
                                              std::string_view packer_name) {
@@ -473,13 +515,15 @@ TEST_P(MatMulClampQai8Qsi4cxpTest, EndToEnd) {
             };
 
             const Buffer& rhs_kxn = rhs_zero_point == 0 ? reference.rhs_qsi4_kxn : reference.rhs_qsu4_kxn;
-            const kai_matmul_pack_rhs_uker_api& rhs_pack_kxn_api =
-                rhs_zero_point == 0 ? rhs_pack_kxn_qsi4_api : rhs_pack_kxn_qsu4_api;
+            const kai_matmul_pack_rhs_uker_api& rhs_pack_kxn_api = variant.rhs_s4s0
+                ? (rhs_zero_point == 0 ? rhs_pack_kxn_qsi4_s4s0_api : rhs_pack_kxn_qsu4_s4s0_api)
+                : (rhs_zero_point == 0 ? rhs_pack_kxn_qsi4_api : rhs_pack_kxn_qsu4_api);
             test_rhs_packer(rhs_pack_kxn_api, rhs_kxn, "KxN RHS packer");
 
             const Buffer& rhs_nxk = rhs_zero_point == 0 ? reference.rhs_qsi4_nxk : reference.rhs_qsu4_nxk;
-            const kai_matmul_pack_rhs_uker_api& rhs_pack_nxk_api =
-                rhs_zero_point == 0 ? rhs_pack_nxk_qsi4_api : rhs_pack_nxk_qsu4_api;
+            const kai_matmul_pack_rhs_uker_api& rhs_pack_nxk_api = variant.rhs_s4s0
+                ? (rhs_zero_point == 0 ? rhs_pack_nxk_qsi4_s4s0_api : rhs_pack_nxk_qsu4_s4s0_api)
+                : (rhs_zero_point == 0 ? rhs_pack_nxk_qsi4_api : rhs_pack_nxk_qsu4_api);
             test_rhs_packer(rhs_pack_nxk_api, rhs_nxk, "NxK RHS packer");
         }
     };
