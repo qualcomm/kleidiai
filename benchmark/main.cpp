@@ -306,6 +306,30 @@ static std::optional<std::string> find_user_benchmark_filter(int argc, char** ar
     return std::nullopt;
 }
 
+/// Every benchmark family (matmul, pack_matmul, imatmul, dwconv) is registered globally at static-init time, so a
+/// user-supplied `--benchmark_filter` is matched against benchmarks from *all* families, not just the one selected
+/// on the command line. A benchmark whose family was never configured for this run has no dimensions
+/// (`-m`/`-n`/`-k`/...) attached, so running it crashes. Rather than trying to make the filter regex itself family-
+/// aware (Benchmark's regex engine doesn't support the lookahead that would require), we configure every *other*
+/// family with harmless placeholder dimensions -- mirroring what COMPAT/`--benchmark_list_tests` mode already does
+/// for all families. A stray cross-family filter match then just runs harmlessly instead of crashing.
+enum class Family : uint8_t { MATMUL, PACK_MATMUL, IMATMUL, DWCONV };
+
+static void register_other_families_with_placeholders(Family active) {
+    if (active != Family::MATMUL) {
+        kai::benchmark::RegisterMatMulBenchmarks({1, 1, 1}, 32);
+    }
+    if (active != Family::PACK_MATMUL) {
+        kai::benchmark::RegisterPackMatMulBenchmarks({1, 1, 1}, 32);
+    }
+    if (active != Family::IMATMUL) {
+        kai::benchmark::RegisteriMatMulBenchmarks(1, 1, 1, 1);
+    }
+    if (active != Family::DWCONV) {
+        kai::benchmark::RegisterDwConvBenchmarks({3, 3, 1});
+    }
+}
+
 static int run_matmul(
     int argc, char** argv, bool default_to_matmul, const std::optional<std::string>& user_filter_opt) {
     bool mflag = false, nflag = false, kflag = false, bflag = false;
@@ -346,21 +370,8 @@ static int run_matmul(
     }
 
     kai::benchmark::RegisterMatMulBenchmarks({m, n, k}, bl);
-
-    // Scope filter to matmul benchmarks only to avoid running uninitialized dwconv benchmarks.
-    // If user supplied a filter that already starts with the mode prefix, use it as-is.
-    // Otherwise wrap it so only matmul benchmarks are selected.
-    std::string spec;
-    if (user_filter_opt.has_value()) {
-        const auto& f = *user_filter_opt;
-        if (f.find("kai_matmul") != std::string::npos) {
-            spec = f;  // User filter already scoped to matmul
-        } else {
-            spec = "^kai_matmul.*" + f;
-        }
-    } else {
-        spec = "^kai_matmul";
-    }
+    register_other_families_with_placeholders(Family::MATMUL);
+    const std::string spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("^kai_matmul");
 
     ::benchmark::RunSpecifiedBenchmarks(nullptr, nullptr, spec);
     ::benchmark::Shutdown();
@@ -406,6 +417,7 @@ static int run_pack_matmul(int argc, char** argv, const std::optional<std::strin
     }
 
     kai::benchmark::RegisterPackMatMulBenchmarks({m, n, k}, bl);
+    register_other_families_with_placeholders(Family::PACK_MATMUL);
     const std::string spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("kai_pack_matmul");
 
     ::benchmark::RunSpecifiedBenchmarks(nullptr, nullptr, spec);
@@ -452,19 +464,10 @@ static int run_imatmul(int argc, char** argv, const std::optional<std::string>& 
               << ", k_chunk_length=" << k_chunk_length << "\n";
 
     kai::benchmark::RegisteriMatMulBenchmarks(m, n, k_chunk_count, k_chunk_length);
+    register_other_families_with_placeholders(Family::IMATMUL);
 
-    // Scope filter to imatmul benchmarks only.
-    std::string spec;
-    if (user_filter_opt.has_value()) {
-        const auto& f = *user_filter_opt;
-        if (f.find("kai_imatmul") != std::string::npos) {
-            spec = f;
-        } else {
-            spec = "^kai_imatmul.*" + f;
-        }
-    } else {
-        spec = "^kai_imatmul";
-    }
+    // Default filter if user didn’t supply one
+    std::string spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("^kai_imatmul");
 
     ::benchmark::RunSpecifiedBenchmarks(nullptr, nullptr, spec);
     ::benchmark::Shutdown();
@@ -519,18 +522,9 @@ static int run_dwconv(int argc, char** argv, const std::optional<std::string>& u
               << ", dilation=" << format_array(shape.dilation) << "\n";
 
     kai::benchmark::RegisterDwConvBenchmarks(shape);
+    register_other_families_with_placeholders(Family::DWCONV);
 
-    std::string spec;
-    if (user_filter_opt.has_value()) {
-        const auto& f = *user_filter_opt;
-        if (f.find("kai_dwconv") != std::string::npos) {
-            spec = f;
-        } else {
-            spec = "^kai_dwconv.*" + f;
-        }
-    } else {
-        spec = "^kai_dwconv";
-    }
+    std::string spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("^kai_dwconv");
     ::benchmark::RunSpecifiedBenchmarks(nullptr, nullptr, spec);
     ::benchmark::Shutdown();
     return 0;
@@ -596,15 +590,19 @@ int main(int argc, char** argv) {
             spec = user_filter_opt.value_or("");
         } else if (mode == Mode::MATMUL) {
             kai::benchmark::RegisterMatMulBenchmarks({1, 1, 1}, 32);
+            register_other_families_with_placeholders(Family::MATMUL);
             spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("^kai_matmul");
         } else if (mode == Mode::PACK_MATMUL) {
             kai::benchmark::RegisterPackMatMulBenchmarks({1, 1, 1}, 32);
+            register_other_families_with_placeholders(Family::PACK_MATMUL);
             spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("kai_pack_matmul");
         } else if (mode == Mode::IMATMUL) {
             kai::benchmark::RegisteriMatMulBenchmarks(1, 1, 1, 1);
+            register_other_families_with_placeholders(Family::IMATMUL);
             spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("^kai_imatmul");
         } else if (mode == Mode::DWCONV) {
             kai::benchmark::RegisterDwConvBenchmarks({3, 3, 1});
+            register_other_families_with_placeholders(Family::DWCONV);
             spec = user_filter_opt.has_value() ? *user_filter_opt : std::string("^kai_dwconv");
         }
         ::benchmark::SetBenchmarkFilter(spec);

@@ -17,6 +17,8 @@
 #include <vector>
 
 #include "kai/ukernels/matmul/matmul_clamp_f16_qai8dxp_qsi4cxp/kai_matmul_clamp_f16_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_f16_qai8dxp_qsi4cxp/kai_matmul_clamp_f16_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_qmx_mopa.h"
+#include "kai/ukernels/matmul/matmul_clamp_f16_qai8dxp_qsi4cxp/kai_matmul_clamp_f16_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_qmx_sdot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f16_qai8dxp_qsi4cxp/kai_matmul_clamp_f16_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_sme2_sdot.h"
 #include "kai/ukernels/matmul/matmul_clamp_f16_qai8dxp_qsi4cxp/kai_matmul_clamp_f16_qai8dxp1x4_qsi4cxp4x4_1x4_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f16_qai8dxp_qsi4cxp/kai_matmul_clamp_f16_qai8dxp1x8_qsi4cxp4x8_1x4_neon_dotprod.h"
@@ -153,7 +155,7 @@ F16Qai8Qsi4CacheData ReferenceGenerator<F16Qai8Qsi4CacheDataId, F16Qai8Qsi4Cache
     return out;
 }
 
-static const std::array<UkernelVariantCustom<kai_matmul_clamp_f16_qai8dxp_qsi4cxp_ukernel>, 6>
+static const std::array<UkernelVariantCustom<kai_matmul_clamp_f16_qai8dxp_qsi4cxp_ukernel>, 8>
     variants_kai_matmul_clamp_f16_qai8dxp_qsi4cxp = {{
         {UKERNEL_MATMUL_VARIANT(clamp_f16_qai8dxp1x4_qsi4cxp4x4_1x4_neon_dotprod),
          "kai_matmul_clamp_f16_qai8dxp1x4_qsi4cxp4x4_1x4_neon_dotprod", cpu_has_dotprod_and_fp16,
@@ -181,6 +183,14 @@ static const std::array<UkernelVariantCustom<kai_matmul_clamp_f16_qai8dxp_qsi4cx
          kai_run_rhs_pack_nxk_qsi4cxps1s0_qsu4cxs1s0_neon,
          kai_get_rhs_packed_size_rhs_pack_nxk_qsi4cxps1s0_qsu4cxs1s0_neon,
          kai_get_rhs_packed_offset_rhs_pack_nxk_qsi4cxps1s0_qsu4cxs1s0_neon},
+        {UKERNEL_MATMUL_VARIANT(clamp_f16_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_qmx_mopa),
+         "kai_matmul_clamp_f16_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_qmx_mopa", cpu_has_sme,
+         kai_run_rhs_pack_nxk_qsi4cxp_qs4cxs1s0, kai_get_rhs_packed_size_rhs_pack_nxk_qsi4cxp_qs4cxs1s0,
+         kai_get_rhs_packed_offset_rhs_pack_nxk_qsi4cxp_qs4cxs1s0},
+        {UKERNEL_MATMUL_VARIANT(clamp_f16_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_qmx_sdot),
+         "kai_matmul_clamp_f16_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_qmx_sdot", cpu_has_sme,
+         kai_run_rhs_pack_nxk_qsi4cxp_qs4cxs1s0, kai_get_rhs_packed_size_rhs_pack_nxk_qsi4cxp_qs4cxs1s0,
+         kai_get_rhs_packed_offset_rhs_pack_nxk_qsi4cxp_qs4cxs1s0},
     }};
 
 class MatMulTest_f16_qai8dxp_qsi4cxp : public ::testing::TestWithParam<MatMulClampTestPortionedParamsWithBias> {};
