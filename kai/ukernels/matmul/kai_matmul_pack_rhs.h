@@ -213,6 +213,46 @@ struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4sf32bi32
 /// @return The micro-kernel API.
 struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4sf32bi32_qsu4cx_f32_i32_sme(void);
 
+/// RHS packing for the QMX qsi4cxp mopa micro-kernel ("s4s0" payload, KXN qsi4cx).
+///
+/// Same container, strides and offsets as
+/// @ref kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4sf32bi32_qsi4cx_f32_i32_sme, but the nibbles inside the
+/// payload are arranged so each plane is already an SMOPA operand (no zip in the kernel).
+/// NOT interchangeable with it: identical sizes mean a mismatch asserts nowhere.
+///
+/// @return The micro-kernel packing API.
+struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_f32_i32_sme(void);
+
+/// RHS packing for the QMX qsi4cxp mopa micro-kernel ("s4s0" payload, KXN qsu4cx).
+///
+/// Same container, strides and offsets as
+/// @ref kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4sf32bi32_qsu4cx_f32_i32_sme, but the nibbles inside the
+/// payload are arranged so each plane is already an SMOPA operand (no zip in the kernel).
+/// NOT interchangeable with it: identical sizes mean a mismatch asserts nowhere.
+///
+/// @return The micro-kernel packing API.
+struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsu4cx_f32_i32_sme(void);
+
+/// RHS packing for the QMX qsi4cxp mopa micro-kernel ("s4s0" payload, NXK qsi4cx).
+///
+/// Same container, strides and offsets as
+/// @ref kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4sf32bi32_qsi4cx_f32_i32_sme, but the nibbles inside the
+/// payload are arranged so each plane is already an SMOPA operand (no zip in the kernel).
+/// NOT interchangeable with it: identical sizes mean a mismatch asserts nowhere.
+///
+/// @return The micro-kernel packing API.
+struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_f32_i32_sme(void);
+
+/// RHS packing for the QMX qsi4cxp mopa micro-kernel ("s4s0" payload, NXK qsu4cx).
+///
+/// Same container, strides and offsets as
+/// @ref kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4sf32bi32_qsu4cx_f32_i32_sme, but the nibbles inside the
+/// payload are arranged so each plane is already an SMOPA operand (no zip in the kernel).
+/// NOT interchangeable with it: identical sizes mean a mismatch asserts nowhere.
+///
+/// @return The micro-kernel packing API.
+struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsu4cx_f32_i32_sme(void);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

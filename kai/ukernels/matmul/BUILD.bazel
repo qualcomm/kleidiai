@@ -267,9 +267,13 @@ SME_KERNELS_NOHDR = [
     "pack/kai_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme",
     "pack/kai_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme",
     "pack/kai_matmul_pack_rhs_nxk_x8p4vsx4_x8_sme",
+    "pack/kai_rhs_pack_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_qsu4cx_f32_i32_sme",
+    "pack/kai_rhs_pack_kxn_qsi4cxp8vsx4s4s0sf32bi32_qsx4cx_f32_i32_sme",
     "pack/kai_rhs_pack_kxn_qsi4cxp8vsx4sf32bi32_qsi4cx_f32_i32_sme",
     "pack/kai_rhs_pack_kxn_qsi4cxp8vsx4sf32bi32_qsu4cx_f32_i32_sme",
     "pack/kai_rhs_pack_kxn_qsi4cxp8vsx4sf32bi32_qsx4cx_f32_i32_sme",
+    "pack/kai_rhs_pack_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsi4cx_qsu4cx_f32_i32_sme",
+    "pack/kai_rhs_pack_nxk_qsi4cxp8vsx4s4s0sf32bi32_qsx4cx_f32_i32_sme",
     "pack/kai_rhs_pack_nxk_qsi4cxp8vsx4sf32bi32_qsi4cx_f32_i32_sme",
     "pack/kai_rhs_pack_nxk_qsi4cxp8vsx4sf32bi32_qsu4cx_f32_i32_sme",
     "pack/kai_rhs_pack_nxk_qsi4cxp8vsx4sf32bi32_qsx4cx_f32_i32_sme",
@@ -364,7 +368,9 @@ QMX_KERNELS = [
 QMX_KERNELS_ASM_NOHDR = [
     "matmul_clamp_f32_f32p_f32p/kai_matmul_clamp_f32_f32p4vsx1_f32p4vsx1bf32_8vsx8vs_qmx_mopa",
     "matmul_clamp_f32_f32_f32p/kai_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla",
+    "matmul_clamp_qai8_qai8p_qsi4cxp/kai_matmul_clamp_qai8_qai8p8vsx4_qsi4cxp8vsx4sf32bi32_8vsx8vs_qmx_mopa",
     "matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_8vsx8vs_qmx_mopa",
+    "matmul_clamp_qai8_qai8_qsi4cxp/kai_matmul_clamp_qai8_qai8_qsi4cxp8vsx4s4s0sf32bi32_1x8vs_qmx_dot",
 ]
 
 # buildifier: keep sorted
