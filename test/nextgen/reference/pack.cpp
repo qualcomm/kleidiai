@@ -78,6 +78,7 @@ size_t pack_block2d_interleave(
     const size_t num_block_cols = round_up_multiple(width, width_align) / block_width;
     const size_t num_chunks_per_block = block_width / 32;
     const size_t num_subchunks_per_chunk = 32 / (2 * interleave_width);
+
     const size_t src_row_size = round_up_division(width * size_in_bits<Int4>, 8);
 
     size_t block_offset = 0;
@@ -93,27 +94,31 @@ size_t pack_block2d_interleave(
                     row = std::min(row, height - 1);
                     const Span<const std::byte> src_row_data = data.subspan(row * src_row_size, src_row_size);
 
-                    for (size_t packet = 0; packet < num_subchunks_per_chunk; ++packet) {
-                        for (size_t byte = 0; byte < interleave_width; ++byte) {
-                            size_t k_low = k0 + packet * 2 * interleave_width + byte;
-                            size_t k_high = k_low + interleave_width;
+                    for (size_t p = 0; p < num_subchunks_per_chunk; ++p) {
+                        for (size_t b = 0; b < interleave_width; ++b) {
+                            size_t k_lo = k0 + p * 2 * interleave_width + b;
+                            size_t k_hi = k_lo + interleave_width;
 
-                            if (pad_right_same && k_low >= width) {
-                                k_low = width - 1;
-                            }
-                            if (pad_right_same && k_high >= width) {
-                                k_high = width - 1;
+                            if (pad_right_same && k_lo >= width) {
+                                k_lo = width - 1;
                             }
 
-                            const int32_t low = k_low < width ? int32_t(read_array<Int4>(src_row_data, k_low)) : 0;
-                            const int32_t high = k_high < width ? int32_t(read_array<Int4>(src_row_data, k_high)) : 0;
-                            const uint8_t low_biased = static_cast<uint8_t>(low + 8);
-                            const uint8_t high_biased = static_cast<uint8_t>(high + 8);
-                            const uint8_t packed_byte =
-                                static_cast<uint8_t>(((low_biased & 0x0FU) | (high_biased << 4)) ^ 0x88U);
+                            if (pad_right_same && k_hi >= width) {
+                                k_hi = width - 1;
+                            }
 
-                            const size_t dst_index = chunk_offset + packet * block_height * interleave_width +
-                                elem_row * interleave_width + byte;
+                            const int32_t lo_signed =
+                                (k_lo < width) ? int32_t(read_array<Int4>(src_row_data, k_lo)) : 0;
+                            const int32_t hi_signed =
+                                (k_hi < width) ? int32_t(read_array<Int4>(src_row_data, k_hi)) : 0;
+
+                            const auto lo_biased = static_cast<uint8_t>(lo_signed + 8);
+                            const auto hi_biased = static_cast<uint8_t>(hi_signed + 8);
+                            const auto packed_byte =
+                                static_cast<uint8_t>(((lo_biased & 0x0F) | (hi_biased << 4)) ^ 0x88);
+
+                            const size_t dst_index =
+                                chunk_offset + p * block_height * interleave_width + elem_row * interleave_width + b;
                             packed_data[dst_index] = static_cast<std::byte>(packed_byte);
                         }
                     }
