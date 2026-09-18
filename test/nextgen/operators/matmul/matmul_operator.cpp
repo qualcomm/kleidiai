@@ -1,6 +1,7 @@
 //
 // SPDX-FileCopyrightText: Copyright 2025-2026 Arm Limited and/or its affiliates <open-source-office@arm.com>
 // SPDX-FileCopyrightText: Copyright 2026 Fujitsu Limited
+// SPDX-FileCopyrightText: Copyright 2026 Meta Platforms, Inc. and affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -52,7 +53,7 @@ const MatMulBiasModeSet acc_bias_per_m_per_n_scale_bias_per_n{
 }  // namespace
 
 Span<const MatMulOperator> get_available_matmul_operators() {
-    static std::array<MatMulOperator, 42> operators;
+    static std::array<MatMulOperator, 44> operators;
 
     // matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa
     operators[0].name = "matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa";
@@ -1078,6 +1079,46 @@ Span<const MatMulOperator> get_available_matmul_operators() {
     operators[41].pack_lhs = create_matmul_lhs_quant_pack_qai8dxp1x4_f32();
     operators[41].pack_rhs = create_matmul_rhs_pack_nxk_qsi8cxp32x4_qsi8cx_neon();
     operators[41].matmul = create_matmul_clamp_f32_qai8dxp1x4_qsi8cxp32x4_1x32_sve_dot();
+
+    // kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa - non-transposed RHS.
+    operators[42].name = "matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa_rhs_kxn";
+    operators[42].is_cpu_supported = cpu_has_sme2;
+    operators[42].is_shape_suitable = all_true<   //
+        is_shape_suitable_lhs_x16p2vlx2_x16_sme,  //
+        is_shape_suitable_rhs_kxn_x16p8vsx2bx32_x16_x32_sme>;
+    operators[42].supported_bias_mode_sets = {no_bias, acc_bias_per_n};
+    operators[42].clamp_mode = MatMulClampMode::REQUIRED;
+    operators[42].lhs_quant = std::nullopt;
+    operators[42].rhs_quant = std::nullopt;
+    operators[42].bias_quant = std::nullopt;
+    operators[42].lhs_dtype = DataType::BF16;
+    operators[42].rhs_dtype = DataType::BF16;
+    operators[42].bias_dtype = DataType::FP32;
+    operators[42].acc_dtype = DataType::FP32;
+    operators[42].dst_dtype = DataType::FP32;
+    operators[42].pack_lhs = create_matmul_lhs_pack_x16p2vlx2_x16_sme(DataType::BF16);
+    operators[42].pack_rhs = create_matmul_pack_rhs_kxn_bf16p8vsx2bf32_bf16_f32_sme();
+    operators[42].matmul = create_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa();
+
+    // kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa - transposed RHS.
+    operators[43].name = "matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa_rhs_nxk";
+    operators[43].is_cpu_supported = cpu_has_sme2;
+    operators[43].is_shape_suitable = all_true<   //
+        is_shape_suitable_lhs_x16p2vlx2_x16_sme,  //
+        is_shape_suitable_rhs_nxk_x16p8vsx2bx32_x16_x32_sme>;
+    operators[43].supported_bias_mode_sets = {no_bias, acc_bias_per_n};
+    operators[43].clamp_mode = MatMulClampMode::REQUIRED;
+    operators[43].lhs_quant = std::nullopt;
+    operators[43].rhs_quant = std::nullopt;
+    operators[43].bias_quant = std::nullopt;
+    operators[43].lhs_dtype = DataType::BF16;
+    operators[43].rhs_dtype = DataType::BF16;
+    operators[43].bias_dtype = DataType::FP32;
+    operators[43].acc_dtype = DataType::FP32;
+    operators[43].dst_dtype = DataType::FP32;
+    operators[43].pack_lhs = create_matmul_lhs_pack_x16p2vlx2_x16_sme(DataType::BF16);
+    operators[43].pack_rhs = create_matmul_pack_rhs_nxk_bf16p8vsx2bf32_bf16_f32_sme();
+    operators[43].matmul = create_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme2_mopa();
 
     return operators;
 }
