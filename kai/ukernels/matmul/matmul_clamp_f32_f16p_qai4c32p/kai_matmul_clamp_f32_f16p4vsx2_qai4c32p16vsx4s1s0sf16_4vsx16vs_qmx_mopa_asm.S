@@ -3,56 +3,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
-
-.macro ld1h_2, reg1, reg2, pred, addr
-    ld1h \reg1, \pred/Z, [\addr]
-    ld1h \reg2, \pred/Z, [\addr, #1, MUL VL]
-.endm
-
-.macro ld2b_2, reg1, reg2, pred, addr
-    ld2b \reg1, \pred/Z, [\addr]
-    ld2b \reg2, \pred/Z, [\addr, #1, MUL VL]
-    addvl \addr, \addr, #2
-.endm
-
-.macro int4_to_fp16, o0, o1, o2, o3, src, tmp, pred
-    mov     \tmp\().d, \src\().d
-    lsr     \tmp\().b, \tmp\().b, #4      // tmp = high nibble
-    and     \src\().b, \src\().b, #0x0f   // src = low nibble
-
-    zip1    \o0\().b, \src\().b, \tmp\().b  // interleave low/high, first half of bytes
-    zip2    \o2\().b, \src\().b, \tmp\().b  // interleave low/high, second half of bytes
-
-    uunpkhi \o1\().h, \o0\().b               // widen: upper half -> o1
-    uunpklo \o0\().h, \o0\().b               // widen: lower half -> o0 (must widen o1 first!)
-    uunpkhi \o3\().h, \o2\().b
-    uunpklo \o2\().h, \o2\().b
-
-    ucvtf   \o0\().h, \pred/m, \o0\().h
-    ucvtf   \o1\().h, \pred/m, \o1\().h
-    ucvtf   \o2\().h, \pred/m, \o2\().h
-    ucvtf   \o3\().h, \pred/m, \o3\().h
-.endm
-
-.macro move_tile_vector,  reg1, reg2, reg3, reg4,tile, addr, pred
-    mova \reg1, \pred/M, \tile[\addr, 0] 
-    mova \reg2, \pred/M, \tile[\addr, 1] 
-    mova \reg3, \pred/M, \tile[\addr, 2] 
-    mova \reg4, \pred/M, \tile[\addr, 3] 
-.endm
-
-.macro clamp_float_4 reg1, reg2, reg3, reg4,min_val, max_val,  pred
-    FMIN \reg1, \pred/M, \reg1, \max_val
-    FMIN \reg2, \pred/M, \reg2, \max_val
-    FMIN \reg3, \pred/M, \reg3, \max_val
-    FMIN \reg4, \pred/M, \reg4, \max_val
-    FMAX \reg1, \pred/M, \reg1, \min_val
-    FMAX \reg2, \pred/M, \reg2, \min_val
-    FMAX \reg3, \pred/M, \reg3, \min_val
-    FMAX \reg4, \pred/M, \reg4, \min_val
-.endm
-
-
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
     #define KAI_ASM_FUNCTION_TYPE(name)
@@ -98,8 +48,6 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0s
     KAI_ASM_INST(0xd503477f)         // smstart
     cntw x14
     ptrue p2.b, all
-    ldr x19, [x0, #0x50]             // lut
-    KAI_ASM_INST(0xe11f8260)         // ldr zt0, [x19]
     mov x8, #0
     ldr x16, [x0, #0x10]             // rhs_packed
     ldr x6, [x0, #0x38]              // n
@@ -107,11 +55,8 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0s
     ldr x23, [x0, #0x40]             // k
     KAI_ASM_INST(0x8556c81c)         // ld1rw z28.s, p2/z, [x0, #0x58] // min
     KAI_ASM_INST(0x8557c81d)         // ld1rw z29.s, p2/z, [x0, #0x5c] // max
-    // mov x25, #0                      // DEBUG: one-shot flags (bit0 = block dbg, bit1 = store dbg)
-    mov x25, #0                      // DEBUG: one-shot flags (bit0 = block dbg, bit1 = store dbg)
 
     ptrue p7.h
-    // KAI_ASM_INST(0x25a66511)         // whilelt pn9.s, x8, x6, VLx4
 	mov x1,x8
     whilelt p3.s, x1, x6
     incw x1
@@ -120,7 +65,6 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0s
     whilelt p5.s, x1, x6
     incw x1
     whilelt p6.s, x1, x6
-	
 	
     ldr x4, [x0]                     // dst
     cmp x8, x6                       // is there any n work left? (whilelt p6 flags are stale/empty when n < 3*VL)
@@ -145,9 +89,11 @@ KAI_ASM_LABEL(label_3)               // K loop
     mov x20, #0
     ldr x11, [x0, #0x48]             // bl
     addvl x17, x26, #16              // rhs metadata
-    ld1h_2 z0.h, z1.h, p7, x17       // KAI_ASM_INST(0xa0402220)         // ld1h { z0.h - z1.h }, pn8/z, [x17] // rhs offset, packed in q4k nrx4 order
+    ld1h z0.h, p7/Z, [x17]
+    ld1h z1.h, p7/Z, [x17, #1, MUL VL]       // rhs offset, packed in q4k nrx4 order
 	addvl x1, x17, #2
-    ld1h_2 z2.h, z3.h, p7, x1       // KAI_ASM_INST(0xa0412222)         // ld1h { z2.h - z3.h }, pn8/z, [x17, #0x2, mul vl] // rhs scale, packed in q4k nrx4 order
+    ld1h z2.h, p7/Z, [x1]
+    ld1h z3.h, p7/Z, [x1, #1, MUL VL]        // rhs scale, packed in q4k nrx4 order
     uzp1    z20.h, z0.h, z1.h        // restore linear quarter-group order for za0..za3
     uzp2    z21.h, z0.h, z1.h
     uzp1    z22.h, z2.h, z3.h
@@ -164,8 +110,20 @@ KAI_ASM_LABEL(label_4)               // Block loop
     lsl x5, x20, #2
     KAI_ASM_INST(0xa425c744)         // ld2b {z4.b - z5.b}, p1/z, [x26, x5]
     inch x20, all
-    KAI_ASM_INST(0xa540a066)                        // ld1w {z6.s}, p0/z, [x3]
-    int4_to_fp16 z8, z9, z10, z11, z4, z30, p2     // KAI_ASM_INST(0xc08a9088)         // luti4 {z8.h - z11.h}, zt0, z4[0]
+     .inst 0xa540a066                        // ld1w {z6.s}, p0/z, [x3]
+    mov     z30.d, z4.d
+    lsr     z30.b, z30.b, #4
+    and     z4.b, z4.b, #0x0f
+    zip1    z8.b, z4.b, z30.b
+    zip2    z10.b, z4.b, z30.b
+    uunpkhi z9.h, z8.b
+    uunpklo z8.h, z8.b
+    uunpkhi z11.h, z10.b
+    uunpklo z10.h, z10.b
+    ucvtf   z8.h, p2/m, z8.h
+    ucvtf   z9.h, p2/m, z9.h
+    ucvtf   z10.h, p2/m, z10.h
+    ucvtf   z11.h, p2/m, z11.h
     mov     z16.d, z24.d
     mov     z17.d, z25.d
     mov     z18.d, z26.d
@@ -174,17 +132,25 @@ KAI_ASM_LABEL(label_4)               // Block loop
     fmla    z17.h, p2/m, z9.h, z1.h
     fmla    z18.h, p2/m, z10.h, z2.h
     fmla    z19.h, p2/m, z11.h, z3.h
-    // tbnz    x25, #0, label_dbg_block_skip   // DEBUG: only stop on the very first block iteration
-    // orr     x25, x25, #1
-    // KAI_ASM_INST(0xd4200000)         // DEBUG: brk #0 -- inspect z4/z5(raw), z8-z11(dequant), z6(lhs), z16-z19(scaled), z0-z3/z24-z27
-// KAI_ASM_LABEL(label_dbg_block_skip)
     KAI_ASM_INST(0x81b048c0)         // fmopa za0.s, p2/m, p2/m, z6.h, z16.h
     KAI_ASM_INST(0x81b148c1)         // fmopa za1.s, p2/m, p2/m, z6.h, z17.h
     KAI_ASM_INST(0x81b248c2)         // fmopa za2.s, p2/m, p2/m, z6.h, z18.h
     KAI_ASM_INST(0x81b348c3)         // fmopa za3.s, p2/m, p2/m, z6.h, z19.h
     KAI_ASM_INST(0xa54e4067)         // ld1w {z7.s}, p0/z, [x3, x14, lsl #2]
     add x3, x3, x14, lsl #3
-    int4_to_fp16 z12, z13, z14, z15, z5, z30, p2   // KAI_ASM_INST(0xc08a90ac)         // luti4 {z12.h - z15.h}, zt0, z5[0]
+    mov     z30.d, z5.d
+    lsr     z30.b, z30.b, #4
+    and     z5.b, z5.b, #0x0f
+    zip1    z12.b, z5.b, z30.b
+    zip2    z14.b, z5.b, z30.b
+    uunpkhi z13.h, z12.b
+    uunpklo z12.h, z12.b
+    uunpkhi z15.h, z14.b
+    uunpklo z14.h, z14.b
+    ucvtf   z12.h, p2/m, z12.h
+    ucvtf   z13.h, p2/m, z13.h
+    ucvtf   z14.h, p2/m, z14.h
+    ucvtf   z15.h, p2/m, z15.h
     mov     z16.d, z24.d
     mov     z17.d, z25.d
     mov     z18.d, z26.d
@@ -206,18 +172,22 @@ KAI_ASM_LABEL(label_4)               // Block loop
 KAI_ASM_LABEL(label_8)               // store tiles
     mov w12, #0
 KAI_ASM_LABEL(label_5)                                            // ZA row loop
-    // tbnz    x25, #1, label_dbg_store_skip   // DEBUG: only stop on the very first store iteration
-    // orr     x25, x25, #2
-    // KAI_ASM_INST(0xd4200000)         // DEBUG: brk #0 -- inspect za0h-za3h[w12] before extraction/clamp/store
-// KAI_ASM_LABEL(label_dbg_store_skip)
-    move_tile_vector z0.b, z1.b, z2.b, z3.b, za0h.b, w12, p2      // KAI_ASM_INST(0xc0060400)         // mova {z0.b - z3.b}, za0h.b[w12, 0:3]
-    clamp_float_4 z0.s, z1.s, z2.s, z3.s, z28.s, z29.s,p2         //KAI_ASM_INST(0xc1bdcb80)         // fclamp { z0.s - z3.s }, z28.s, z29.s
-    //KAI_ASM_INST(0xa060c700)         // st1w {z0.s - z3.s}, pn9, [x24]
+    mova z0.b, p2/M, za0h.b[w12, 0]
+    mova z1.b, p2/M, za0h.b[w12, 1]
+    mova z2.b, p2/M, za0h.b[w12, 2]
+    mova z3.b, p2/M, za0h.b[w12, 3]
+    FMIN z0.s, p2/M, z0.s, z29.s
+    FMIN z1.s, p2/M, z1.s, z29.s
+    FMIN z2.s, p2/M, z2.s, z29.s
+    FMIN z3.s, p2/M, z3.s, z29.s
+    FMAX z0.s, p2/M, z0.s, z28.s
+    FMAX z1.s, p2/M, z1.s, z28.s
+    FMAX z2.s, p2/M, z2.s, z28.s
+    FMAX z3.s, p2/M, z3.s, z28.s
 	st1w {z0.s}, p3, [x24]
 	st1w {z1.s}, p4, [x24, #1, MUL VL]
 	st1w {z2.s}, p5, [x24, #2, MUL VL]
 	st1w {z3.s}, p6, [x24, #3, MUL VL]
-	
     add x24, x24, x21
     add w12, w12, #4
     cmp w12, w15
@@ -232,7 +202,6 @@ KAI_ASM_LABEL(label_10)              // next M tile
     ldr x5, [x0, #0x28]              // rhs_packed_stride
     add x16, x16, x5
     incb x8, all
-    //KAI_ASM_INST(0x25a66511)         // whilelt pn9.s, x8, x6, VLx4
 	mov x1,x8
     whilelt p3.s, x1, x6
     incw x1
@@ -256,5 +225,5 @@ KAI_ASM_LABEL(label_9)
     ldp     x19, x20, [sp], 128
     ret
     KAI_ASM_FUNCTION_END(kai_kernel_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_qmx_mopa)
-
+    
     KAI_ASM_END
