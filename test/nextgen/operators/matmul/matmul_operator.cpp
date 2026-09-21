@@ -51,7 +51,7 @@ const MatMulBiasModeSet acc_bias_per_m_per_n_scale_bias_per_n{
 }  // namespace
 
 Span<const MatMulOperator> get_available_matmul_operators() {
-    static std::array<MatMulOperator, 32> operators;
+    static std::array<MatMulOperator, 34> operators;
 
     // matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa
     operators[0].name = "matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa";
@@ -818,6 +818,49 @@ Span<const MatMulOperator> get_available_matmul_operators() {
     operators[31].pack_lhs = std::nullopt;
     operators[31].pack_rhs = create_matmul_pack_rhs_nxk_x32p4vsx1bx32_x32_x32_sme();
     operators[31].matmul = create_matmul_clamp_f32_f32_f32p4vsx1bf32_1x32vs_qmx_mla();
+
+    // matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_qmx_mopa
+    operators[32].name = "matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_qmx_mopa";
+    operators[32].is_cpu_supported = cpu_check<cpu_has_sme, cpu_has_fp16>;
+    operators[32].is_shape_suitable = all_true<  //
+        is_shape_suitable_lhs_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_sme2_mopa,
+        is_shape_suitable_rhs_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme>;
+    operators[32].supported_bias_mode_sets = {no_bias};
+    operators[32].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[32].lhs_cvt_dtype = DataType::FP16;
+    operators[32].lhs_quant = std::nullopt;
+    operators[32].rhs_quant = std::make_unique<TwoLevelAsymBlockQuantizer>(qai4c32k256_format_config);
+    operators[32].bias_quant = std::nullopt;
+    operators[32].lhs_dtype = DataType::FP32;
+    operators[32].rhs_dtype = DataType::FP32;
+    operators[32].bias_dtype = DataType::FP32;
+    operators[32].acc_dtype = DataType::FP32;
+    operators[32].dst_dtype = DataType::FP32;
+    operators[32].pack_lhs = create_matmul_lhs_pack_f16p4vsx2_f32_neon();
+    operators[32].pack_rhs = create_matmul_pack_rhs_nxk_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme();
+    operators[32].matmul = create_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_qmx_mopa();
+
+    // matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot
+    operators[33].name = "matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot";
+    operators[33].is_cpu_supported = cpu_has_sme;
+    operators[33].is_shape_suitable = all_true<  //
+        is_shape_suitable_lhs_vector,            //
+        is_shape_suitable_lhs_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot,
+        is_shape_suitable_rhs_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme>;
+    operators[33].supported_bias_mode_sets = {no_bias};
+    operators[33].clamp_mode = MatMulClampMode::OPTIONAL;
+    operators[33].lhs_quant =
+        std::make_unique<SymmLinearQuantizer>(DataType::I8, DataType::FP32, RoundMode::CURRENT, 1, 32);
+    operators[33].rhs_quant = std::make_unique<TwoLevelAsymBlockQuantizer>(qai4c32k256_format_config);
+    operators[33].bias_quant = std::nullopt;
+    operators[33].lhs_dtype = DataType::FP32;
+    operators[33].rhs_dtype = DataType::FP32;
+    operators[33].bias_dtype = DataType::FP32;
+    operators[33].acc_dtype = DataType::FP32;
+    operators[33].dst_dtype = DataType::FP32;
+    operators[33].pack_lhs = create_matmul_matmul_pack_lhs_mxk_qsi8d32p1x4sf16_f32_neon();
+    operators[33].pack_rhs = create_matmul_pack_rhs_nxk_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme();
+    operators[33].matmul = create_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot();
 
     return operators;
 }

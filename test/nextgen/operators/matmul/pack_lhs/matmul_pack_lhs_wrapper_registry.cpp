@@ -238,6 +238,12 @@ bool is_shape_suitable_lhs_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot(
         shape_m, shape_k, portion, kai_matmul_pack_lhs_mxk_qsi8d32p1x4sf16_f32_neon());
 }
 
+bool is_shape_suitable_lhs_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot(
+    size_t shape_m, [[maybe_unused]] size_t shape_n, size_t shape_k, const MatrixPortion& portion) {
+    return is_shape_suitable_lhs_uker_api(
+        shape_m, shape_k, portion, kai_matmul_pack_lhs_mxk_qsi8d32p1x4sf16_f32_neon());
+}
+
 bool is_shape_suitable_lhs_x8p4vsx4_x8_sme(
     size_t shape_m, [[maybe_unused]] size_t shape_n, size_t shape_k, const MatrixPortion& portion) {
     return is_shape_suitable_lhs_uker_api(shape_m, shape_k, portion, kai_matmul_pack_lhs_mxk_x8p4vsx4_x8_sme());
