@@ -808,7 +808,9 @@ TEST_P(IndirectMatMulTest, Output) {
     *os << method.name << "__";
     PrintTo(shape, os);
     *os << "__K_chunk_length_" << k_chunk_length;
-    *os << "__clamp_keep_ratio_" << static_cast<int>(clamp_keep_ratio * 100) << "__";
+    *os << "__";
+    PrintToClamp(clamp_keep_ratio, os);
+    *os << "__";
     PrintTo(portion, os);
 }
 
