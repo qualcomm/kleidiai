@@ -28,6 +28,10 @@ create_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_sme2_mopa();
 [[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
 create_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_qmx_mopa();
 
+/// Creates a wrapper for matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0sf16_4vsx16vs_qmx_mopa kernel.
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
+create_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0sf16_4vsx16vs_qmx_mopa();
+
 /// Creates a wrapper for matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot micro-kernel.
 [[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
 create_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot();
@@ -35,6 +39,10 @@ create_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot();
 /// Creates a wrapper for matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot micro-kernel.
 [[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
 create_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot();
+
+/// Creates a wrapper for matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot micro-kernel.
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
+create_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot();
 
 /// Creates a wrapper for matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_sme2_mopa kernel.
 [[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>

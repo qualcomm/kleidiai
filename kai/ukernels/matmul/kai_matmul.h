@@ -453,6 +453,31 @@ struct kai_matmul_uker_api kai_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16
 /// @return The micro-kernel API.
 struct kai_matmul_uker_api kai_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s1s0sf16_4vsx16vs_qmx_mopa(void);
 
+/// Matrix multiplication with FP16 packed LHS and signed-domain QAI4C32P RHS with FP32 output using QMX MOPA.
+///
+/// Required CPU features:
+///   * FEAT_SME
+///   * FEAT_FP16
+///
+/// Configuration parameters:
+///   * format.bl - Block length. Must be 32.
+///
+/// Required operands:
+///   * lhs - FP16 data packed in 4vsx2 panels.
+///   * rhs - qai4c32p16vsx4s4s0sf16 packed with signed s4s0 payloads and adjusted per-block FP16 offset and scale.
+///   * dst - FP32 output matrix.
+///
+/// S1S0 and S4S0 RHS buffers have matching sizes and strides but are not interchangeable.
+///
+/// Optional arguments:
+///   * clamp - FP32 output clamp values if KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP is set.
+///
+/// Supported flags:
+///   * KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP - Clamp output data.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_uker_api kai_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0sf16_4vsx16vs_qmx_mopa(void);
+
 /// Vector-matrix multiplication with dynamically quantized INT8 packed LHS and QAI4C32P RHS packed inputs with FP32
 /// output using SME2 DOT.
 ///
@@ -498,6 +523,29 @@ struct kai_matmul_uker_api kai_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf
 ///
 /// @return The micro-kernel API.
 struct kai_matmul_uker_api kai_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot(void);
+
+/// Vector-matrix multiplication with dynamically quantized INT8 packed LHS and signed-domain QAI4C32P RHS packed
+/// inputs with FP32 output using QMX DOT.
+///
+/// Required CPU features:
+///   * FEAT_SME
+///
+/// Configuration parameters:
+///   * format.bl - Block length. Must be 32.
+///
+/// Required operands:
+///   * lhs - qsi8d32p1x4sf16 data packed with per-block FP16 sum and scale.
+///   * rhs - qai4c32p16vsx4s4s0sf16 packed with signed s4s0 payloads and adjusted per-block FP16 offset and scale.
+///   * dst - FP32 output matrix.
+///
+/// Optional arguments:
+///   * clamp - FP32 output clamp values if KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP is set.
+///
+/// Supported flags:
+///   * KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP - Clamp output data.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_uker_api kai_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot(void);
 
 #ifdef __cplusplus
 }  // extern "C"

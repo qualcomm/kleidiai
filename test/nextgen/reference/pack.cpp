@@ -6,6 +6,7 @@
 
 #include "test/nextgen/reference/pack.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
@@ -64,6 +65,68 @@ size_t pack_block2d(
     return total_size;
 }
 
+size_t pack_block2d_interleave(
+    size_t block_height, size_t block_width, size_t width_align, bool pad_right_same, size_t height, size_t width,
+    size_t interleave_width, Span<std::byte> packed_data, Span<const std::byte> data) {
+    KAI_TEST_ASSERT(width_align % block_width == 0);
+    KAI_TEST_ASSERT(interleave_width > 0);
+    KAI_TEST_ASSERT(32 % (2 * interleave_width) == 0);
+    KAI_TEST_ASSERT(block_width % 32 == 0);
+    KAI_TEST_ASSERT(height > 0);
+
+    const size_t num_block_rows = round_up_division(height, block_height);
+    const size_t num_block_cols = round_up_multiple(width, width_align) / block_width;
+    const size_t num_chunks_per_block = block_width / 32;
+    const size_t num_subchunks_per_chunk = 32 / (2 * interleave_width);
+    const size_t src_row_size = round_up_division(width * size_in_bits<Int4>, 8);
+
+    size_t block_offset = 0;
+
+    for (size_t block_row = 0; block_row < num_block_rows; ++block_row) {
+        for (size_t block_col = 0; block_col < num_block_cols; ++block_col) {
+            for (size_t chunk = 0; chunk < num_chunks_per_block; ++chunk) {
+                const size_t chunk_offset = block_offset + chunk * 16 * block_height;
+                const size_t k0 = block_col * block_width + chunk * 32;
+
+                for (size_t elem_row = 0; elem_row < block_height; ++elem_row) {
+                    size_t row = block_row * block_height + elem_row;
+                    row = std::min(row, height - 1);
+                    const Span<const std::byte> src_row_data = data.subspan(row * src_row_size, src_row_size);
+
+                    for (size_t packet = 0; packet < num_subchunks_per_chunk; ++packet) {
+                        for (size_t byte = 0; byte < interleave_width; ++byte) {
+                            size_t k_low = k0 + packet * 2 * interleave_width + byte;
+                            size_t k_high = k_low + interleave_width;
+
+                            if (pad_right_same && k_low >= width) {
+                                k_low = width - 1;
+                            }
+                            if (pad_right_same && k_high >= width) {
+                                k_high = width - 1;
+                            }
+
+                            const int32_t low = k_low < width ? int32_t(read_array<Int4>(src_row_data, k_low)) : 0;
+                            const int32_t high = k_high < width ? int32_t(read_array<Int4>(src_row_data, k_high)) : 0;
+                            const uint8_t low_biased = static_cast<uint8_t>(low + 8);
+                            const uint8_t high_biased = static_cast<uint8_t>(high + 8);
+                            const uint8_t packed_byte =
+                                static_cast<uint8_t>(((low_biased & 0x0FU) | (high_biased << 4)) ^ 0x88U);
+
+                            const size_t dst_index = chunk_offset + packet * block_height * interleave_width +
+                                elem_row * interleave_width + byte;
+                            packed_data[dst_index] = static_cast<std::byte>(packed_byte);
+                        }
+                    }
+                }
+            }
+
+            block_offset += block_height * block_width / 2;
+        }
+    }
+
+    return round_up_division(num_block_rows * num_block_cols * block_height * block_width, 2);
+}
+
 }  // namespace
 
 PackBlock2dFn make_pack_block2d(DataType dtype) {
@@ -84,6 +147,16 @@ PackBlock2dFn make_pack_block2d(DataType dtype) {
             return pack_block2d<Int4>;
         case DataType::U2:
             return pack_block2d<UInt2>;
+
+        default:
+            KAI_TEST_ERROR("Not supported.");
+    }
+}
+
+PackBlock2dInterleaveFn make_pack_block2d_interleave(DataType dtype) {
+    switch (dtype) {
+        case DataType::I4:
+            return pack_block2d_interleave;
 
         default:
             KAI_TEST_ERROR("Not supported.");

@@ -32,11 +32,11 @@
     #define KAI_ASM_INST(hex) .inst hex
     #define KAI_ASM_END
 #endif
-    KAI_ASM_CODE(matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot)
+    KAI_ASM_CODE(matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot)
     KAI_ASM_ALIGN
-    KAI_ASM_GLOBAL(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot)
-KAI_ASM_FUNCTION_TYPE(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot)
-KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot)
+    KAI_ASM_GLOBAL(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot)
+KAI_ASM_FUNCTION_TYPE(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot)
+KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot)
     stp     x19, x20, [sp, -112 ]!
     stp     x21, x22, [sp, 16]
     stp     x23, x24, [sp, 32]
@@ -103,97 +103,51 @@ KAI_ASM_LABEL(label_3)              // BL loop
     ld1rqb  {z0.b}, p2/z, [x21]
     add     x21, x21, #16
 
-    // Original SME2:
-    // ld1h {z12.h-z15.h}, pn8/z, [x23]
-    ld1h    z12.h, p7/z, [x23]
-    ld1h    z13.h, p7/z, [x23, #1, mul vl]
-    ld1h    z14.h, p7/z, [x23, #2, mul vl]
-    ld1h    z15.h, p7/z, [x23, #3, mul vl]
-    addvl   x23, x23, #4
-
-    // Original SME2 LUTI4 instructions.
-    mov     z20.d, z12.d
-    lsr     z20.b, z20.b, #4
-    and     z12.b, z12.b, #0x0f
-    zip1    z4.b, z12.b, z20.b
-    zip2    z5.b, z12.b, z20.b
-
-    mov     z20.d, z13.d
-    lsr     z20.b, z20.b, #4
-    and     z13.b, z13.b, #0x0f
-    zip1    z6.b, z13.b, z20.b
-    zip2    z7.b, z13.b, z20.b
-
-    mov     z20.d, z14.d
-    lsr     z20.b, z20.b, #4
-    and     z14.b, z14.b, #0x0f
-    zip1    z8.b, z14.b, z20.b
-    zip2    z9.b, z14.b, z20.b
-
-    mov     z20.d, z15.d
-    lsr     z20.b, z20.b, #4
-    and     z15.b, z15.b, #0x0f
-    zip1    z10.b, z15.b, z20.b
-    zip2    z11.b, z15.b, z20.b
-
-    // Original:
-    // sdot za.s[w8,0,vgx4], {z4.b-z7.b}, z0.b[0]
-    sdot    z16.s, z4.b, z0.b[0]
-    sdot    z17.s, z5.b, z0.b[0]
-    sdot    z18.s, z6.b, z0.b[0]
+    // Each s4s0 packet contains K[8p+b] in the low nibble and K[8p+b+4]
+    // in the high nibble. The packer maps both nibbles to signed INT4 and
+    // pre-scales the RHS scale by 1/16, so shift/mask results feed SDOT directly.
+    ld1b    z4.b, p2/z, [x23]
+    ld1b    z12.b, p2/z, [x23, #1, mul vl]
+    ld1b    z14.b, p2/z, [x23, #2, mul vl]
+    ld1b    z6.b, p2/z, [x23, #3, mul vl]
+    lsl     z5.b, z4.b, #4
+    lsl     z13.b, z12.b, #4
+    lsl     z15.b, z14.b, #4
+    lsl     z7.b, z6.b, #4
+    and     z4.b, z4.b, #0xf0
+    and     z12.b, z12.b, #0xf0
+    and     z14.b, z14.b, #0xf0
+    and     z6.b, z6.b, #0xf0
+    sdot    z16.s, z5.b, z0.b[0]
+    sdot    z17.s, z13.b, z0.b[0]
+    sdot    z18.s, z15.b, z0.b[0]
     sdot    z19.s, z7.b, z0.b[0]
+    sdot    z16.s, z4.b, z0.b[1]
+    sdot    z17.s, z12.b, z0.b[1]
+    sdot    z18.s, z14.b, z0.b[1]
+    sdot    z19.s, z6.b, z0.b[1]
 
-    // Original:
-    // sdot za.s[w8,0,vgx4], {z8.b-z11.b}, z0.b[1]
-    sdot    z16.s, z8.b,  z0.b[1]
-    sdot    z17.s, z9.b,  z0.b[1]
-    sdot    z18.s, z10.b, z0.b[1]
-    sdot    z19.s, z11.b, z0.b[1]
-
-    // Load the next four packed RHS vectors.
-    ld1h    z12.h, p7/z, [x23]
-    ld1h    z13.h, p7/z, [x23, #1, mul vl]
-    ld1h    z14.h, p7/z, [x23, #2, mul vl]
-    ld1h    z15.h, p7/z, [x23, #3, mul vl]
-    addvl   x23, x23, #4
-
-    mov     z20.d, z12.d
-    lsr     z20.b, z20.b, #4
-    and     z12.b, z12.b, #0x0f
-    zip1    z4.b, z12.b, z20.b
-    zip2    z5.b, z12.b, z20.b
-
-    mov     z20.d, z13.d
-    lsr     z20.b, z20.b, #4
-    and     z13.b, z13.b, #0x0f
-    zip1    z6.b, z13.b, z20.b
-    zip2    z7.b, z13.b, z20.b
-
-    mov     z20.d, z14.d
-    lsr     z20.b, z20.b, #4
-    and     z14.b, z14.b, #0x0f
-    zip1    z8.b, z14.b, z20.b
-    zip2    z9.b, z14.b, z20.b
-
-    mov     z20.d, z15.d
-    lsr     z20.b, z20.b, #4
-    and     z15.b, z15.b, #0x0f
-    zip1    z10.b, z15.b, z20.b
-    zip2    z11.b, z15.b, z20.b
-
-    // Original:
-    // sdot za.s[w8,0,vgx4], {z4.b-z7.b}, z0.b[2]
-    sdot    z16.s, z4.b, z0.b[2]
-    sdot    z17.s, z5.b, z0.b[2]
-    sdot    z18.s, z6.b, z0.b[2]
+    ld1b    z4.b, p2/z, [x23, #4, mul vl]
+    ld1b    z12.b, p2/z, [x23, #5, mul vl]
+    ld1b    z14.b, p2/z, [x23, #6, mul vl]
+    ld1b    z6.b, p2/z, [x23, #7, mul vl]
+    lsl     z5.b, z4.b, #4
+    lsl     z13.b, z12.b, #4
+    lsl     z15.b, z14.b, #4
+    lsl     z7.b, z6.b, #4
+    and     z4.b, z4.b, #0xf0
+    and     z12.b, z12.b, #0xf0
+    and     z14.b, z14.b, #0xf0
+    and     z6.b, z6.b, #0xf0
+    sdot    z16.s, z5.b, z0.b[2]
+    sdot    z17.s, z13.b, z0.b[2]
+    sdot    z18.s, z15.b, z0.b[2]
     sdot    z19.s, z7.b, z0.b[2]
-
-    // Original:
-    // sdot za.s[w8,0,vgx4], {z8.b-z11.b}, z0.b[3]
-    sdot    z16.s, z8.b,  z0.b[3]
-    sdot    z17.s, z9.b,  z0.b[3]
-    sdot    z18.s, z10.b, z0.b[3]
-    sdot    z19.s, z11.b, z0.b[3]
+    sdot    z16.s, z4.b, z0.b[3]
+    sdot    z17.s, z12.b, z0.b[3]
+    sdot    z18.s, z14.b, z0.b[3]
+    sdot    z19.s, z6.b, z0.b[3]
+    addvl   x23, x23, #8
 
     subs    x13, x13, #16
     b.gt    label_3
@@ -284,6 +238,6 @@ KAI_ASM_LABEL(label_5)
     ldp     x21, x22, [sp, 16]
     ldp     x19, x20, [sp],112
     ret
-    KAI_ASM_FUNCTION_END(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot)
+    KAI_ASM_FUNCTION_END(kai_kernel_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf16_1x16vs_qmx_dot)
 
     KAI_ASM_END
