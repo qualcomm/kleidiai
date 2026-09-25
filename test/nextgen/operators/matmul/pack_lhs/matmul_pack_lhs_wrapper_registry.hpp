@@ -90,6 +90,9 @@ size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
 [[nodiscard]] bool is_shape_suitable_lhs_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_qmx_dot(
     size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
 
+/// Creates a wrapper for kai_matmul_lhs_quant_pack_qai8dxp4x8_f32.
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatShape>> create_matmul_lhs_quant_pack_qai8dxp4x8_f32();
+
 /// Checks if the portion produces non-empty LHS packing tiles for the x32p4vsx1 matmul operator.
 [[nodiscard]] bool is_shape_suitable_lhs_x32p4vsx1_x32_sme(
     size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
@@ -133,6 +136,11 @@ size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
 /// Checks if the portion produces non-empty LHS packing tiles for the qai8dxp4vsx4/qsi4c32p16vsx4 mopa matmul
 /// operator.
 [[nodiscard]] bool is_shape_suitable_lhs_qai8dxp4vsx4_qsi4c32p16vsx4_4vsx16vs_sme_mopa(
+    size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
+
+/// Checks if the portion produces non-empty LHS packing tiles for the qai8dxp4x8sf32_qsi8cxp4vsx8sf32bf32 matmul
+/// operator.
+[[nodiscard]] bool is_shape_suitable_lhs_qai8dxp4x8sf32_qsi8cxp4vsx8sf32bf32_16x4vs_sve_i8mm(
     size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion);
 
 }  // namespace kai::test
