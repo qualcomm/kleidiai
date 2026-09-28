@@ -48,6 +48,7 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0s
     KAI_ASM_INST(0xd503477f)         // smstart
     cntw x14
     ptrue p2.b, all
+    mov z31.b, #-16
     mov x8, #0
     ldr x16, [x0, #0x10]             // rhs_packed
     ldr x6, [x0, #0x38]              // n
@@ -55,10 +56,9 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0s
     ldr x23, [x0, #0x40]             // k
     KAI_ASM_INST(0x8556c81c)         // ld1rw z28.s, p2/z, [x0, #0x58] // min
     KAI_ASM_INST(0x8557c81d)         // ld1rw z29.s, p2/z, [x0, #0x5c] // max
-
-    ptrue p7.h
+    
 	mov x1,x8
-    whilelt p3.s, x1, x6
+    whilelt p3.s, x1, x6             //store predicates
     incw x1
     whilelt p4.s, x1, x6
     incw x1
@@ -71,7 +71,10 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0s
     b.ge label_9                     // b.none label_9
 KAI_ASM_LABEL(label_1)               // N loop
     ldr x9, [x0, #0x30]              // m
-    KAI_ASM_INST(0x25261501)         // whilelt p1.b, x8, x6
+    // RHS packed-panel predicate
+    mov x1, x8
+    whilelt p1.h, x1, x6
+    inch x1, all
     ldr x22, [x0, #0x8]              // lhs_packed
     mov x24, x4                      // dst tile base
 KAI_ASM_LABEL(label_2)               // M loop
@@ -89,11 +92,12 @@ KAI_ASM_LABEL(label_3)               // K loop
     mov x20, #0
     ldr x11, [x0, #0x48]             // bl
     addvl x17, x26, #16              // rhs metadata
-    ld1h z0.h, p7/Z, [x17]
-    ld1h z1.h, p7/Z, [x17, #1, MUL VL]       // rhs offset, packed in q4k nrx4 order
+    ld1h z0.h, p2/Z, [x17]
+    ld1h z1.h, p2/Z, [x17, #1, MUL VL]       // rhs offset, packed in q4k nrx4 order
 	addvl x1, x17, #2
-    ld1h z2.h, p7/Z, [x1]
-    ld1h z3.h, p7/Z, [x1, #1, MUL VL]        // rhs scale, packed in q4k nrx4 order
+    ld1h z2.h, p2/Z, [x1]
+    ld1h z3.h, p2/Z, [x1, #1, MUL VL]        // rhs scale, packed in q4k nrx4 order
+
     uzp1    z20.h, z0.h, z1.h        // restore linear quarter-group order for za0..za3
     uzp2    z21.h, z0.h, z1.h
     uzp1    z22.h, z2.h, z3.h
@@ -106,13 +110,12 @@ KAI_ASM_LABEL(label_3)               // K loop
     zip2    z1.h, z22.h, z22.h
     zip1    z2.h, z23.h, z23.h
     zip2    z3.h, z23.h, z23.h
-KAI_ASM_LABEL(label_4)               // 8-K S4S0 packet loop
+KAI_ASM_LABEL(label_4)              //block loop
     // Payload byte b holds signed (q - 8): low nibble K[b], high nibble K[b + 4].
     // ld2h maps consecutive row-pairs directly to the four ZA column quarters.
-    lsl x5, x20, #2
-    KAI_ASM_INST(0xa425c744)    //ld2b {z4.b,z5.b},p1/z,[x26,x5]
-    KAI_ASM_INST(0xa421e74c)               // ld2b {z12.b,z13.b},p1/z,[x26,x5,#2,MUL VL]
-    inch x20, all
+    ld2h {z4.h, z5.h}, p1/z, [x26]
+    ld2h {z12.h, z13.h}, p1/z, [x26, #2, MUL VL]
+    addvl x26, x26, #4
     // One S4S0 packet consumes four consecutive packed-LHS K-pair groups.
     ld1w z6.s,  p0/z, [x3]
     ld1w z7.s,  p0/z, [x3, #1, mul vl]
@@ -169,8 +172,8 @@ KAI_ASM_LABEL(label_4)               // 8-K S4S0 packet loop
     KAI_ASM_INST(0x81b348e3)         // fmopa za3.s, p2/m, p2/m, z7.h, z19.h
 
     // K4/K5: high nibbles of bytes 0/1.
-    mov z20.d, z4.d
-    mov z21.d, z12.d
+    and z20.d, z4.d, z31.d
+    and z21.d, z12.d, z31.d
     sunpklo z8.h, z20.b
     sunpkhi z9.h, z20.b
     sunpklo z10.h, z21.b
@@ -193,8 +196,8 @@ KAI_ASM_LABEL(label_4)               // 8-K S4S0 packet loop
     KAI_ASM_INST(0x81b349c3)         // fmopa za3.s, p2/m, p2/m, z14.h, z19.h
 
     // K6/K7: high nibbles of bytes 2/3.
-    mov z20.d, z5.d
-    mov z21.d, z13.d
+    and z20.d, z5.d, z31.d
+    and z21.d, z13.d, z31.d
     sunpklo z8.h, z20.b
     sunpkhi z9.h, z20.b
     sunpklo z10.h, z21.b
@@ -218,17 +221,17 @@ KAI_ASM_LABEL(label_4)               // 8-K S4S0 packet loop
 
     subs x11, x11, #8
     b.gt label_4
-    addvl x26, x17, #4               // next rhs block
+    addvl x26, x17, #4               // next rhs block - skipping metadata
     ldr x11, [x0, #0x48]             // bl
     subs x10, x10, x11
     b.gt label_3
 KAI_ASM_LABEL(label_8)               // store tiles
     mov w12, #0
 KAI_ASM_LABEL(label_5)                                            // ZA row loop
-    mova z0.b, p2/M, za0h.b[w12, 0]
-    mova z1.b, p2/M, za0h.b[w12, 1]
-    mova z2.b, p2/M, za0h.b[w12, 2]
-    mova z3.b, p2/M, za0h.b[w12, 3]
+    KAI_ASM_INST(0xc0020800)              //mova z0.b, p2/M, za0h.b[w12, 0]
+    KAI_ASM_INST(0xc0020821)              //mova z1.b, p2/M, za0h.b[w12, 1]
+    KAI_ASM_INST(0xc0020842)              //mova z2.b, p2/M, za0h.b[w12, 2]
+    KAI_ASM_INST(0xc0020863)              //mova z3.b, p2/M, za0h.b[w12, 3]
     FMIN z0.s, p2/M, z0.s, z29.s
     FMIN z1.s, p2/M, z1.s, z29.s
     FMIN z2.s, p2/M, z2.s, z29.s
