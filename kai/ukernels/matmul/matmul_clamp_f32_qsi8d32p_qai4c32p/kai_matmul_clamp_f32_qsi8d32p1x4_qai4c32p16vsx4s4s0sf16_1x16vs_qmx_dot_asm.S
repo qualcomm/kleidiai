@@ -3,6 +3,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+// SPDX-License-Identifier: Apache-2.0
+//
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
@@ -90,8 +96,7 @@ KAI_ASM_LABEL(label_1)              // N loop
 
 KAI_ASM_LABEL(label_2)              // K loop
 
-    // The original code cleared ZA here and later copied ZA to z16-z19.
-    // Keep the four accumulators directly in Z registers instead.
+    // Keep the four accumulators directly in Z registers.
     dup     z16.s, #0
     dup     z17.s, #0
     dup     z18.s, #0
@@ -152,21 +157,16 @@ KAI_ASM_LABEL(label_3)              // BL loop
     subs    x13, x13, #16
     b.gt    label_3
 
-    // No MOVA is needed here.
-    // z16-z19 already contain the final INT32 accumulators.
-	
     KAI_ASM_INST(0x84c0aaa1)        // ld1rh { z1.h }, p2/z, [x21] // lhs sum
     KAI_ASM_INST(0x84c1aaa2)        // ld1rh { z2.h }, p2/z, [x21, #2] // lhs scale
     add x21, x21, #4
-    // The QMX payload loads use the ordinary SVE predicate p7, so metadata
-    // must use it too. pn8 is an SME2 pair predicate and is not initialized here.
+    
     ld1h    z4.h, p7/z, [x23]                    // rhs offset, first half
     ld1h    z5.h, p7/z, [x23, #1, mul vl]        // rhs offset, second half
     ld1h    z12.h, p7/z, [x23, #2, mul vl]       // rhs scale, first half
     ld1h    z13.h, p7/z, [x23, #3, mul vl]       // rhs scale, second half
     addvl x23, x23, #4
 	
-    //KAI_ASM_INST(0xc132e210)        // scvtf{z16.s - z19.s}, {z16.s - z19.s}
     scvtf   z16.s, p2/m, z16.s
     scvtf   z17.s, p2/m, z17.s
     scvtf   z18.s, p2/m, z18.s
@@ -192,7 +192,6 @@ KAI_ASM_LABEL(label_3)              // BL loop
     whilelt p1.s, x6, x19
     b.mi label_2                    // b.first label_2
 KAI_ASM_LABEL(label_4)
-    //KAI_ASM_INST(0xc1becbb8)        // fclamp  { z24.s - z27.s }, z29.s, z30.s
     fmax    z24.s, p2/m, z24.s, z29.s
     fmin    z24.s, p2/m, z24.s, z30.s
 
@@ -205,7 +204,6 @@ KAI_ASM_LABEL(label_4)
     fmax    z27.s, p2/m, z27.s, z29.s
     fmin    z27.s, p2/m, z27.s, z30.s
 	
-    //KAI_ASM_INST(0xa060c4b8)        // st1w { z24.s-z27.s }, pn9, [x5]
 	st1w {z24.s}, p3, [x5]
 	st1w {z25.s}, p4, [x5, #1, MUL VL]
 	st1w {z26.s}, p5, [x5, #2, MUL VL]
@@ -215,7 +213,6 @@ KAI_ASM_LABEL(label_4)
     addvl x5, x5, #4
     ldr x22, [x0, #0x18]
     add x10, x10, x22
-    //KAI_ASM_INST(0x25b86491)        // whilelt pn9.s, x4, x24, VLx4
 	mov x1,x4
     whilelt p3.s, x1, x24
     incw x1
