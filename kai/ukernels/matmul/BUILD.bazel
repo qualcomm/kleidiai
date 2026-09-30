@@ -261,6 +261,7 @@ SME_KERNELS_ASM = [
     "matmul_clamp_qai8_qai8_qsi8cxp/kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot",
     "matmul_clamp_fp32_bf16p_bf16p/kai_matmul_clamp_f32_bf16p2vlx2_bf16p2vlx2_2vlx2vl_sme_mopa",
     "matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p2vlx4_qsi8cxp2vlx4sb_2vlx2vl_sme_mopa",
+    "pack/kai_imatmul_pack_rhs_nxk_x16p2vlx2bx16_x16_x16_sme",
     "pack/kai_lhs_imatmul_pack_x16p2vlx2_x16p_sme",
     "pack/kai_lhs_imatmul_pack_x32p2vlx1_x32p_sme",
     "pack/kai_lhs_imatmul_pack_x8p2vlx4_x8p_sme",
