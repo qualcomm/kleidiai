@@ -122,6 +122,7 @@ if(MSVC)
         test/tests/matmul_clamp_qai8dxp_qsi4c32p_test.cpp
         test/tests/matmul_clamp_f32_qai8dxp_qsi4cxp_test.cpp
         test/tests/matmul_clamp_f32_qai8dxp_qsi8cxp_test.cpp
+        test/tests/safe_math_test.cpp
     )
 else()
     set(KLEIDIAI_FILES_TESTS
@@ -149,6 +150,7 @@ else()
         test/tests/matmul_clamp_qai8dxp_qsi4c32p_test.cpp
         test/tests/matmul_test.cpp
         test/tests/rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon_test.cpp
+        test/tests/safe_math_test.cpp
 
         test/nextgen/tests/matmul_test_next.cpp
         test/nextgen/tests/poly_test.cpp
