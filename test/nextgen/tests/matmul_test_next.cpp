@@ -12,6 +12,7 @@
 #include <iterator>
 #include <random>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -19,6 +20,7 @@
 #include "test/common/assert.hpp"
 #include "test/common/matrix_portion.hpp"
 #include "test/common/seed.hpp"
+#include "test/common/sme.hpp"
 #include "test/common/span.hpp"
 #include "test/nextgen/common/random.hpp"
 #include "test/nextgen/common/test_config.hpp"
@@ -414,6 +416,62 @@ void register_operator_test(
     }
 }
 
+/// Registers deterministic tests for every QMX FP16 elastic dispatcher route.
+void register_qmx_f16_dispatch_tests(const MatMulOperator& op) {
+    static constexpr std::string_view qmx_f16_operator =
+        "matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_qmx_mopa";
+    if (op.name != qmx_f16_operator) {
+        return;
+    }
+
+    // A is the SME vector length in 32-bit lanes. Each shape selects one
+    // dispatcher tile when invoked as a full output portion.
+    const size_t a = get_sme_vector_length<uint32_t>();
+    const MatrixPortion full(0, 0, 1, 1);
+    const MatrixPortion top_left(0, 0, 0.25F, 0.25F);
+    const MatrixPortion bottom_right(0.75F, 0.75F, 1, 1);
+    const MatMulBiasModeSet bias_per_n{MatMulBiasMode::ACCUMULATION_PER_N};
+
+    struct DispatchCase {
+        size_t shape_m;
+        size_t shape_n;
+        size_t shape_k;
+        std::optional<float> clamp_keep_ratio;
+        MatrixPortion portion;
+    };
+
+    const std::array dispatch_cases{
+        DispatchCase{2 * a, 2 * a, 1, std::nullopt, full},
+        DispatchCase{4 * a, a, 3, 0.75F, full},
+        DispatchCase{2 * a, a, 4, std::nullopt, full},
+        DispatchCase{a, 4 * a, 5, 1.0F, full},
+        DispatchCase{a, 2 * a, 6, 0.5F, full},
+        DispatchCase{a, a, 7, std::nullopt, full},
+        // Exercise every main/right/bottom branch together with a one-element tail.
+        DispatchCase{6 * a + 1, 6 * a + 1, 8, 0.9F, full},
+        // Exercise main and edge kernels with tails just below one accumulator vector.
+        DispatchCase{3 * a - 1, 3 * a - 1, 11, std::nullopt, full},
+        DispatchCase{8 * a, 4 * a, 9, 0.9F, top_left},
+        DispatchCase{4 * a, 4 * a, 10, std::nullopt, bottom_right},
+    };
+
+    size_t case_no = 0;
+    for (const DispatchCase& dispatch_case : dispatch_cases) {
+        KAI_TEST_ASSERT(op.is_shape_suitable(
+            dispatch_case.shape_m, dispatch_case.shape_n, dispatch_case.shape_k, dispatch_case.portion));
+        const MatMulFixtureParams fixture{
+            case_no++,
+            dispatch_case.shape_m,
+            dispatch_case.shape_n,
+            dispatch_case.shape_k,
+            bias_per_n,
+            dispatch_case.clamp_keep_ratio,
+            &op,
+        };
+        register_operator_test("MatMulNextQmxF16Dispatch", op, fixture, dispatch_case.portion);
+    }
+}
+
 /// Registers all MatMulNext tests with the test registry.
 const auto matmul_tests_setup = TestRegistry::register_setup([]() {
     const size_t num_shapes_per_op = TestConfig::Get().num_shapes();
@@ -428,6 +486,8 @@ const auto matmul_tests_setup = TestRegistry::register_setup([]() {
         if (!op.is_cpu_supported()) {
             continue;
         }
+
+        register_qmx_f16_dispatch_tests(op);
 
         const std::string test_suite_name = "MatMulNext";
         BiasSelector bias_selector(op);
