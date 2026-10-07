@@ -6,11 +6,15 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <iomanip>
+#include <iostream>
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -39,10 +43,12 @@
 #include "kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f32.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_qsi4c32p_qsu4c32s1s0.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon.h"
+#include "kai/ukernels/matmul/pack/kai_rhs_pack_kxn_qsi4c32ps4s0nrx4_qsu4c32s1s0.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32p_qsu4c32s1s0.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32pnrx4_qsu4c32s1s0_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32pnrx8_qsu4c32s1s0_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon.h"
+#include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps4s0nrx4_qsu4c32s1s0_neon.h"
 #include "test/common/abi_checker.hpp"
 #include "test/common/bfloat16.hpp"
 #include "test/common/buffer.hpp"
@@ -143,7 +149,7 @@ const auto& get_f32_gemm_variants() noexcept {
             rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false),
         UKERNEL_MATMUL_PACK_VARIANT(
             clamp_f32_qai8dxp1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa, cpu_has_sme, lhs_quant_pack_qai8dxp_f32,
-            rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false)
+            rhs_pack_nxk_qsi4c32ps4s0nrx4_qsu4c32s1s0_neon, false)
     }};
 
     return variants;
@@ -160,7 +166,7 @@ const auto& get_f32_gemv_variants() noexcept {
             rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false),
         UKERNEL_MATMUL_PACK_VARIANT(
             clamp_f32_qai8dxp1x4_qsi4c32p4vlx4_1x4vl_qmx_dot, cpu_has_sme, lhs_quant_pack_qai8dxp_f32,
-            rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon, false)
+            rhs_pack_nxk_qsi4c32ps4s0nrx4_qsu4c32s1s0_neon, false)
             }};
 
     return variants;
@@ -233,7 +239,8 @@ std::tuple<Buffer, size_t> pack_rhs_qsi4c32pscalebf16(
     const RhsPackType pack_type,
     const size_t rect_start_row,
     const size_t rect_width,
-    const bool use_ps1s0) {
+    const bool use_ps1s0,
+    const bool use_s4s0nrx4) {
     // clang-format on
     const size_t width = pack_type == RhsPackType::KxN ? N : K;
     const size_t height = pack_type == RhsPackType::KxN ? K : N;
@@ -257,7 +264,14 @@ std::tuple<Buffer, size_t> pack_rhs_qsi4c32pscalebf16(
     size_t imp_packed_rhs_size = 0;
 
     if (pack_type == RhsPackType::KxN) {
-        if (use_ps1s0) {
+        if (use_s4s0nrx4) {
+            rhs_offset =
+                kai_get_rhs_offset_rhs_pack_kxn_qsi4c32ps4s0nrx4_qsu4c32s1s0(rect_start_row, rhs_stride_bytes);
+            rhs_packed_offset = kai_get_rhs_packed_offset_rhs_pack_kxn_qsi4c32ps4s0nrx4_qsu4c32s1s0(
+                rect_start_row, K, nr, kr, sr, bl, scale_dt);
+            imp_packed_rhs_size =
+                kai_get_rhs_packed_size_rhs_pack_kxn_qsi4c32ps4s0nrx4_qsu4c32s1s0(N, K, nr, kr, sr, bl, scale_dt);
+        } else if (use_ps1s0) {
             rhs_offset =
                 kai_get_rhs_offset_rhs_pack_kxn_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon(rect_start_row, rhs_stride_bytes);
             rhs_packed_offset = kai_get_rhs_packed_offset_rhs_pack_kxn_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon(
@@ -285,7 +299,24 @@ std::tuple<Buffer, size_t> pack_rhs_qsi4c32pscalebf16(
         params.rhs_zero_point = 8;
         params.scale_dt = scale_dt;
 
-        if (use_ps1s0) {
+        if (use_s4s0nrx4) {
+            // clang-format off
+            abi_check(
+                kai_run_rhs_pack_kxn_qsi4c32ps4s0nrx4_qsu4c32s1s0,
+                1,                              // num_groups
+                rect_width,                     // n
+                K,                              // k
+                nr, kr, sr, bl,                 // packing args
+                reinterpret_cast<const uint8_t*>(rhs_qsu4.data() + rhs_offset),
+                rhs_stride_bytes,
+                reinterpret_cast<const float*>(biases.data() + bias_offset),
+                reinterpret_cast<const void*>(rhs_scales.data() + scale_offset),
+                scales_stride_bytes,
+                static_cast<void*>(imp_packed_rhs.data() + rhs_packed_offset),
+                0,
+                &params);
+            // clang-format on
+        } else if (use_ps1s0) {
             // clang-format off
             abi_check(
                 kai_run_rhs_pack_kxn_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon,
@@ -394,10 +425,10 @@ std::tuple<Buffer, size_t> pack_rhs_qsi4c32p_nxk(
 std::tuple<Buffer, size_t> pack_rhs_qsi4c32p_kxn(
     const size_t N, const size_t K, const size_t nr, const size_t kr, const size_t sr, const size_t bl,
     const Buffer& rhs_values_qsi4, const Buffer& biases, const size_t bias_offset, const Buffer& rhs_scales,
-    const size_t rect_start_row, const size_t rect_width, const bool use_ps1s0) {
+    const size_t rect_start_row, const size_t rect_width, const bool use_ps1s0, const bool use_s4s0nrx4) {
     return pack_rhs_qsi4c32pscalebf16(
         N, K, nr, kr, sr, bl, rhs_values_qsi4, biases, bias_offset, rhs_scales, RhsPackType::KxN, rect_start_row,
-        rect_width, use_ps1s0);
+        rect_width, use_ps1s0, use_s4s0nrx4);
 }
 
 /// Executes the vectorized RHS packing micro-kernels for block length of 4 bytes or 8 bytes
@@ -1243,9 +1274,11 @@ TEST_P(QMatMulClampF32Test, EndToEnd) {
             GTEST_SKIP() << "KxN RHS pack requires even N-start index";
             return;
         }
+        const bool use_s4s0nrx4 =
+            ukernel.name.data() != nullptr && std::strstr(ukernel.name.data(), "qmx_mopa") != nullptr;
         std::tie(imp_packed_rhs, rhs_packed_offset) = pack_rhs_qsi4c32p_kxn(
             data.N, data.K, nr, kr, sr, bl, data.rhs_quant, data.bias, bias_offset_bytes, data.rhs_scales,
-            rhs_start_col, rect.width(), p.is_sme);
+            rhs_start_col, rect.width(), p.is_sme && !use_s4s0nrx4, use_s4s0nrx4);
     }
 
     ASSERT_EQ(rhs_packed_offset, ukernel.interface.get_rhs_packed_offset(rhs_start_col, data.K, bl));
@@ -1391,7 +1424,7 @@ TEST_P(QMatMulClampBF16Test, EndToEnd) {
 
     auto [imp_packed_rhs, rhs_packed_offset] = pack_rhs_qsi4c32pscalebf16(
         N, K, nr, kr, sr, bl, data.rhs_quant, data.bias, bias_offset, data.rhs_scales, rhs_pack_type, rhs_start_row,
-        rect.width(), false);
+        rect.width(), false, false);
 
     const auto rhs_matmul_offset = ukernel_variant.interface.get_rhs_packed_offset(rhs_start_row, K, bl);
     ASSERT_EQ(rhs_packed_offset, rhs_matmul_offset);

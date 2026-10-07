@@ -28,6 +28,31 @@ extern "C" {
 ///     to be populated.
 ///
 
+/// Half-precision floating-point matrix multiplication using QMX MOPA instruction.
+///
+/// Dispatches across 6 tile-size sub-kernels (4vsx4vs, 4vsx8vs, 4vsx16vs,
+/// 8vsx4vs, 8vsx8vs, 16vsx4vs) to cover arbitrary MxN output shapes.
+///
+/// Required CPU features:
+///   * FEAT_SME
+///   * FEAT_FP16
+///
+/// Required operands:
+///   * lhs - Packed FP16 LHS data.
+///   * rhs - Packed FP16 RHS data with packed per-N FP16 accumulator bias.
+///   * dst - FP16 output data.
+///
+/// Optional arguments:
+///   * clamp - F32 output clamp values converted to FP16 if KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP flag is set.
+///
+/// Accumulation: F32, then converted to FP16 output.
+///
+/// Supported flags:
+///   * KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP - Clamp output data.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_uker_api kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_qmx_mopa(void);
+
 /// Half-precision floating-point matrix multiplication using SME2 MOPA instruction.
 ///
 /// Required operands:
