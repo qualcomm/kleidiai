@@ -25,6 +25,7 @@
 #include "test/common/round.hpp"
 #include "test/common/span.hpp"
 #include "test/nextgen/common/shape.hpp"
+#include "test/nextgen/reference/pack.hpp"
 #include "test/nextgen/reference/print.hpp"
 
 namespace kai::test {
@@ -105,9 +106,27 @@ template <typename Byte>
     return chunk * nr + row_group * 2 + pair * nr * 2 + lane * 2 + (byte & 1U);
 }
 
+[[nodiscard]] size_t packed_s4s0_qdata_index(size_t row, size_t byte, size_t nr) {
+    const size_t chunk = byte / 16;
+    const size_t packet = (byte % 16) / 4;
+    const size_t byte_in_packet = byte % 4;
+    return chunk * 16 * nr + packet * nr * 4 + row * 4 + byte_in_packet;
+}
+
 size_t metadata_index(size_t row, size_t nr) {
     const size_t half_nr = nr / 2;
     return row < half_nr ? 2 * row : 2 * (row - half_nr) + 1;
+}
+
+[[nodiscard]] const char* layout_name(FlattenedBlockwisePackedLayout layout) {
+    switch (layout) {
+        case FlattenedBlockwisePackedLayout::S1S0:
+            return "s1s0";
+        case FlattenedBlockwisePackedLayout::S4S0:
+            return "s4s0";
+        default:
+            KAI_TEST_ERROR("Unsupported flattened blockwise packed layout.");
+    }
 }
 
 bool compare_panel_bytes(
@@ -163,16 +182,20 @@ void print_component(
 
 }  // namespace
 
-FlattenedBlockwisePackedFormat::FlattenedBlockwisePackedFormat(const TwoLevelBlockConfig& source_config, size_t nr) :
-    m_source_config(source_config), m_nr(nr) {
+FlattenedBlockwisePackedFormat::FlattenedBlockwisePackedFormat(
+    const TwoLevelBlockConfig& source_config, size_t nr, FlattenedBlockwisePackedLayout layout) :
+    m_source_config(source_config), m_nr(nr), m_layout(layout) {
     validate_two_level_block_config(source_config);
     KAI_TEST_ASSERT(source_config.block_length % 16 == 0);
+    KAI_TEST_ASSERT(layout != FlattenedBlockwisePackedLayout::S4S0 || source_config.block_length % 32 == 0);
     KAI_TEST_ASSERT(nr > 0 && nr % 4 == 0);
 }
 
 std::string FlattenedBlockwisePackedFormat::uid() const {
-    return "flattened_blockwise_packed<block_length=" + std::to_string(m_source_config.block_length) +
-        ",superblock_length=" + std::to_string(m_source_config.superblock_length) + ",nr=" + std::to_string(m_nr) + ">";
+    const std::string base = "flattened_blockwise_packed<block_length=" + std::to_string(m_source_config.block_length) +
+        ",superblock_length=" + std::to_string(m_source_config.superblock_length) + ",nr=" + std::to_string(m_nr);
+    return m_layout == FlattenedBlockwisePackedLayout::S1S0 ? base + ">"
+                                                            : base + ",layout=" + layout_name(m_layout) + ">";
 }
 
 size_t FlattenedBlockwisePackedFormat::panel_size(size_t k) const {
@@ -220,6 +243,59 @@ Buffer FlattenedBlockwisePackedFormat::pack(Shape shape, Span<const Span<const s
     const size_t num_panels = round_up_division(n, m_nr);
     const size_t blocks_per_superblock = get_num_blocks_per_superblock(m_source_config);
     const FlattenedBlockwiseLayout layout = get_flattened_blockwise_layout(k, m_source_config.block_length, m_nr);
+
+    if (m_layout == FlattenedBlockwisePackedLayout::S4S0) {
+        const TwoLevelBlockwiseComponents components = native_format.unpack(shape, buffers.at(0));
+        const size_t num_superblocks = k / m_source_config.superblock_length;
+        const auto pack_interleaved = make_pack_block2d_interleave(DataType::I4);
+
+        for (size_t panel = 0; panel < num_panels; ++panel) {
+            const size_t panel_start = panel * m_nr;
+            const size_t panel_height = std::min(m_nr, n - panel_start);
+
+            for (size_t block = 0; block < layout.num_blocks; ++block) {
+                const FlattenedPackedBlock<std::byte> packed_block = get_packed_block(packed, layout, panel, block);
+                Buffer signed_qdata(panel_height * layout.qdata_row_size, 0);
+
+                for (size_t row = 0; row < panel_height; ++row) {
+                    const size_t source_row = panel_start + row;
+                    for (size_t col = 0; col < m_source_config.block_length; ++col) {
+                        const size_t source_col = block * m_source_config.block_length + col;
+                        const int32_t value = read_2d<UInt4>(components.qdata, k, source_row, source_col);
+                        write_2d<Int4>(
+                            signed_qdata, m_source_config.block_length, row, col,
+                            Int4(static_cast<int8_t>(value - 8)));
+                    }
+                }
+
+                const size_t packed_size = pack_interleaved(
+                    m_nr, m_source_config.block_length, m_source_config.block_length, false, panel_height,
+                    m_source_config.block_length, 4, packed_block.qdata, signed_qdata);
+                KAI_TEST_ASSERT(packed_size == packed_block.qdata.size());
+
+                const size_t superblock = block / blocks_per_superblock;
+                for (size_t row_in_panel = 0; row_in_panel < m_nr; ++row_in_panel) {
+                    const size_t source_row = std::min(panel_start + row_in_panel, n - 1);
+                    const float superblock_scale = static_cast<float>(
+                        read_2d<Float16>(components.superblock_scale, num_superblocks, source_row, superblock));
+                    const float superblock_offset = static_cast<float>(
+                        read_2d<Float16>(components.superblock_offset, num_superblocks, source_row, superblock));
+                    const float scale_code = static_cast<float>(
+                        read_2d<uint8_t>(components.block_scale, layout.num_blocks, source_row, block));
+                    const float offset_code = static_cast<float>(
+                        read_2d<uint8_t>(components.block_offset, layout.num_blocks, source_row, block));
+                    const float resolved_scale = superblock_scale * scale_code;
+                    const float resolved_offset = -superblock_offset * offset_code;
+                    const size_t meta_index = metadata_index(row_in_panel, m_nr);
+                    write_array<Float16>(
+                        packed_block.offsets, meta_index, Float16(resolved_offset + 8.0F * resolved_scale));
+                    write_array<Float16>(packed_block.scales, meta_index, Float16(resolved_scale / 16.0F));
+                }
+            }
+        }
+
+        return result;
+    }
 
     for (size_t panel = 0; panel < num_panels; ++panel) {
         for (size_t block = 0; block < layout.num_blocks; ++block) {
@@ -288,11 +364,23 @@ void FlattenedBlockwisePackedFormat::print(std::ostream& os, Shape shape, Span<c
             for (size_t row_in_panel = 0; row_in_panel < m_nr; ++row_in_panel) {
                 const size_t row = panel * m_nr + row_in_panel;
                 for (size_t byte = 0; byte < layout.qdata_row_size; ++byte) {
-                    const uint8_t packed_value =
-                        std::to_integer<uint8_t>(packed_block.qdata[packed_qdata_index(row_in_panel, byte, m_nr)]);
-                    const size_t col = block * m_source_config.block_length + 2 * byte;
-                    write_2d<UInt4>(qdata, k, row, col, UInt4(packed_value & nibble_mask));
-                    write_2d<UInt4>(qdata, k, row, col + 1, UInt4(packed_value >> 4));
+                    const size_t packed_index = m_layout == FlattenedBlockwisePackedLayout::S1S0
+                        ? packed_qdata_index(row_in_panel, byte, m_nr)
+                        : packed_s4s0_qdata_index(row_in_panel, byte, m_nr);
+                    const uint8_t packed_value = std::to_integer<uint8_t>(packed_block.qdata[packed_index]);
+
+                    if (m_layout == FlattenedBlockwisePackedLayout::S1S0) {
+                        const size_t col = block * m_source_config.block_length + 2 * byte;
+                        write_2d<UInt4>(qdata, k, row, col, UInt4(packed_value & nibble_mask));
+                        write_2d<UInt4>(qdata, k, row, col + 1, UInt4(packed_value >> 4));
+                    } else {
+                        const auto [low, high] = Int4::unpack_u8(packed_value);
+                        const size_t packet = byte / 4;
+                        const size_t byte_in_packet = byte % 4;
+                        const size_t block_col = block * m_source_config.block_length;
+                        write_2d<Int4>(qdata, k, row, block_col + packet * 8 + byte_in_packet, low);
+                        write_2d<Int4>(qdata, k, row, block_col + packet * 8 + byte_in_packet + 4, high);
+                    }
                 }
 
                 const size_t meta_index = metadata_index(row_in_panel, m_nr);
@@ -309,13 +397,15 @@ void FlattenedBlockwisePackedFormat::print(std::ostream& os, Shape shape, Span<c
     os << "{\n";
     print_component(os, "offset", DataType::FP16, metadata_shape, offsets, false);
     print_component(os, "scale", DataType::FP16, metadata_shape, scales, false);
-    print_component(os, "qdata", DataType::U4, packed_shape, qdata, true);
+    print_component(
+        os, "qdata", m_layout == FlattenedBlockwisePackedLayout::S1S0 ? DataType::U4 : DataType::I4, packed_shape,
+        qdata, true);
     os << "}";
 }
 
 bool FlattenedBlockwisePackedFormat::operator==(const Format& other) const {
     const auto* rhs = dynamic_cast<const FlattenedBlockwisePackedFormat*>(&other);
-    return rhs != nullptr && m_source_config == rhs->m_source_config && m_nr == rhs->m_nr;
+    return rhs != nullptr && m_source_config == rhs->m_source_config && m_nr == rhs->m_nr && m_layout == rhs->m_layout;
 }
 
 }  // namespace kai::test

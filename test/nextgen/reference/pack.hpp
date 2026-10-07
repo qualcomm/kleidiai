@@ -69,4 +69,18 @@ using PackBlock2dFn = size_t (*)(
 /// @return The function pointer.
 [[nodiscard]] PackBlock2dFn make_pack_block2d(DataType dtype);
 
+/// Packs signed 4-bit 2D block data with a configurable nibble-interleave distance.
+///
+/// For `interleave_width == 4`, each group of eight values is packed as:
+/// `(k0, k4), (k1, k5), (k2, k6), (k3, k7)`.
+/// Rows beyond the input height repeat the final input row.
+using PackBlock2dInterleaveFn = size_t (*)(
+    size_t block_height, size_t block_width, size_t width_align, bool pad_right_same, size_t height, size_t width,
+    size_t interleave_width, Span<std::byte> packed_data, Span<const std::byte> data);
+
+/// Gets the interleaved 2D block packing function for the specified data type.
+///
+/// Only signed 4-bit data is supported.
+[[nodiscard]] PackBlock2dInterleaveFn make_pack_block2d_interleave(DataType dtype);
+
 }  // namespace kai::test

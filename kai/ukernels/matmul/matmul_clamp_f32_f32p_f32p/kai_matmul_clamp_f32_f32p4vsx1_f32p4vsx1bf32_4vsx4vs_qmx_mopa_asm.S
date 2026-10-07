@@ -279,3 +279,4 @@ KAI_ASM_LABEL(label_19)  // m_loop: n_loop: post_process_tile0123: height_1: don
     KAI_ASM_FUNCTION_END(kai_kernel_matmul_clamp_f32_f32p4vsx1_f32p4vsx1bf32_4vsx4vs_qmx_mopa)
 
     KAI_ASM_END
+    
