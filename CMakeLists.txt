@@ -114,6 +114,7 @@ set(KLEIDIAI_FILES_SCALAR
     kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f32.c
     kai/ukernels/matmul/pack/kai_lhs_quant_pack_qsi8d32p_f32.c
     kai/ukernels/matmul/pack/kai_rhs_pack_kxn_qsi4c32p_qsu4c32s1s0.c
+    kai/ukernels/matmul/pack/kai_rhs_pack_kxn_qsi4c32ps4s0nrx4_qsu4c32s1s0.c
     kai/ukernels/matmul/pack/kai_rhs_pack_kxn_qsi4cxp_qs4cxs1s0.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32p_qsu4c32s1s0.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0.c
@@ -247,6 +248,7 @@ set(KLEIDIAI_FILES_NEON_ASM
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32pnrx8_qsu4c32s1s0_neon.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps1s0nrx4_qsu4c32s1s0_neon.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon.c
+    kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps4s0nrx4_qsu4c32s1s0_neon.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi4cxps1s0_qsu4cxs1s0_neon.c
     kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi8cxp_qsi8cx_neon.c
@@ -423,6 +425,12 @@ set(KLEIDIAI_FILES_SME_ASM
     kai/ukernels/dwconv/dwconv_f32_f32_f32p/kai_dwconv_clamp_f32_f32_f32p1vlx1b_3x3_s1_4xc_qmx_mla_asm.S
     kai/ukernels/dwconv/dwconv_f32_f32_f32p/kai_dwconv_clamp_f32_f32_f32p1vlx1b_3x3_s1_4xc_qmx_mla.c
 
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_4vsx4vs_qmx_mopa_asm.S
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_4vsx8vs_qmx_mopa_asm.S
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_4vsx16vs_qmx_mopa_asm.S
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx4vs_qmx_mopa_asm.S
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_qmx_mopa_asm.S
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_16vsx4vs_qmx_mopa_asm.S
     kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_4vsx4vs_qmx_mopa_asm.S
     kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_4vsx8vs_qmx_mopa_asm.S
     kai/ukernels/matmul/matmul_clamp_qai8_qai8p_qsi8cxp/kai_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4bi32sf32_4vsx16vs_qmx_mopa_asm.S
@@ -568,6 +576,7 @@ set(KLEIDIAI_FILES_SME_ASM
 
 set(KLEIDIAI_FILES_SME
     ${KLEIDIAI_FILES_SME_ASM}
+    kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_qmx_mopa.c
     kai/ukernels/matmul/matmul_clamp_f32_f32p_f32p/kai_matmul_clamp_f32_f32p4vsx1_f32p4vsx1bf32_8vsx8vs_qmx_mopa.c
 
     kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_qmx_mopa.c
@@ -916,6 +925,7 @@ if(ENABLE_KLEIDIAI_QMX_COEXIST)
 
     set(KLEIDIAI_FILES_SME_QMX
         ${KLEIDIAI_FILES_SME_ASM}
+        kai/ukernels/matmul/matmul_clamp_f16_f16p_f16p/kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_qmx_mopa.c
         kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1vlx8_qsi4cxp4vlx8_1vlx4vl_qmx_mopa.c
         kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsi4cxp/kai_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4vlx4_1x4vl_qmx_sdot.c
         kai/ukernels/matmul/matmul_clamp_f32_qsi8d32p_qsi4c32p/kai_matmul_clamp_f32_qsi8d32p1vlx4_qsi4c32p4vlx4_1vlx4vl_qmx_mopa.c

@@ -3,6 +3,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 //
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 
 #if (!defined(__aarch64__) || !defined(__ARM_FEATURE_SVE2) || !defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)) && \
     !defined(_M_ARM64)
