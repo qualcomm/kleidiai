@@ -413,7 +413,8 @@ std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_qai8_qsi4(bool l
         MatMulUkerApiBiasDeliveryStage::PACK_RHS, output_stage_config);
 }
 
-std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_qai8_qsu2(bool lhs_packed) {
+std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_qai8_qsu2(
+    const char* name, struct kai_matmul_uker_api api, bool lhs_packed) {
     MatMulUkerOutputStageConfig output_stage_config{};
     output_stage_config.scale_bias = {MatMulUkerStageParameterLayout::GLOBAL};
     output_stage_config.scale_bias_global_slot = MatMulSlot::DST_QZP;
@@ -429,11 +430,7 @@ std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_qai8_qsu2(bool l
     }
 
     return std::make_unique<MatMulUkerApiWrapper>(
-        lhs_packed ? "matmul_clamp_qai8_qai8p8vsx4_qsu2cxp16vsx4sf32bi32_8vsx16vs_sme2_mopa"
-                   : "matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_dot",
-        lhs_packed ? kai_matmul_clamp_qai8_qai8p8vsx4_qsu2cxp16vsx4sf32bi32_8vsx16vs_sme2_mopa()
-                   : kai_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_dot(),
-        lhs_packed ? MatMulSlot::LHS_PACKED : MatMulSlot::LHS_QDATA, lhs_format,
+        name, api, lhs_packed ? MatMulSlot::LHS_PACKED : MatMulSlot::LHS_QDATA, lhs_format,
         make_poly<Block2dRowFormat>(
             16 * get_sme_vector_scale(), 4, 32, false, DataType::U2, std::array{DataType::I32},
             std::array{DataType::FP32}, 0, 2),
@@ -476,11 +473,21 @@ create_matmul_clamp_qai8_qai8p4vsx4_qsi8cxp4vsx4sf32bi32_8vsx8vs_sme2p1_mop4_mop
 
 std::unique_ptr<KernelWrapper<MatMulShape>>
 create_matmul_clamp_qai8_qai8p8vsx4_qsu2cxp16vsx4sf32bi32_8vsx16vs_sme2_mopa() {
-    return create_matmul_clamp_qai8_qsu2(true);
+    return create_matmul_clamp_qai8_qsu2(
+        "matmul_clamp_qai8_qai8p8vsx4_qsu2cxp16vsx4sf32bi32_8vsx16vs_sme2_mopa",
+        kai_matmul_clamp_qai8_qai8p8vsx4_qsu2cxp16vsx4sf32bi32_8vsx16vs_sme2_mopa(), true);
 }
 
 std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_dot() {
-    return create_matmul_clamp_qai8_qsu2(false);
+    return create_matmul_clamp_qai8_qsu2(
+        "matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_dot",
+        kai_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_dot(), false);
+}
+
+std::unique_ptr<KernelWrapper<MatMulShape>> create_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot() {
+    return create_matmul_clamp_qai8_qsu2(
+        "matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot",
+        kai_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot(), false);
 }
 
 }  // namespace kai::test
