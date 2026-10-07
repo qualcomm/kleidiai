@@ -22,6 +22,7 @@
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsu2cxp/kai_matmul_clamp_f32_qai8dxp4x4_qsu2cxp4x4bf32sf32_8x4_neon_dotprod.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_qai8dxp_qsu2cxp/kai_matmul_clamp_f32_qai8dxp_qsu2cxp_interface.h"
 #include "kai/ukernels/matmul/pack/kai_lhs_quant_pack_qai8dxp_f32.h"
+#include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsu2cxp4vlx4_qsu2cx_neon.h"
 #include "kai/ukernels/matmul/pack/kai_rhs_pack_nxk_qsu2cxp4x4bf32sf32_qsu2cx_neon.h"
 #include "test/common/abi_checker.hpp"
@@ -77,11 +78,15 @@ struct kai_qsu2cxp_pack_functions {
 const auto& get_qsi2cx_gemm_variants() noexcept {
     using Variant = UkernelMatmulPackVariant<
         kai_matmul_clamp_f32_qai8dxp_qsu2cxp_ukernel, kai_qai8dxp_pack_functions, kai_qsu2cxp_pack_functions>;
-    static const std::array<Variant, 2> variants = {{
+    static const std::array<Variant, 3> variants = {{
         UKERNEL_MATMUL_PACK_VARIANT_NAME(
             clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_sme2_mopa__RHS_NxK__,
             clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_sme2_mopa, cpu_has_sme2, lhs_quant_pack_qai8dxp_f32,
             rhs_pack_nxk_qsu2cxp4vlx4_qsu2cx_neon, false),
+        UKERNEL_MATMUL_PACK_VARIANT_NAME(
+            clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa__RHS_NxK__,
+            clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa, cpu_has_sme, lhs_quant_pack_qai8dxp_f32,
+            rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon, false),
         UKERNEL_MATMUL_PACK_VARIANT_NAME(
             clamp_f32_qai8dxp4x4_qsu2cxp4x4bf32sf32_8x4_neon_dotprod__RHS_NxK__,
             clamp_f32_qai8dxp4x4_qsu2cxp4x4bf32sf32_8x4_neon_dotprod, cpu_has_dotprod, lhs_quant_pack_qai8dxp_f32,

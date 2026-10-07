@@ -15,11 +15,6 @@
 
 #include "kai/kai_common.h"
 
-#define KAI_LUT_NENTRIES 4
-
-/// Look-up table used for int2 -> int8 conversion
-static const int32_t lut_i8_i2[KAI_LUT_NENTRIES] = {-2, -1, 0, 1};
-
 typedef struct {
     float* dst;              // 0   (0x00)
     const void* lhs_packed;  // 8   (0x08)
@@ -157,7 +152,7 @@ void kai_run_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(
     args.rhs_stride = kai_get_rhs_packed_stride(k);
     args.scalar_max = scalar_max;
     args.scalar_min = scalar_min;
-    args.lut = lut != NULL ? lut : lut_i8_i2;
+    args.lut = lut;
 
     kai_commit_za();
 

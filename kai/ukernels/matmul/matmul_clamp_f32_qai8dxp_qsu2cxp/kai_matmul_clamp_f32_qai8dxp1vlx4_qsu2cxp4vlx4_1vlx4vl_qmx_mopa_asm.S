@@ -65,7 +65,6 @@ KAI_ASM_LABEL(M_Loop_Start)                     // M Loop
     cmp     x7, x12
     csel    x21, x7, x12, lt
     lsl     x21, x21, #2
-    whilelt p3.b, xzr, x13
 KAI_ASM_LABEL(N_Loop)                           // N Loop
     mov     x10, x20
     mov     x11, x8
@@ -84,30 +83,17 @@ KAI_ASM_LABEL(N_Loop)                           // N Loop
 KAI_ASM_LABEL(K_Loop)                           // K Loop
     KAI_ASM_INST(0xa540a144)                    // ld1w    { z4.s }, p0/z, [x10]
     addvl   x10, x10, #1
-    ld1b    { z0.b }, p3/z, [x11]
+    ld1b    { z0.b }, p2/z, [x11]
     addvl   x11, x11, #1
 
-    // Extract and interleave 2-bit fields from z0 into z8..z11, then subtract 2
-    orr     z8.b,  z0.b,  z0.b
-    lsr     z9.b,  z0.b,  #2
-    lsr     z10.b, z0.b,  #4
-    lsr     z11.b, z0.b,  #6
-    and     z8.b,  z8.b,  #0x03
-    and     z9.b,  z9.b,  #0x03
-    and     z10.b, z10.b, #0x03
-    and     z11.b, z11.b, #0x03
-    zip1    z18.b, z8.b,  z9.b
-    zip2    z19.b, z8.b,  z9.b
-    zip1    z28.b, z10.b, z11.b
-    zip2    z29.b, z10.b, z11.b
-    zip1    z8.h,  z18.h, z28.h
-    zip2    z9.h,  z18.h, z28.h
-    zip1    z10.h, z19.h, z29.h
-    zip2    z11.h, z19.h, z29.h
-    sub     z8.b,  z8.b,  #2
-    sub     z9.b,  z9.b,  #2
-    sub     z10.b, z10.b, #2
-    sub     z11.b, z11.b, #2
+    // Sign-extend the four pre-interleaved signed 2-bit fields.
+    lsl     z8.b,  z0.b,  #6
+    lsl     z9.b,  z0.b,  #4
+    lsl     z10.b, z0.b,  #2
+    asr     z11.b, z0.b,  #6
+    asr     z8.b,  z8.b,  #6
+    asr     z9.b,  z9.b,  #6
+    asr     z10.b, z10.b, #6
     KAI_ASM_INST(0xa0884880)                    // smopa   za0.s, p2/m, p2/m, z4.b, z8.b
     KAI_ASM_INST(0xa0894881)                    // smopa   za1.s, p2/m, p2/m, z4.b, z9.b
     KAI_ASM_INST(0xa08a4882)                    // smopa   za2.s, p2/m, p2/m, z4.b, z10.b
