@@ -19,6 +19,11 @@
 
 namespace kai::test {
 
+enum class Block2dRowPackingLayout {
+    DEFAULT,
+    S12S8S4S0,
+};
+
 /// 2D blocked data with optional per-row values.
 ///
 /// By default, the per-row values occur once for each logical row. When a
@@ -93,7 +98,8 @@ public:
         Span<const DataType> pre_dtypes, Span<const DataType> post_dtypes, size_t block_length = 0,
         std::optional<double> pad_value = std::nullopt, bool pad_bottom_first = false,
         Span<const DataType> row_pre_dtypes = {}, Span<const DataType> row_post_dtypes = {},
-        size_t interleave_width = 1, bool pad_bottom_same = false) :
+        size_t interleave_width = 1, bool pad_bottom_same = false,
+        Block2dRowPackingLayout layout = Block2dRowPackingLayout::DEFAULT) :
         m_block_height(block_height),
         m_block_width(block_width),
         m_width_align(width_align),
@@ -107,7 +113,8 @@ public:
         m_row_pre_dtypes(row_pre_dtypes.begin(), row_pre_dtypes.end()),
         m_row_post_dtypes(row_post_dtypes.begin(), row_post_dtypes.end()),
         m_interleave_width(interleave_width),
-        m_pad_bottom_same(pad_bottom_same) {
+        m_pad_bottom_same(pad_bottom_same),
+        m_layout(layout) {
         KAI_TEST_ASSERT(width_align % block_width == 0);
         KAI_TEST_ASSERT(block_height * block_width * data_type_size_in_bits(dtype) % 8 == 0);
         KAI_TEST_ASSERT(block_length == 0 || block_length % block_width == 0);
@@ -118,6 +125,9 @@ public:
         KAI_TEST_ASSERT(interleave_width == 1 || dtype == DataType::I4);
         KAI_TEST_ASSERT(interleave_width == 1 || width_align % (2 * interleave_width) == 0);
         KAI_TEST_ASSERT(interleave_width == 1 || block_length == 0 || block_length % (2 * interleave_width) == 0);
+        KAI_TEST_ASSERT(layout != Block2dRowPackingLayout::S12S8S4S0 || dtype == DataType::U2);
+        KAI_TEST_ASSERT(layout != Block2dRowPackingLayout::S12S8S4S0 || block_width == 4);
+        KAI_TEST_ASSERT(layout != Block2dRowPackingLayout::S12S8S4S0 || width_align % 16 == 0);
 
         for (const DataType pre_dtype : pre_dtypes) {
             KAI_TEST_ASSERT(data_type_size_in_bits(pre_dtype) % 8 == 0);
@@ -160,6 +170,7 @@ private:
     std::vector<DataType> m_row_post_dtypes;
     size_t m_interleave_width;
     bool m_pad_bottom_same;
+    Block2dRowPackingLayout m_layout;
 };
 
 }  // namespace kai::test

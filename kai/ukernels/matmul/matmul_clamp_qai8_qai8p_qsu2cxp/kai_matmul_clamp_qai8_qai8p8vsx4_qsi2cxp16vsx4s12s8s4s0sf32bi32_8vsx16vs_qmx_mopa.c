@@ -21,48 +21,37 @@
 #include "kai/ukernels/matmul/kai_matmul_types.h"
 
 struct kai_matmul_uker_args_internal {
-    int32_t dst_zero_point;
-    int32_t clamp_max;
-    int32_t clamp_min;
     const void* lhs;
     const void* rhs;
-    size_t n;
-    size_t k;
     void* dst;
-    const void* lut;
+    uint64_t dst_stride_row;
+    uint64_t m;
+    uint64_t n;
+    uint64_t k;
+    int32_t clamp_min;
+    int32_t clamp_max;
+    int32_t dst_zero_point;
+    uint64_t lhs_stride;
+    uint64_t rhs_stride;
 };
 
 enum {
-    LHS_ELEM_BYTES = 1,
-    RHS_ELEM_RECIP_BYTES = 4,
-    DST_ELEM_BYTES = 1,
-    RHS_SCALE_ELEM_BYTES = 4,
-    RHS_BIAS_ELEM_BYTES = 4,
-
-    MR = 1,
+    MR_VSCALE = 8,
     NR_VSCALE = 16,
-    N_STEP_VSCALE = 64,
     KR = 4,
     K_MULTIPLE = 32,
-
     SUPPORTED_FLAGS = KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP,
 };
 
-void kai_kernel_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot(
+void kai_kernel_matmul_clamp_qai8_qai8p8vsx4_qsi2cxp16vsx4s12s8s4s0sf32bi32_8vsx16vs_qmx_mopa(
     const struct kai_matmul_uker_args_internal* args);
 
-struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot(void);
-
 static size_t get_mr(void) {
-    return MR;
+    return MR_VSCALE * kai_get_sme_vscale();
 }
 
 static size_t get_nr(void) {
     return NR_VSCALE * kai_get_sme_vscale();
-}
-
-static size_t get_n_step(void) {
-    return N_STEP_VSCALE * kai_get_sme_vscale();
 }
 
 static struct kai_matmul_uker_dim_args get_step(const struct kai_matmul_uker_config* config) {
@@ -70,7 +59,7 @@ static struct kai_matmul_uker_dim_args get_step(const struct kai_matmul_uker_con
 
     const struct kai_matmul_uker_dim_args step = {
         .m = get_mr(),
-        .n = get_n_step(),
+        .n = get_nr(),
         .k = 0,
     };
     return step;
@@ -81,7 +70,7 @@ static struct kai_matmul_uker_lhs_stride_args get_lhs_stride(
     KAI_UNUSED(config);
 
     const struct kai_matmul_uker_lhs_stride_args stride = {
-        .m = shape->k * LHS_ELEM_BYTES,
+        .m = get_mr() * kai_roundup(shape->k, KR),
     };
     return stride;
 }
@@ -90,9 +79,9 @@ static size_t get_lhs_offset(
     const struct kai_matmul_uker_config* config, const struct kai_matmul_uker_lhs_dim_args* index,
     const struct kai_matmul_uker_lhs_stride_args* stride) {
     KAI_UNUSED(config);
-    KAI_ASSUME(index->m == 0);
+    KAI_ASSUME(index->m % get_mr() == 0);
     KAI_ASSUME(index->k == 0);
-    return index->m * stride->m;
+    return index->m / get_mr() * stride->m;
 }
 
 static struct kai_matmul_uker_rhs_stride_args get_rhs_stride(
@@ -100,8 +89,7 @@ static struct kai_matmul_uker_rhs_stride_args get_rhs_stride(
     KAI_UNUSED(config);
 
     const struct kai_matmul_uker_rhs_stride_args stride = {
-        .n = get_nr() *
-            (RHS_BIAS_ELEM_BYTES + kai_roundup(shape->k, K_MULTIPLE) / RHS_ELEM_RECIP_BYTES + RHS_SCALE_ELEM_BYTES),
+        .n = get_nr() * (sizeof(int32_t) + kai_roundup(shape->k, K_MULTIPLE) / 4 + sizeof(float)),
     };
     return stride;
 }
@@ -110,7 +98,7 @@ static size_t get_rhs_offset(
     const struct kai_matmul_uker_config* config, const struct kai_matmul_uker_rhs_dim_args* index,
     const struct kai_matmul_uker_rhs_stride_args* stride) {
     KAI_UNUSED(config);
-    KAI_ASSUME(index->n % get_n_step() == 0);
+    KAI_ASSUME(index->n % get_nr() == 0);
     KAI_ASSUME(index->k == 0);
     return index->n / get_nr() * stride->n;
 }
@@ -120,7 +108,7 @@ static struct kai_matmul_uker_dst_stride_args get_dst_stride(
     KAI_UNUSED(config);
 
     const struct kai_matmul_uker_dst_stride_args stride = {
-        .m = shape->n * DST_ELEM_BYTES,
+        .m = shape->n * sizeof(int8_t),
     };
     return stride;
 }
@@ -129,9 +117,9 @@ static size_t get_dst_offset(
     const struct kai_matmul_uker_config* config, const struct kai_matmul_uker_dst_dim_args* index,
     const struct kai_matmul_uker_dst_stride_args* stride) {
     KAI_UNUSED(config);
-    KAI_ASSUME(index->m == 0);
-    KAI_ASSUME(index->n % get_n_step() == 0);
-    return index->m * stride->m + index->n * DST_ELEM_BYTES;
+    KAI_ASSUME(index->m % get_mr() == 0);
+    KAI_ASSUME(index->n % get_nr() == 0);
+    return index->m * stride->m + index->n * sizeof(int8_t);
 }
 
 static size_t get_dst_size(
@@ -144,7 +132,7 @@ static size_t get_dst_size(
 static void run(const struct kai_matmul_uker_config* config, const struct kai_matmul_uker_args* args) {
     KAI_UNUSED(config);
     KAI_ASSUME_MSG((args->flags & ~((uint64_t)SUPPORTED_FLAGS)) == 0, "Only supported flags are accepted!");
-    KAI_ASSUME(args->shape.m == 1);
+    KAI_ASSUME(args->shape.m > 0);
     KAI_ASSUME(args->shape.n > 0);
     KAI_ASSUME(args->shape.k > 0);
     KAI_ASSUME(args->operand.lhs.ptr != NULL);
@@ -157,23 +145,25 @@ static void run(const struct kai_matmul_uker_config* config, const struct kai_ma
     KAI_ASSUME(!enable_clamp || args->activation.clamp.max_ptr != NULL);
 
     const struct kai_matmul_uker_args_internal internal_args = {
-        .dst_zero_point = *(const int32_t*)args->operand.bias.scale_bias_global.ptr,
-        .clamp_max = enable_clamp ? *(const int32_t*)args->activation.clamp.max_ptr : INT8_MAX,
-        .clamp_min = enable_clamp ? *(const int32_t*)args->activation.clamp.min_ptr : INT8_MIN,
         .lhs = args->operand.lhs.ptr,
         .rhs = args->operand.rhs.ptr,
+        .dst = args->operand.dst.ptr,
+        .dst_stride_row = args->operand.dst.stride.m,
+        .m = args->shape.m,
         .n = args->shape.n,
         .k = args->shape.k,
-        .dst = args->operand.dst.ptr,
-        // QMX expands the packed UINT2 values arithmetically because SME1 has no FEAT_LUT.
-        .lut = NULL,
+        .clamp_min = enable_clamp ? *(const int32_t*)args->activation.clamp.min_ptr : INT8_MIN,
+        .clamp_max = enable_clamp ? *(const int32_t*)args->activation.clamp.max_ptr : INT8_MAX,
+        .dst_zero_point = *(const int32_t*)args->operand.bias.scale_bias_global.ptr,
+        .lhs_stride = args->operand.lhs.stride.m,
+        .rhs_stride = args->operand.rhs.stride.n,
     };
 
     kai_commit_za();
-    kai_kernel_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot(&internal_args);
+    kai_kernel_matmul_clamp_qai8_qai8p8vsx4_qsi2cxp16vsx4s12s8s4s0sf32bi32_8vsx16vs_qmx_mopa(&internal_args);
 }
 
-struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot(void) {
+struct kai_matmul_uker_api kai_matmul_clamp_qai8_qai8p8vsx4_qsi2cxp16vsx4s12s8s4s0sf32bi32_8vsx16vs_qmx_mopa(void) {
     const struct kai_matmul_uker_api api = {
         .run = run,
         .get_step = get_step,

@@ -269,8 +269,8 @@ Buffer FlattenedBlockwisePackedFormat::pack(Shape shape, Span<const Span<const s
                 }
 
                 const size_t packed_size = pack_interleaved(
-                    m_nr, m_source_config.block_length, m_source_config.block_length, false, panel_height,
-                    m_source_config.block_length, 4, packed_block.qdata, signed_qdata);
+                    m_nr, m_source_config.block_length, m_source_config.block_length, std::optional<double>{0},
+                    panel_height, m_source_config.block_length, 4, packed_block.qdata, signed_qdata);
                 KAI_TEST_ASSERT(packed_size == packed_block.qdata.size());
 
                 const size_t superblock = block / blocks_per_superblock;

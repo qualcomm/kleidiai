@@ -439,6 +439,27 @@ struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_kxn_qsu2cxp16vsx4sf32bi3
 /// @return The micro-kernel API.
 struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qsu2cxp16vsx4sf32bi32_qsu2cx_f32_i32_sme(void);
 
+/// Non-transposed RHS packing for static quantized INT2 data with a signed S12S8S4S0 payload.
+///
+/// The container, strides, and offsets match
+/// @ref kai_matmul_pack_rhs_kxn_qsu2cxp16vsx4sf32bi32_qsu2cx_f32_i32_sme, but each 16-K unit is
+/// regrouped so byte r contains K+r, K+4+r, K+8+r, and K+12+r from least to most significant.
+/// QSU2 fields are converted to two's-complement QSI2 during packing. The formats have identical
+/// sizes but are not interchangeable.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_pack_rhs_uker_api
+kai_matmul_pack_rhs_kxn_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme(void);
+
+/// Transposed RHS packing for static quantized INT2 data with a signed S12S8S4S0 payload.
+///
+/// This produces the same packed format as
+/// @ref kai_matmul_pack_rhs_kxn_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme from an NxK source matrix.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_pack_rhs_uker_api
+kai_matmul_pack_rhs_nxk_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme(void);
+
 /// Transposed RHS packing micro-kernel for statically-blockwise quantized unsigned INT4 data (fixed RHS zero point
 /// 8, fixed LHS zero point 1, BF16 block scales).
 ///

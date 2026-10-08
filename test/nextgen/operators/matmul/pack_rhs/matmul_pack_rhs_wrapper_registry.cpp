@@ -397,6 +397,33 @@ MatMulPackKernelPtr create_matmul_pack_rhs_qsu2(bool nxk) {
         make_poly<PlainFormat>(DataType::I32), format, MatMulUkerApiBiasDeliveryStage::PACK_RHS,
         MatMulSlot::RHS_T_QDATA_SIGN_T, slots, refs);
 }
+
+MatMulPackKernelPtr create_matmul_pack_rhs_qsi2_s12s8s4s0(bool nxk) {
+    MatMulPackRhsOperandSlots slots{};
+    slots.bias_n = MatMulSlot::ACC_BIAS_N_QDATA;
+    slots.k_sum_scale_global = MatMulSlot::LHS_QZP_NEG;
+    slots.scale_n = MatMulSlot::RHS_T_QSCALE;
+    slots.scale_global = MatMulSlot::LHS_QSCALE_DIV_DST_QSCALE;
+    const Poly<Format> format = make_poly<Block2dRowFormat>(
+        16 * get_sme_vector_scale(), 4, 32, false, DataType::U2, std::array{DataType::I32}, std::array{DataType::FP32},
+        0, 2, false, std::array<DataType, 0>{}, std::array<DataType, 0>{}, 1, false,
+        Block2dRowPackingLayout::S12S8S4S0);
+    const std::vector refs{
+        MatMulSlot::ACC_BIAS_N_QDATA_MINUS_LHS_QZP_MUL_RHS_T_QDATA_ROW_SUM, MatMulSlot::RHS_T_QDATA_SIGN,
+        MatMulSlot::RHS_T_QSCALE_MUL_LHS_QSCALE_DIV_DST_QSCALE};
+    if (nxk) {
+        return std::make_unique<MatMulPackRhsUkerApiTWrapper>(
+            "matmul_pack_rhs_nxk_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme",
+            kai_matmul_pack_rhs_nxk_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme(),
+            make_poly<PlainFormat>(DataType::U2), make_poly<PlainFormat>(DataType::I32), format,
+            MatMulUkerApiBiasDeliveryStage::PACK_RHS, slots, refs, MatMulSlot::RHS_T_QDATA_SIGN);
+    }
+    return std::make_unique<MatMulPackRhsUkerApiWrapper>(
+        "matmul_pack_rhs_kxn_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme",
+        kai_matmul_pack_rhs_kxn_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme(), make_poly<PlainFormat>(DataType::U2),
+        make_poly<PlainFormat>(DataType::I32), format, MatMulUkerApiBiasDeliveryStage::PACK_RHS,
+        MatMulSlot::RHS_T_QDATA_SIGN_T, slots, refs);
+}
 }  // namespace
 
 MatMulPackKernelPtr create_matmul_pack_rhs_kxn_qsi4cxp8vsx4sf32bi32_qsi4cx_f32_i32_sme() {
@@ -413,6 +440,14 @@ MatMulPackKernelPtr create_matmul_pack_rhs_kxn_qsu2cxp16vsx4sf32bi32_qsu2cx_f32_
 
 MatMulPackKernelPtr create_matmul_pack_rhs_nxk_qsu2cxp16vsx4sf32bi32_qsu2cx_f32_i32_sme() {
     return create_matmul_pack_rhs_qsu2(true);
+}
+
+MatMulPackKernelPtr create_matmul_pack_rhs_kxn_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme() {
+    return create_matmul_pack_rhs_qsi2_s12s8s4s0(false);
+}
+
+MatMulPackKernelPtr create_matmul_pack_rhs_nxk_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme() {
+    return create_matmul_pack_rhs_qsi2_s12s8s4s0(true);
 }
 
 MatMulPackKernelPtr create_matmul_rhs_pack_kxn_qsi4c32p16vsx4s4s0_qsu4c32_f32_bf16_sme() {
@@ -533,6 +568,13 @@ bool is_shape_suitable_rhs_qsu2cxp16vsx4sf32bi32(
     [[maybe_unused]] size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion) {
     return is_shape_suitable_rhs_uker_api(
         shape_n, shape_k, portion, kai_matmul_pack_rhs_kxn_qsu2cxp16vsx4sf32bi32_qsu2cx_f32_i32_sme());
+}
+
+bool is_shape_suitable_rhs_qsi2cxp16vsx4s12s8s4s0sf32bi32(
+    [[maybe_unused]] size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion) {
+    return is_shape_suitable_rhs_uker_api(
+        shape_n, shape_k, portion,
+        kai_matmul_pack_rhs_kxn_qsi2cxp16vsx4s12s8s4s0sf32bi32_qsu2cx_f32_i32_sme());
 }
 
 bool is_shape_suitable_rhs_qai8dxp1vlx4_qsi4cxp4vlx4_1vlx4vl_sme_mopa(

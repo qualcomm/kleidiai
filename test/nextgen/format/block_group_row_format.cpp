@@ -219,8 +219,9 @@ Buffer BlockGroupRowFormat::pack(Shape shape, Span<const Span<const std::byte>> 
 
                 const PackBlock2dInterleaveFn pack_fn = make_pack_block2d_interleave(m_dtype);
                 const size_t size = pack_fn(
-                    m_block_height, m_block_width, m_block_width, m_pad_right_same, remaining_height,
-                    group_remaining_width, m_interleave_width, packed_data, group_scratch_view);
+                    m_block_height, m_block_width, m_block_width,
+                    m_pad_right_same ? std::nullopt : std::optional<double>{0}, remaining_height, group_remaining_width,
+                    m_interleave_width, packed_data, group_scratch_view);
                 packed_data = packed_data.subspan(size);
             }
 

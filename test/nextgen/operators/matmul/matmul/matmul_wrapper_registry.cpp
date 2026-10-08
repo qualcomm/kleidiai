@@ -533,7 +533,8 @@ MatMulKernelPtr create_matmul_clamp_qai8_qsi4(bool lhs_packed) {
 }
 
 MatMulKernelPtr create_matmul_clamp_qai8_qsu2(
-    const char* name, struct kai_matmul_uker_api api, bool lhs_packed) {
+    const char* name, struct kai_matmul_uker_api api, bool lhs_packed,
+    Block2dRowPackingLayout layout = Block2dRowPackingLayout::DEFAULT) {
     MatMulUkerOutputStageConfig output_stage_config{};
     output_stage_config.scale_bias = {MatMulUkerStageParameterLayout::GLOBAL};
     output_stage_config.scale_bias_global_slot = MatMulSlot::DST_QZP;
@@ -552,7 +553,8 @@ MatMulKernelPtr create_matmul_clamp_qai8_qsu2(
         name, api, lhs_packed ? MatMulSlot::LHS_PACKED : MatMulSlot::LHS_QDATA, lhs_format,
         make_poly<Block2dRowFormat>(
             16 * get_sme_vector_scale(), 4, 32, false, DataType::U2, std::array{DataType::I32},
-            std::array{DataType::FP32}, 0, 2),
+            std::array{DataType::FP32}, 0, 2, false, std::array<DataType, 0>{}, std::array<DataType, 0>{}, 1, false,
+            layout),
         make_poly<PlainFormat>(DataType::I8), DataType::I32, MatMulUkerClampConfig::optional(DataType::I32),
         MatMulUkerApiBiasDeliveryStage::PACK_RHS, output_stage_config);
 }
@@ -600,10 +602,18 @@ MatMulKernelPtr create_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_
         kai_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_dot(), false);
 }
 
-MatMulKernelPtr create_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot() {
+MatMulKernelPtr create_matmul_clamp_qai8_qai8p8vsx4_qsi2cxp16vsx4s12s8s4s0sf32bi32_8vsx16vs_qmx_mopa() {
     return create_matmul_clamp_qai8_qsu2(
-        "matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot",
-        kai_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_qmx_dot(), false);
+        "matmul_clamp_qai8_qai8p8vsx4_qsi2cxp16vsx4s12s8s4s0sf32bi32_8vsx16vs_qmx_mopa",
+        kai_matmul_clamp_qai8_qai8p8vsx4_qsi2cxp16vsx4s12s8s4s0sf32bi32_8vsx16vs_qmx_mopa(), true,
+        Block2dRowPackingLayout::S12S8S4S0);
+}
+
+MatMulKernelPtr create_matmul_clamp_qai8_qai8_qsi2cxp16vsx4s12s8s4s0sf32bi32_1x64vs_qmx_dot() {
+    return create_matmul_clamp_qai8_qsu2(
+        "matmul_clamp_qai8_qai8_qsi2cxp16vsx4s12s8s4s0sf32bi32_1x64vs_qmx_dot",
+        kai_matmul_clamp_qai8_qai8_qsi2cxp16vsx4s12s8s4s0sf32bi32_1x64vs_qmx_dot(), false,
+        Block2dRowPackingLayout::S12S8S4S0);
 }
 
 MatMulKernelPtr create_matmul_clamp_f32_qai8dxp1x4_qsi4c32p16vsx4_1x16vs_sme_dot() {
