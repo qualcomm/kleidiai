@@ -65,9 +65,61 @@ size_t pack_block2d(
     return total_size;
 }
 
-size_t pack_block2d_interleave(
-    size_t block_height, size_t block_width, size_t width_align, bool pad_right_same, size_t height, size_t width,
-    size_t interleave_width, Span<std::byte> packed_data, Span<const std::byte> data) {
+size_t pack_block2d_interleave_u2(
+    size_t block_height, size_t block_width, size_t width_align, std::optional<double> pad_value, size_t height,
+    size_t width, size_t interleave_width, Span<std::byte> packed_data, Span<const std::byte> data) {
+    constexpr size_t fields_per_byte = 4;
+
+    KAI_TEST_ASSERT(interleave_width > 0);
+    KAI_TEST_ASSERT(block_width == interleave_width);
+    KAI_TEST_ASSERT(width_align % (fields_per_byte * interleave_width) == 0);
+    KAI_TEST_ASSERT(height > 0);
+    KAI_TEST_ASSERT(!pad_value.has_value() || static_cast<uint8_t>(pad_value.value()) == 2);
+
+    const size_t k_unit = fields_per_byte * interleave_width;
+    const size_t bytes_per_packet = interleave_width;
+    const size_t padded_width = round_up_multiple(width, width_align);
+    const size_t num_block_rows = round_up_division(height, block_height);
+    const size_t num_k_units = padded_width / k_unit;
+    const size_t src_row_size = round_up_division(width * size_in_bits<UInt2>, 8);
+    const size_t panel_size = block_height * padded_width / 4;
+
+    for (size_t block_row = 0; block_row < num_block_rows; ++block_row) {
+        const size_t panel_offset = block_row * panel_size;
+        for (size_t elem_row = 0; elem_row < block_height; ++elem_row) {
+            const size_t row = block_row * block_height + elem_row;
+            if (row >= height) {
+                continue;
+            }
+
+            const Span<const std::byte> src_row_data = data.subspan(row * src_row_size, src_row_size);
+            for (size_t unit = 0; unit < num_k_units; ++unit) {
+                const size_t k0 = unit * k_unit;
+                const size_t dst_offset = panel_offset + unit * block_height * bytes_per_packet + elem_row * bytes_per_packet;
+
+                for (size_t byte = 0; byte < bytes_per_packet; ++byte) {
+                    uint8_t packed_byte = 0;
+                    for (size_t field = 0; field < 4; ++field) {
+                        const size_t k = k0 + byte + field * interleave_width;
+                        const uint8_t qsu2 =
+                            k < width ? static_cast<uint8_t>(static_cast<int32_t>(read_array<UInt2>(src_row_data, k))) : 2;
+                        packed_byte |= static_cast<uint8_t>((qsu2 ^ 2U) << (2 * field));
+                    }
+                    packed_data[dst_offset + byte] = static_cast<std::byte>(packed_byte);
+                }
+            }
+        }
+    }
+
+    return num_block_rows * panel_size;
+}
+
+size_t pack_block2d_interleave_i4(
+    size_t block_height, size_t block_width, size_t width_align, std::optional<double> pad_value, size_t height,
+    size_t width, size_t interleave_width, Span<std::byte> packed_data, Span<const std::byte> data) {
+    KAI_TEST_ASSERT(!pad_value.has_value() || pad_value.value() == 0);
+    const bool pad_right_same = !pad_value.has_value();
+
     KAI_TEST_ASSERT(width_align % block_width == 0);
     KAI_TEST_ASSERT(interleave_width > 0);
     KAI_TEST_ASSERT(32 % (2 * interleave_width) == 0);
@@ -156,7 +208,10 @@ PackBlock2dFn make_pack_block2d(DataType dtype) {
 PackBlock2dInterleaveFn make_pack_block2d_interleave(DataType dtype) {
     switch (dtype) {
         case DataType::I4:
-            return pack_block2d_interleave;
+            return pack_block2d_interleave_i4;
+
+        case DataType::U2:
+            return pack_block2d_interleave_u2;
 
         default:
             KAI_TEST_ERROR("Not supported.");
