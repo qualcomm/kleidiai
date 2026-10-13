@@ -14,8 +14,8 @@
 extern "C" {
 #endif
 
-#ifndef kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon_params
-#define kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon_params kai_rhs_pack_qs4cxs1s0_param
+#ifndef kai_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon_params
+#define kai_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon_params kai_rhs_pack_qs4cxs1s0_param
 #endif
 
 /// Get the n step value.
@@ -23,7 +23,7 @@ extern "C" {
 /// @param[in] nr The number of columns written by the matmul micro-kernel.
 ///
 /// @return The n step value.
-size_t kai_get_n_step_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(size_t nr);
+size_t kai_get_n_step_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon(size_t nr);
 
 /// Gets the offset in bytes for the unpacked RHS matrix.
 ///
@@ -31,7 +31,7 @@ size_t kai_get_n_step_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(size_t nr);
 /// @param[in] rhs_stride The number of bytes in each row of the RHS matrix.
 ///
 /// @return The offset in bytes to the RHS matrix.
-size_t kai_get_rhs_offset_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(size_t n_idx, size_t rhs_stride);
+size_t kai_get_rhs_offset_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon(size_t n_idx, size_t rhs_stride);
 
 /// Gets the row stride in bytes for the packed RHS matrix.
 ///
@@ -41,7 +41,7 @@ size_t kai_get_rhs_offset_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(size_t n_idx, si
 /// @param[in] sr The number of kr splits.
 ///
 /// @return The stride in bytes to the packed RHS matrix.
-size_t kai_get_rhs_packed_stride_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(
+size_t kai_get_rhs_packed_stride_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon(
     size_t k, size_t nr, size_t kr, size_t sr);
 
 /// Gets the offset in bytes for the packed RHS matrix.
@@ -53,7 +53,7 @@ size_t kai_get_rhs_packed_stride_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(
 /// @param[in] sr    The number of kr splits.
 ///
 /// @return The offset in bytes to the packed RHS matrix.
-size_t kai_get_rhs_packed_offset_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(
+size_t kai_get_rhs_packed_offset_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon(
     size_t n_idx, size_t k, size_t nr, size_t kr, size_t sr);
 
 /// Gets the size in bytes for the packed RHS matrix.
@@ -65,22 +65,24 @@ size_t kai_get_rhs_packed_offset_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(
 /// @param[in] sr The number of kr splits.
 ///
 /// @return The packed RHS matrix size in bytes.
-size_t kai_get_rhs_packed_size_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(
+size_t kai_get_rhs_packed_size_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon(
     size_t n, size_t k, size_t nr, size_t kr, size_t sr);
 
-/// Packs an NxK QSU2 matrix into signed 2-bit QMX-quarter layout.
+/// Packs an NxK QSU2 matrix into a signed 2-bit, K-regrouped layout.
 ///
 /// The input stores four unsigned 2-bit values per byte, with K+0 in bits [1:0]
 /// through K+3 in bits [7:6]. Each source code q is recoded to (q - 2) & 3.
-/// For quarter width W = nr / 4 and local column i, a four-K group is packed as:
+/// For one RHS row and each 16-K unit beginning at K, the output is:
 ///
-///   byte 4*i+0 = [N=3W+i,K+0 | N=2W+i,K+0 | N=W+i,K+0 | N=i,K+0]
-///   byte 4*i+1 = [N=3W+i,K+1 | N=2W+i,K+1 | N=W+i,K+1 | N=i,K+1]
-///   byte 4*i+2 = [N=3W+i,K+2 | N=2W+i,K+2 | N=W+i,K+2 | N=i,K+2]
-///   byte 4*i+3 = [N=3W+i,K+3 | N=2W+i,K+3 | N=W+i,K+3 | N=i,K+3]
+///   byte 0 = [K+12 | K+8  | K+4  | K+0]
+///   byte 1 = [K+13 | K+9  | K+5  | K+1]
+///   byte 2 = [K+14 | K+10 | K+6  | K+2]
+///   byte 3 = [K+15 | K+11 | K+7  | K+3]
 ///
-/// Each bracket lists 2-bit fields from most significant to least significant.
-/// This private format is not compatible with the existing QSU2 QMX kernels.
+/// Each bracket lists signed 2-bit fields from most significant to least significant.
+/// Rows are stored consecutively within each 16-K unit, so each vector-length region
+/// supplies one N quarter to the corresponding QMX MOPA accumulator tile. This private
+/// format is not compatible with the generic QSU2 packers or their consumers.
 ///
 /// @param[in]  num_groups  The number of groups. It must be 1.
 /// @param[in]  n           The number of rows in the RHS matrix.
@@ -95,10 +97,10 @@ size_t kai_get_rhs_packed_size_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(
 /// @param[in]  extra_bytes Extra bytes appended to each packed panel. It must be 0.
 /// @param[in]  params      Packing parameters. rhs_zero_point must be 2.
 /// @param[in]  lut_arg     Unused; signed recoding and row-sum semantics are fixed.
-void kai_run_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon(
+void kai_run_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon(
     size_t num_groups, size_t n, size_t k, size_t nr, size_t kr, size_t sr, const uint8_t* rhs, const float* bias,
     const float* scale, void* rhs_packed, size_t extra_bytes,
-    const struct kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon_params* params, const int32_t* lut_arg);
+    const struct kai_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon_params* params, const int32_t* lut_arg);
 
 #ifdef __cplusplus
 }

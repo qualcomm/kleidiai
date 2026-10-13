@@ -32,11 +32,11 @@
     #define KAI_ASM_INST(hex) .inst hex
     #define KAI_ASM_END
 #endif
-    KAI_ASM_CODE(matmul_clamp_f32_qai8dxp1x4_qsu2cxp4vlx4_1x4vl_qmx_dot)
+    KAI_ASM_CODE(matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot)
     KAI_ASM_ALIGN
-    KAI_ASM_GLOBAL(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsu2cxp4vlx4_1x4vl_qmx_dot)
-KAI_ASM_FUNCTION_TYPE(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsu2cxp4vlx4_1x4vl_qmx_dot)
-KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsu2cxp4vlx4_1x4vl_qmx_dot)
+    KAI_ASM_GLOBAL(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot)
+KAI_ASM_FUNCTION_TYPE(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot)
+KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot)
     stp     x19, x20, [sp, -144]!
     stp     x21, x22, [sp, 16]
     stp     x23, x24, [sp, 32]
@@ -83,111 +83,62 @@ KAI_ASM_LABEL(K_Loop)                   // K Loop
     incb	x24
     whilelt	p7.b, x24, x25
     decb x24 , ALL, MUL #3
-    ld1rqb  { z0.b }, p1/z , [x21, x23]
+    KAI_ASM_INST(0xa41706a0)            // ld1rqb  { z0.b }, p1/z, [x21, x23]
     ld1b    { z16.b }, p4/z, [x24]
     ld1b    { z17.b }, p5/z, [x24, #1, mul vl]
     ld1b    { z18.b }, p6/z, [x24, #2, mul vl]
     ld1b    { z19.b }, p7/z, [x24, #3, mul vl]
-    // Extract and interleave 2-bit fields from z16 into z24..z27, then subtract 2
-    orr     z24.b, z16.b, z16.b
-    lsr     z25.b, z16.b, #2
-    lsr     z26.b, z16.b, #4
-    lsr     z27.b, z16.b, #6
-    and     z24.b, z24.b, #0x03
-    and     z25.b, z25.b, #0x03
-    and     z26.b, z26.b, #0x03
-    and     z27.b, z27.b, #0x03
-    zip1    z2.b,  z24.b, z25.b
-    zip2    z3.b,  z24.b, z25.b
-    zip1    z28.b, z26.b, z27.b
-    zip2    z29.b, z26.b, z27.b
-    zip1    z24.h, z2.h,  z28.h
-    zip2    z25.h, z2.h,  z28.h
-    zip1    z26.h, z3.h,  z29.h
-    zip2    z27.h, z3.h,  z29.h
-    sub     z24.b, z24.b, #2
-    sub     z25.b, z25.b, #2
-    sub     z26.b, z26.b, #2
-    sub     z27.b, z27.b, #2
-    // Extract and interleave 2-bit fields from z17 into z20..z23, then subtract 2
-    orr     z20.b, z17.b, z17.b
-    lsr     z21.b, z17.b, #2
-    lsr     z22.b, z17.b, #4
-    lsr     z23.b, z17.b, #6
-    and     z20.b, z20.b, #0x03
-    and     z21.b, z21.b, #0x03
-    and     z22.b, z22.b, #0x03
-    and     z23.b, z23.b, #0x03
-    zip1    z2.b,  z20.b, z21.b
-    zip2    z3.b,  z20.b, z21.b
-    zip1    z28.b, z22.b, z23.b
-    zip2    z29.b, z22.b, z23.b
-    zip1    z20.h, z2.h,  z28.h
-    zip2    z21.h, z2.h,  z28.h
-    zip1    z22.h, z3.h,  z29.h
-    zip2    z23.h, z3.h,  z29.h
-    sub     z20.b, z20.b, #2
-    sub     z21.b, z21.b, #2
-    sub     z22.b, z22.b, #2
-    sub     z23.b, z23.b, #2
-    sdot    z4.s,  z24.b, z0.b[0]
-    sdot    z5.s,  z25.b, z0.b[0]
-    sdot    z6.s,  z26.b, z0.b[0]
-    sdot    z7.s,  z27.b, z0.b[0]
-    sdot    z4.s,  z20.b, z0.b[1]
-    sdot    z5.s,  z21.b, z0.b[1]
-    sdot    z6.s,  z22.b, z0.b[1]
-    sdot    z7.s,  z23.b, z0.b[1]
-    // Extract and interleave 2-bit fields from z18 into z8..z11, then subtract 2
-    orr     z8.b,  z18.b, z18.b
-    lsr     z9.b,  z18.b, #2
-    lsr     z10.b, z18.b, #4
-    lsr     z11.b, z18.b, #6
-    and     z8.b,  z8.b,  #0x03
-    and     z9.b,  z9.b,  #0x03
-    and     z10.b, z10.b, #0x03
-    and     z11.b, z11.b, #0x03
-    zip1    z2.b,  z8.b,  z9.b
-    zip2    z3.b,  z8.b,  z9.b
-    zip1    z28.b, z10.b, z11.b
-    zip2    z29.b, z10.b, z11.b
-    zip1    z8.h,  z2.h,  z28.h
-    zip2    z9.h,  z2.h,  z28.h
-    zip1    z10.h, z3.h,  z29.h
-    zip2    z11.h, z3.h,  z29.h
-    sub     z8.b,  z8.b,  #2
-    sub     z9.b,  z9.b,  #2
-    sub     z10.b, z10.b, #2
-    sub     z11.b, z11.b, #2
-    // Extract and interleave 2-bit fields from z19 into z12..z15, then subtract 2
-    orr     z12.b, z19.b, z19.b
-    lsr     z13.b, z19.b, #2
-    lsr     z14.b, z19.b, #4
-    lsr     z15.b, z19.b, #6
-    and     z12.b, z12.b, #0x03
-    and     z13.b, z13.b, #0x03
-    and     z14.b, z14.b, #0x03
-    and     z15.b, z15.b, #0x03
-    zip1    z2.b,  z12.b, z13.b
-    zip2    z3.b,  z12.b, z13.b
-    zip1    z28.b, z14.b, z15.b
-    zip2    z29.b, z14.b, z15.b
-    zip1    z12.h, z2.h,  z28.h
-    zip2    z13.h, z2.h,  z28.h
-    zip1    z14.h, z3.h,  z29.h
-    zip2    z15.h, z3.h,  z29.h
-    sub     z12.b, z12.b, #2
-    sub     z13.b, z13.b, #2
-    sub     z14.b, z14.b, #2
-    sub     z15.b, z15.b, #2
+    // Field 0 supplies K+0..3 to all four N quarters.
+    lsl     z8.b,  z16.b, #6
+    lsl     z9.b,  z17.b, #6
+    lsl     z10.b, z18.b, #6
+    lsl     z11.b, z19.b, #6
+    asr     z8.b,  z8.b,  #6
+    asr     z9.b,  z9.b,  #6
+    asr     z10.b, z10.b, #6
+    asr     z11.b, z11.b, #6
+    sdot    z4.s,  z8.b,  z0.b[0]
+    sdot    z5.s,  z9.b,  z0.b[0]
+    sdot    z6.s,  z10.b, z0.b[0]
+    sdot    z7.s,  z11.b, z0.b[0]
+
+    // Field 1 supplies K+4..7 to all four N quarters.
+    lsl     z8.b,  z16.b, #4
+    lsl     z9.b,  z17.b, #4
+    lsl     z10.b, z18.b, #4
+    lsl     z11.b, z19.b, #4
+    asr     z8.b,  z8.b,  #6
+    asr     z9.b,  z9.b,  #6
+    asr     z10.b, z10.b, #6
+    asr     z11.b, z11.b, #6
+    sdot    z4.s,  z8.b,  z0.b[1]
+    sdot    z5.s,  z9.b,  z0.b[1]
+    sdot    z6.s,  z10.b, z0.b[1]
+    sdot    z7.s,  z11.b, z0.b[1]
+
+    // Field 2 supplies K+8..11 to all four N quarters.
+    lsl     z8.b,  z16.b, #2
+    lsl     z9.b,  z17.b, #2
+    lsl     z10.b, z18.b, #2
+    lsl     z11.b, z19.b, #2
+    asr     z8.b,  z8.b,  #6
+    asr     z9.b,  z9.b,  #6
+    asr     z10.b, z10.b, #6
+    asr     z11.b, z11.b, #6
     sdot    z4.s,  z8.b,  z0.b[2]
     sdot    z5.s,  z9.b,  z0.b[2]
     sdot    z6.s,  z10.b, z0.b[2]
     sdot    z7.s,  z11.b, z0.b[2]
-    sdot    z4.s,  z12.b, z0.b[3]
-    sdot    z5.s,  z13.b, z0.b[3]
-    sdot    z6.s,  z14.b, z0.b[3]
-    sdot    z7.s,  z15.b, z0.b[3]
+
+    // Field 3 supplies K+12..15 to all four N quarters.
+    asr     z8.b,  z16.b, #6
+    asr     z9.b,  z17.b, #6
+    asr     z10.b, z18.b, #6
+    asr     z11.b, z19.b, #6
+    sdot    z4.s,  z8.b,  z0.b[3]
+    sdot    z5.s,  z9.b,  z0.b[3]
+    sdot    z6.s,  z10.b, z0.b[3]
+    sdot    z7.s,  z11.b, z0.b[3]
     addvl   x24, x24, #4
     add     x23, x23, #16
     whilelt p1.b, x23, x8
@@ -284,6 +235,6 @@ KAI_ASM_LABEL(K_Loop)                   // K Loop
     ldp     x21, x22, [sp, 16]
     ldp     x19, x20, [sp],144
     ret
-    KAI_ASM_FUNCTION_END(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsu2cxp4vlx4_1x4vl_qmx_dot)
+    KAI_ASM_FUNCTION_END(kai_kernel_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot)
 
     KAI_ASM_END

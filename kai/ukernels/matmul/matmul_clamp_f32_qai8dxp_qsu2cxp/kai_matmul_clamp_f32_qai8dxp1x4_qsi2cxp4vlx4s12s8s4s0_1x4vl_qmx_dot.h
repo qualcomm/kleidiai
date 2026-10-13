@@ -16,7 +16,7 @@ extern "C" {
 /// Micro-kernel dependencies
 ///
 /// -# kai_lhs_quant_pack_qai8dxp_f32 to dynamically quantize and pack the LHS matrix
-/// -# kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon to pack the RHS matrix in signed QMX-quarter layout
+/// -# kai_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon to pack the RHS matrix
 
 /// --------------------------------------------------
 
@@ -25,38 +25,38 @@ extern "C" {
 /// be processed must be a multiple of m step.
 ///
 /// @return the m step value
-size_t kai_get_m_step_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(void);
+size_t kai_get_m_step_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(void);
 
 /// Gets the n step value.
 /// The micro-kernel can process any N values. However, the starting N index to
 /// be processed must be a multiple of n step.
 ///
 /// @return the n step
-size_t kai_get_n_step_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(void);
+size_t kai_get_n_step_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(void);
 
 /// Gets the mr value, which must be used to pack the LHS matrix with
 /// the @ref kai_lhs_quant_pack_qai8dxp_f32 micro-kernel
 ///
 /// @return the mr value
-size_t kai_get_mr_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(void);
+size_t kai_get_mr_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(void);
 
 /// Gets the nr value, which must be used to pack the RHS matrix with
-/// the @ref kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon micro-kernel
+/// the @ref kai_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon micro-kernel
 ///
 /// @return the nr value
-size_t kai_get_nr_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(void);
+size_t kai_get_nr_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(void);
 
 /// Gets the kr value, which must be used to pack the RHS matrix with
-/// the @ref kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon micro-kernel
+/// the @ref kai_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon micro-kernel
 ///
 /// @return the kr value
-size_t kai_get_kr_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(void);
+size_t kai_get_kr_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(void);
 
 /// Gets the sr value, which must be used to pack the RHS matrix with
-/// the @ref kai_rhs_pack_nxk_qsi2cxp4vlx4_qsu2cx_neon micro-kernel
+/// the @ref kai_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon micro-kernel
 ///
 /// @return the sr value
-size_t kai_get_sr_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(void);
+size_t kai_get_sr_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(void);
 
 /// Gets the offset in bytes for the packed LHS matrix,
 /// which contains the packed 8-bit quantized asymmetric per-row (qai8dxp) values.
@@ -67,16 +67,16 @@ size_t kai_get_sr_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(vo
 /// @param[in] k     Total number of columns in the LHS matrix (not packed).
 ///
 /// @return the offset in bytes to the packed LHS matrix
-size_t kai_get_lhs_packed_offset_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(size_t m_idx, size_t k);
+size_t kai_get_lhs_packed_offset_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(size_t m_idx, size_t k);
 
 /// Gets the offset in bytes for the packed RHS matrix,
-/// which contains QSU2 values recoded and packed in signed QMX-quarter layout.
+/// which contains QSU2 source values recoded as signed 2-bit values and K-regrouped in 16-element units.
 ///
 /// @param[in] n_idx Row index in the RHS matrix (not packed).
 /// @param[in] k     The common dimension between the LHS and RHS matrix (K).
 ///
 /// @return the offset in bytes to the packed RHS matrix
-size_t kai_get_rhs_packed_offset_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(size_t n_idx, size_t k);
+size_t kai_get_rhs_packed_offset_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(size_t n_idx, size_t k);
 
 /// Gets the offset in bytes for the DST matrix
 ///
@@ -85,7 +85,7 @@ size_t kai_get_rhs_packed_offset_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx
 /// @param[in] dst_stride The number of bytes in in each row of the DST matrix
 ///
 /// @return the destination(DST) offset in bytes
-size_t kai_get_dst_offset_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(
+size_t kai_get_dst_offset_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(
     size_t m_idx, size_t n_idx, size_t dst_stride);
 
 /// Gets the size in bytes for the destination (DST) matrix.
@@ -94,12 +94,12 @@ size_t kai_get_dst_offset_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx
 /// @param[in] n Number of columns in the destination (DST) matrix.
 ///
 /// @return the destination (DST) matrix size in bytes
-size_t kai_get_dst_size_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(size_t m, size_t n);
+size_t kai_get_dst_size_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(size_t m, size_t n);
 
 /// Runs the matrix multiplication (matmul) micro-kernel followed by a clamp (min-max) operation.
 ///
 /// LHS matrix: Signed 8-bit quantized asymmetric per-row (qai8dxp) and packed
-/// RHS matrix: Unsigned 2-bit quantized per-channel values recoded in signed QMX-quarter packed layout.
+/// RHS matrix: QSU2 source values recoded as signed 2-bit values and K-regrouped in 16-element units.
 ///
 /// @param[in]  m              The number of output rows written.
 /// @param[in]  n              The number of output columns written.
@@ -110,14 +110,14 @@ size_t kai_get_dst_size_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_m
 ///                            by calling the @ref kai_lhs_quant_pack_qai8dxp_f32 micro-kernel which performs
 ///                            both the dynamic quantization to 8-bit and activation packing in a single step.
 /// @param[in]  rhs_packed     The RHS packed matrix, which is obtained by calling @ref
-///                            kai_run_rhs_pack_nxk_qsu2cxp4vlx4_qsu2cx_neon
+///                            kai_run_rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon
 /// @param[out] dst            The DST matrix.
 /// @param[in]  dst_stride_row Stride in bytes between two rows of the DST matrix.
 /// @param[in]  dst_stride_col Stride in bytes between two columns of the DST matrix. It must be sizeof(float).
 /// @param[in]  scalar_min     Min value used to clamp the final result.
 /// @param[in]  scalar_max     Max value used to clamp the final result.
-/// @param[in]  lut            Reserved for interface compatibility; this kernel uses the packer's fixed signed mapping.
-void kai_run_matmul_clamp_f32_qai8dxp1vlx4_qsu2cxp4vlx4_1vlx4vl_qmx_mopa(
+/// @param[in]  lut            Reserved for interface compatibility. The fixed signed mapping does not use it.
+void kai_run_matmul_clamp_f32_qai8dxp1x4_qsi2cxp4vlx4s12s8s4s0_1x4vl_qmx_dot(
     size_t m, size_t n, size_t k, const void* lhs_packed, const void* rhs_packed, float* dst, size_t dst_stride_row,
     size_t dst_stride_col, float scalar_min, float scalar_max, const int32_t* lut);
 
