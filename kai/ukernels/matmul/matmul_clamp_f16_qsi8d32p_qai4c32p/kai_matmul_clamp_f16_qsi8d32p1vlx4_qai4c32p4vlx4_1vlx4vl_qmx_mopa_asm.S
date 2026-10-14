@@ -105,20 +105,20 @@ KAI_ASM_LABEL(label_4)              // Block Loop (8-K packet, packet decode, no
     lsl  z6.b, z14.b, #4
     lsl  z7.b, z15.b, #4
 
-    smopa za0.s, p0/m, p0/m, z8.b, z4.b
-    smopa za1.s, p0/m, p0/m, z8.b, z5.b
-    smopa za2.s, p0/m, p0/m, z8.b, z6.b
-    smopa za3.s, p0/m, p0/m, z8.b, z7.b
+    KAI_ASM_INST(0xa0840100)  // smopa za0.s, p0/m, p0/m, z8.b, z4.b
+    KAI_ASM_INST(0xa0850101)  // smopa za1.s, p0/m, p0/m, z8.b, z5.b
+    KAI_ASM_INST(0xa0860102)  // smopa za2.s, p0/m, p0/m, z8.b, z6.b
+    KAI_ASM_INST(0xa0870103)  // smopa za3.s, p0/m, p0/m, z8.b, z7.b
 
     and  z12.b, z12.b, #0xf0
     and  z13.b, z13.b, #0xf0
     and  z14.b, z14.b, #0xf0
     and  z15.b, z15.b, #0xf0
 
-    smopa za0.s, p0/m, p0/m, z2.b, z12.b
-    smopa za1.s, p0/m, p0/m, z2.b, z13.b
-    smopa za2.s, p0/m, p0/m, z2.b, z14.b
-    smopa za3.s, p0/m, p0/m, z2.b, z15.b
+    KAI_ASM_INST(0xa08c0040)  // smopa za0.s, p0/m, p0/m, z2.b, z12.b
+    KAI_ASM_INST(0xa08d0041)  // smopa za1.s, p0/m, p0/m, z2.b, z13.b
+    KAI_ASM_INST(0xa08e0042)  // smopa za2.s, p0/m, p0/m, z2.b, z14.b
+    KAI_ASM_INST(0xa08f0043)  // smopa za3.s, p0/m, p0/m, z2.b, z15.b
     subs x11, x11, #8
     b.gt label_4
     mov w12, #0
