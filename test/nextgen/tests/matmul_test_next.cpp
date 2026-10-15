@@ -472,6 +472,52 @@ void register_qmx_f16_dispatch_tests(const MatMulOperator& op) {
     }
 }
 
+/// Registers deterministic K/N-tail and clamp tests for the QMX FP16 GEMV kernel.
+void register_qmx_f16_gemv_tests(const MatMulOperator& op) {
+    static constexpr std::string_view qmx_f16_gemv_operator =
+        "matmul_clamp_f16_f16_f16p4vsx2bf16_1x32vs_qmx_dot";
+    if (op.name != qmx_f16_gemv_operator) {
+        return;
+    }
+
+    const size_t nr = 4 * get_sme_vector_scale();
+    const MatrixPortion full(0, 0, 1, 1);
+    const MatMulBiasModeSet bias_per_n{MatMulBiasMode::ACCUMULATION_PER_N};
+
+    struct GemvCase {
+        size_t shape_n;
+        size_t shape_k;
+        std::optional<float> clamp_keep_ratio;
+    };
+
+    const std::array gemv_cases{
+        GemvCase{1, 1, std::nullopt},
+        GemvCase{nr - 1, 2, 1.0F},
+        GemvCase{nr, 7, 0.75F},
+        GemvCase{nr + 1, 8, std::nullopt},
+        GemvCase{2 * nr - 1, 9, 0.5F},
+        GemvCase{2 * nr, 17, 1.0F},
+        GemvCase{2 * nr + 1, 7, 0.25F},
+        GemvCase{4 * nr + 1, 17, std::nullopt},
+        GemvCase{8 * nr + 1, 9, 0.5F},
+    };
+
+    size_t case_no = 0;
+    for (const GemvCase& gemv_case : gemv_cases) {
+        KAI_TEST_ASSERT(op.is_shape_suitable(1, gemv_case.shape_n, gemv_case.shape_k, full));
+        const MatMulFixtureParams fixture{
+            case_no++,
+            1,
+            gemv_case.shape_n,
+            gemv_case.shape_k,
+            bias_per_n,
+            gemv_case.clamp_keep_ratio,
+            &op,
+        };
+        register_operator_test("MatMulNextQmxF16Gemv", op, fixture, full);
+    }
+}
+
 /// Registers all MatMulNext tests with the test registry.
 const auto matmul_tests_setup = TestRegistry::register_setup([]() {
     const size_t num_shapes_per_op = TestConfig::Get().num_shapes();
@@ -488,6 +534,7 @@ const auto matmul_tests_setup = TestRegistry::register_setup([]() {
         }
 
         register_qmx_f16_dispatch_tests(op);
+        register_qmx_f16_gemv_tests(op);
 
         const std::string test_suite_name = "MatMulNext";
         BiasSelector bias_selector(op);
