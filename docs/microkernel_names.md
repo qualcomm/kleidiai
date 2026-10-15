@@ -200,12 +200,13 @@ where:
 
 Describes the ordering of values inside a packed buffer.
 
-**`pack_order`** = `"s1s0" | "s4s0" | "s16s0" | "s32s0"`
+**`pack_order`** = `"s1s0" | "s4s0" | "s12s8s4s0" | "s16s0" | "s32s0"`
 
 where:
 
 - **`"s1s0"`**: Packing order of data is sequential
 - **`"s4s0"`**: Packing order of data is interleaved with nibble distance of 4
+- **`"s12s8s4s0"`**: Packing order has interleaved sub-byte fields at K offsets 12, 8, 4, and 0
 - **`"s16s0"`**: Packing order of data is interleaved
 - **`"s32s0"`**: Packing order of data is interleaved with nibble distance of 32
 
@@ -298,7 +299,7 @@ bias_type = "b" @operand_type
 superblock_description = "k" @natural_int [scale_type] [pack_order]
 scale_type = "s" @operand_type
 packing_layout = "p" size "x" size
-pack_order = "s1s0" | "s4s0" | "s16s0" | "s32s0"
+pack_order = "s1s0" | "s4s0" | "s12s8s4s0" | "s16s0" | "s32s0"
 dwconv_output_block_size = @natural_int "x" (@natural_int | "c")
 tile_size = size "x" size
 size = @natural_int | @natural_int "vl" | @natural_int "vs" | "mr" | "nr"

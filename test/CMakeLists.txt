@@ -112,6 +112,7 @@ if(MSVC)
         test/tests/float16_test.cpp
         test/tests/matmul_clamp_f32_qai8dxp_qsu2cxp_test.cpp
         test/tests/matmul_clamp_f32_qsi8d32p_qai4c32p_test.cpp
+        test/tests/rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon_test.cpp
         test/tests/matmul_clamp_bf16_qai8dxp_qsi4cxp_test.cpp
         test/tests/matmul_clamp_qai8dxp_qsi4c32p_test.cpp
         test/tests/matmul_clamp_f32_qai8dxp_qsi4cxp_test.cpp
@@ -141,6 +142,7 @@ else()
         test/tests/matmul_clamp_qai8_qai8p_qsi8cxp_test.cpp
         test/tests/matmul_clamp_qai8dxp_qsi4c32p_test.cpp
         test/tests/matmul_test.cpp
+        test/tests/rhs_pack_nxk_qsi2cxp4vlx4s12s8s4s0_qsu2cx_neon_test.cpp
 
         test/nextgen/tests/matmul_test_next.cpp
         test/nextgen/tests/poly_test.cpp

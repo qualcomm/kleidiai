@@ -112,6 +112,10 @@ def pack_order() -> Expr:
             "s4s0",
             description="Packing order of data is interleaved with nibble distance of 4",
         ),
+        Doc(
+            "s12s8s4s0",
+            description="Packing order has interleaved sub-byte fields at K offsets 12, 8, 4, and 0",
+        ),
         Doc("s16s0", description="Packing order of data is interleaved"),
         Doc(
             "s32s0",
