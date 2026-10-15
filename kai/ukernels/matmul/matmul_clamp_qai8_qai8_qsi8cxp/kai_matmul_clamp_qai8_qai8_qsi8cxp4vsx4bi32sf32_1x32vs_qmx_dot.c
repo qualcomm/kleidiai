@@ -8,6 +8,8 @@
 #error This file must be compiled for AArch64, FEAT_SVE2.
 #else  // Architectural features check.
 
+#include "kai_matmul_clamp_qai8_qai8_qsi8cxp4vsx4bi32sf32_1x32vs_qmx_dot.h"
+
 #include <stddef.h>
 #include <stdint.h>
 

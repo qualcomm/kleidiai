@@ -229,8 +229,8 @@ KAI_ASM_LABEL(label_3)  // Requantise and store
     fcvtzs z9.s, p2/m, z9.s
     add z8.s, z8.s, z28.s
     add z9.s, z9.s, z28.s
-    sclamp z8.s, z29.s, z30.s
-    sclamp z9.s, z29.s, z30.s
+    KAI_ASM_INST(0x449ec3a8)  // sclamp z8.s, z29.s, z30.s
+    KAI_ASM_INST(0x449ec3a9)  // sclamp z9.s, z29.s, z30.s
     // Interleave the halves back into column order; st1b of an .h vector emits nr bytes.
     whilelt p1.h, x11, x17
     uzp1 z8.h, z8.h, z9.h

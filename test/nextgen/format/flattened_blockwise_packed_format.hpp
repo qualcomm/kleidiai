@@ -14,6 +14,12 @@
 
 namespace kai::test {
 
+/// Nibble layout used by flattened blockwise quantized data.
+enum class FlattenedBlockwisePackedLayout {
+    S1S0,
+    S4S0,
+};
+
 /// Flattened blockwise data packed into N panels with per-block FP16 offset and scale.
 ///
 /// This is the RHS-packing destination for TwoLevelBlockwiseFormat. Its pack operation
@@ -45,7 +51,10 @@ public:
     ///
     /// @param[in] source_config Configuration of the native two-level blockwise source.
     /// @param[in] nr Number of rows in each packed panel.
-    FlattenedBlockwisePackedFormat(const TwoLevelBlockConfig& source_config, size_t nr);
+    /// @param[in] layout Nibble layout of the packed payload.
+    FlattenedBlockwisePackedFormat(
+        const TwoLevelBlockConfig& source_config, size_t nr,
+        FlattenedBlockwisePackedLayout layout = FlattenedBlockwisePackedLayout::S1S0);
 
     [[nodiscard]] std::string uid() const override;
     [[nodiscard]] size_t compute_offset(Shape shape, Span<const size_t> indices) const override;
@@ -63,6 +72,7 @@ private:
 
     TwoLevelBlockConfig m_source_config;
     size_t m_nr;
+    FlattenedBlockwisePackedLayout m_layout;
 };
 
 }  // namespace kai::test

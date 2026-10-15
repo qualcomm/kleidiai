@@ -125,10 +125,10 @@ KAI_ASM_LABEL(label_4) // Block loop: one 8-K packet of the s4s0sf16 layout
     fmul z9.h,  z9.h,  z25.h
     fmul z10.h, z10.h, z26.h
     fmul z11.h, z11.h, z27.h
-    fmopa za0.s, p2/m, p2/m, z16.h, z8.h
-    fmopa za1.s, p2/m, p2/m, z16.h, z9.h
-    fmopa za2.s, p2/m, p2/m, z16.h, z10.h
-    fmopa za3.s, p2/m, p2/m, z16.h, z11.h
+    KAI_ASM_INST(0x81a84a00)  // fmopa za0.s, p2/m, p2/m, z16.h, z8.h
+    KAI_ASM_INST(0x81a94a01)  // fmopa za1.s, p2/m, p2/m, z16.h, z9.h
+    KAI_ASM_INST(0x81aa4a02)  // fmopa za2.s, p2/m, p2/m, z16.h, z10.h
+    KAI_ASM_INST(0x81ab4a03)  // fmopa za3.s, p2/m, p2/m, z16.h, z11.h
     // ---- group (k2,k3): low nibbles of the (byte2,byte3) pairs ----
     lsl z20.b, z3.b, #4
     lsl z21.b, z13.b, #4
@@ -144,10 +144,10 @@ KAI_ASM_LABEL(label_4) // Block loop: one 8-K packet of the s4s0sf16 layout
     fmul z9.h,  z9.h,  z25.h
     fmul z10.h, z10.h, z26.h
     fmul z11.h, z11.h, z27.h
-    fmopa za0.s, p2/m, p2/m, z17.h, z8.h
-    fmopa za1.s, p2/m, p2/m, z17.h, z9.h
-    fmopa za2.s, p2/m, p2/m, z17.h, z10.h
-    fmopa za3.s, p2/m, p2/m, z17.h, z11.h
+    KAI_ASM_INST(0x81a84a20)  // fmopa za0.s, p2/m, p2/m, z17.h, z8.h
+    KAI_ASM_INST(0x81a94a21)  // fmopa za1.s, p2/m, p2/m, z17.h, z9.h
+    KAI_ASM_INST(0x81aa4a22)  // fmopa za2.s, p2/m, p2/m, z17.h, z10.h
+    KAI_ASM_INST(0x81ab4a23)  // fmopa za3.s, p2/m, p2/m, z17.h, z11.h
     // ---- group (k4,k5): high nibbles of the (byte0,byte1) pairs ----
     and z20.d, z2.d, z31.d
     and z21.d, z12.d, z31.d
@@ -163,10 +163,10 @@ KAI_ASM_LABEL(label_4) // Block loop: one 8-K packet of the s4s0sf16 layout
     fmul z9.h,  z9.h,  z25.h
     fmul z10.h, z10.h, z26.h
     fmul z11.h, z11.h, z27.h
-    fmopa za0.s, p2/m, p2/m, z18.h, z8.h
-    fmopa za1.s, p2/m, p2/m, z18.h, z9.h
-    fmopa za2.s, p2/m, p2/m, z18.h, z10.h
-    fmopa za3.s, p2/m, p2/m, z18.h, z11.h
+    KAI_ASM_INST(0x81a84a40)  // fmopa za0.s, p2/m, p2/m, z18.h, z8.h
+    KAI_ASM_INST(0x81a94a41)  // fmopa za1.s, p2/m, p2/m, z18.h, z9.h
+    KAI_ASM_INST(0x81aa4a42)  // fmopa za2.s, p2/m, p2/m, z18.h, z10.h
+    KAI_ASM_INST(0x81ab4a43)  // fmopa za3.s, p2/m, p2/m, z18.h, z11.h
     // ---- group (k6,k7): high nibbles of the (byte2,byte3) pairs ----
     and z20.d, z3.d, z31.d
     and z21.d, z13.d, z31.d
@@ -182,10 +182,10 @@ KAI_ASM_LABEL(label_4) // Block loop: one 8-K packet of the s4s0sf16 layout
     fmul z9.h,  z9.h,  z25.h
     fmul z10.h, z10.h, z26.h
     fmul z11.h, z11.h, z27.h
-    fmopa za0.s, p2/m, p2/m, z19.h, z8.h
-    fmopa za1.s, p2/m, p2/m, z19.h, z9.h
-    fmopa za2.s, p2/m, p2/m, z19.h, z10.h
-    fmopa za3.s, p2/m, p2/m, z19.h, z11.h
+    KAI_ASM_INST(0x81a84a60)  // fmopa za0.s, p2/m, p2/m, z19.h, z8.h
+    KAI_ASM_INST(0x81a94a61)  // fmopa za1.s, p2/m, p2/m, z19.h, z9.h
+    KAI_ASM_INST(0x81aa4a62)  // fmopa za2.s, p2/m, p2/m, z19.h, z10.h
+    KAI_ASM_INST(0x81ab4a63)  // fmopa za3.s, p2/m, p2/m, z19.h, z11.h
     subs x11, x11, #8
     b.gt label_4
     ldr x5, [x0, #0x50] // bl

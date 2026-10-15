@@ -294,6 +294,30 @@ struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qsi4cxp8vsx4s4s0sf32
 /// @return The micro-kernel API.
 struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme(void);
 
+/// Transposed RHS packing micro-kernel for static quantized int4 data with block-wise quantization and super block meta
+/// data for the QMX DOT micro-kernel.
+///
+/// The packed payload uses s4s0 packets: each group of four bytes pairs K[8p + b] with K[8p + b + 4]. The nibbles
+/// are converted to signed INT4, scales are divided by 16, and offsets compensate for the signed-domain conversion.
+/// This format has the same size as qai4c32p16vsx4s1s0sf16 but is not interchangeable with it.
+///
+/// Required CPU features:
+///   * FEAT_SME
+///
+/// Configuration parameters: none.
+///
+/// Operands:
+///   * rhs_packed - The packed RHS matrix.
+///     * RHS matrix: qai4c32p16vsx4s4s0sf16 data with 16vsx4-ordered per-block FP16 scale and offset metadata.
+///   * rhs - The RHS matrix.
+///     * RHS matrix: qai4c32k256sf16s32s0 4-bit data in NxK layout, stored as 256-value super-blocks. K must be a
+///     multiple of 256.
+///
+/// Supported flags: none.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_pack_rhs_uker_api kai_matmul_pack_rhs_nxk_qai4c32p16vsx4s4s0sf16_qai4c32k256sf16s32s0_sme(void);
+
 /// Non-transposed RHS packing micro-kernel for static quantized UINT2 data.
 ///
 /// Required CPU features:

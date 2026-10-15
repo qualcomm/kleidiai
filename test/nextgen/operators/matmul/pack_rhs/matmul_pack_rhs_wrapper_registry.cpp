@@ -186,6 +186,24 @@ std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_rhs_nxk_qai4c32p16vs
     );
 }
 
+std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_rhs_nxk_qai4c32p16vsx4s4s0sf16_qai4c32k256sf16s32s0_sme() {
+    const kai_matmul_pack_rhs_uker_api api = kai_matmul_pack_rhs_nxk_qai4c32p16vsx4s4s0sf16_qai4c32k256sf16s32s0_sme();
+
+    return std::make_unique<MatMulPackRhsUkerApiTWrapper>(
+        "matmul_pack_rhs_nxk_qai4c32p16vsx4s4s0sf16_qai4c32k256sf16s32s0_sme",  // name
+        api,                                                                    // api
+        make_poly<TwoLevelBlockwiseFormat>(qai4c32k256_format_config),          // src_data_format
+        unused_bias_format(),                                                   // src_bias_format
+        make_poly<FlattenedBlockwisePackedFormat>(                              // dst_format
+            qai4c32k256_format_config, 16 * std::max<uint64_t>(get_sme_vector_scale(), 1),
+            FlattenedBlockwisePackedLayout::S4S0),
+        MatMulUkerApiBiasDeliveryStage::PACK_RHS,  // bias_delivery_stage
+        MatMulPackRhsOperandSlots{},               // operand_slots
+        std::vector{MatMulSlot::RHS_T_QDATA},      // reference_component_slots
+        MatMulSlot::RHS_T_QDATA                    // run_rhs_slot
+    );
+}
+
 std::unique_ptr<KernelWrapper<MatShape>> create_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme() {
     return std::make_unique<MatMulPackRhsUkerApiWrapper>(
         "matmul_pack_rhs_kxn_x8p4vsx4_x8_sme", kai_matmul_pack_rhs_kxn_x8p4vsx4_x8_sme(),
@@ -379,6 +397,16 @@ bool is_shape_suitable_rhs_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme(
 
     return is_shape_suitable_rhs_uker_api(
         shape_n, shape_k, portion, kai_matmul_pack_rhs_nxk_qai4c32p16vsx4s1s0sf16_qai4c32k256sf16s32s0_sme());
+}
+
+bool is_shape_suitable_rhs_qai4c32p16vsx4s4s0sf16_qai4c32k256sf16s32s0_sme(
+    [[maybe_unused]] size_t shape_m, size_t shape_n, size_t shape_k, const MatrixPortion& portion) {
+    if (shape_k % qai4c32k256_format_config.superblock_length != 0) {
+        return false;
+    }
+
+    return is_shape_suitable_rhs_uker_api(
+        shape_n, shape_k, portion, kai_matmul_pack_rhs_nxk_qai4c32p16vsx4s4s0sf16_qai4c32k256sf16s32s0_sme());
 }
 
 bool is_shape_suitable_rhs_kxn_x8p4vsx4_x8_sme(
