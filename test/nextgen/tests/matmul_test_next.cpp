@@ -484,7 +484,8 @@ void register_qmx_f16_dispatch_tests(const MatMulOperator& op) {
             dispatch_case.clamp_keep_ratio,
             &op,
         };
-        register_operator_test("MatMulNextQmxF16Dispatch", op, fixture, dispatch_case.portion);
+        register_operator_test(
+            "MatMulNextQmxF16Dispatch", op, fixture, Span<const MatrixPortion>(&dispatch_case.portion, 1));
     }
 }
 
