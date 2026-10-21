@@ -51,3 +51,5 @@ Use these items as a checklist when reviewing or making changes:
 - Follow the [KleidiAI coding conventions](docs/coding_conventions.md).
 - Follow the [KleidiAI micro-kernel requirements](docs/microkernel_requirements.md).
 - Follow the [KleidiAI contribution guidelines](CONTRIBUTING.md).
+- Every SME2 micro-kernel must have an SME or QMX equivalent.
+- Encode SME instructions in `.inst` format (`KAI_ASM_INST(0x...)`).
