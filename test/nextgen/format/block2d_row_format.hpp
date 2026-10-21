@@ -19,6 +19,11 @@
 
 namespace kai::test {
 
+enum class Block2dRowPackingLayout {
+    DEFAULT,
+    S12S8S4S0,
+};
+
 /// 2D blocked data with optional per-row values.
 ///
 /// By default, the per-row values occur once for each logical row. When a
@@ -81,7 +86,7 @@ public:
     Block2dRowFormat(
         size_t block_height, size_t block_width, size_t width_align, bool pad_right_same, DataType dtype,
         Span<const DataType> pre_dtypes, Span<const DataType> post_dtypes, size_t block_length = 0,
-        std::optional<double> pad_value = std::nullopt) :
+        std::optional<double> pad_value = std::nullopt, Block2dRowPackingLayout layout = Block2dRowPackingLayout::DEFAULT) :
         m_block_height(block_height),
         m_block_width(block_width),
         m_width_align(width_align),
@@ -90,12 +95,16 @@ public:
         m_pre_dtypes(pre_dtypes.begin(), pre_dtypes.end()),
         m_post_dtypes(post_dtypes.begin(), post_dtypes.end()),
         m_block_length(block_length),
-        m_pad_value(pad_value) {
+        m_pad_value(pad_value),
+        m_layout(layout) {
         KAI_TEST_ASSERT(width_align % block_width == 0);
         KAI_TEST_ASSERT(block_height * block_width * data_type_size_in_bits(dtype) % 8 == 0);
         KAI_TEST_ASSERT(block_length == 0 || block_length % block_width == 0);
         KAI_TEST_ASSERT(block_length == 0 || !pre_dtypes.empty() || !post_dtypes.empty());
         KAI_TEST_ASSERT(!pad_right_same || !pad_value.has_value());
+        KAI_TEST_ASSERT(layout != Block2dRowPackingLayout::S12S8S4S0 || dtype == DataType::U2);
+        KAI_TEST_ASSERT(layout != Block2dRowPackingLayout::S12S8S4S0 || block_width == 4);
+        KAI_TEST_ASSERT(layout != Block2dRowPackingLayout::S12S8S4S0 || width_align % 16 == 0);
 
         for (const DataType pre_dtype : pre_dtypes) {
             KAI_TEST_ASSERT(data_type_size_in_bits(pre_dtype) % 8 == 0);
@@ -127,6 +136,7 @@ private:
     std::vector<DataType> m_post_dtypes;
     size_t m_block_length;
     std::optional<double> m_pad_value;
+    Block2dRowPackingLayout m_layout;
 };
 
 }  // namespace kai::test

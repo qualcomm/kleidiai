@@ -136,7 +136,10 @@ Buffer Block2dRowFormat::pack(Shape shape, Span<const Span<const std::byte>> buf
     Buffer packed_buffer(packed_size, 0);
     Span<std::byte> packed_data(packed_buffer);
 
-    const PackBlock2dFn pack_data_fn = make_pack_block2d(m_dtype);
+    const PackBlock2dFn pack_data_fn =
+        m_layout == Block2dRowPackingLayout::DEFAULT ? make_pack_block2d(m_dtype) : nullptr;
+    const PackBlock2dInterleaveFn pack_interleave_fn =
+        m_layout == Block2dRowPackingLayout::S12S8S4S0 ? make_pack_block2d_interleave(m_dtype) : nullptr;
 
     const size_t num_pres = m_pre_dtypes.size();
     KAI_TEST_ASSERT(buffers.size() == num_pres + 1 + m_post_dtypes.size());
@@ -148,9 +151,13 @@ Buffer Block2dRowFormat::pack(Shape shape, Span<const Span<const std::byte>> buf
     Buffer block_data_buffer(data_size, 0);
     const std::optional<double> pad_value =
         m_pad_right_same ? std::nullopt : std::optional<double>{m_pad_value.value_or(0)};
-    const size_t packed_data_size = pack_data_fn(
-        m_block_height, m_block_width, layout.width_alignment, pad_value, height, width, block_data_buffer,
-        data_buffer);
+    const size_t packed_data_size = m_layout == Block2dRowPackingLayout::S12S8S4S0
+        ? pack_interleave_fn(
+              m_block_height, m_block_width, layout.width_alignment, pad_value, height, width, m_block_width,
+              block_data_buffer, data_buffer)
+        : pack_data_fn(
+              m_block_height, m_block_width, layout.width_alignment, pad_value, height, width, block_data_buffer,
+              data_buffer);
     KAI_TEST_ASSERT(packed_data_size == data_size);
     const Span<const std::byte> block_data = block_data_buffer;
 
@@ -398,6 +405,9 @@ std::string Block2dRowFormat::uid() const {
     if (m_block_length != 0) {
         uid += "_bl" + std::to_string(m_block_length);
     }
+    if (m_layout == Block2dRowPackingLayout::S12S8S4S0) {
+        uid += "_s12s8s4s0";
+    }
 
     uid += "_" + data_type_uid(m_dtype);
 
@@ -430,7 +440,8 @@ bool Block2dRowFormat::operator==(const Format& other) const {
         m_dtype == rhs->m_dtype &&                    //
         m_pre_dtypes == rhs->m_pre_dtypes &&          //
         m_post_dtypes == rhs->m_post_dtypes &&        //
-        m_block_length == rhs->m_block_length;
+        m_block_length == rhs->m_block_length &&      //
+        m_layout == rhs->m_layout;
 }
 
 }  // namespace kai::test

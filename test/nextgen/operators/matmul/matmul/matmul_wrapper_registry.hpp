@@ -106,6 +106,12 @@ create_matmul_clamp_qai8_qai8_qsi4cxp8vsx4sf32bi32_1x64vs_sme2_dot();
 create_matmul_clamp_qai8_qai8p8vsx4_qsu2cxp16vsx4sf32bi32_8vsx16vs_sme2_mopa();
 
 [[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
+create_matmul_clamp_qai8_qai8p8vsx4_qsi2cxp16vsx4s12s8s4s0sf32bi32_8vsx16vs_qmx_mopa();
+
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
 create_matmul_clamp_qai8_qai8_qsu2cxp16vsx4sf32bi32_1x64vs_sme2_dot();
+
+[[nodiscard]] std::unique_ptr<KernelWrapper<MatMulShape>>
+create_matmul_clamp_qai8_qai8_qsi2cxp16vsx4s12s8s4s0sf32bi32_1x64vs_qmx_dot();
 
 }  // namespace kai::test
