@@ -1384,12 +1384,39 @@ MatMulOperator create_operator_matmul_clamp_f32_qai8dxp2vsx8sf32_qsi4c32p8x8s16s
     op.matmul = create_matmul_clamp_f32_qai8dxp2vsx8sf32_qsi4c32p8x8s16s0sbf16bf32_8vsx8_sve_i8mm();
     return op;
 }
+
+/// Creates an operator for kai_matmul_clamp_f16_f16_f16p4vsx2bf16_1x32vs_qmx_dot - non-transposed RHS.
+MatMulOperator create_operator_matmul_clamp_f16_f16_f16p4vsx2bf16_1x32vs_qmx_dot() {
+    MatMulOperator op{};
+    op.name = "matmul_clamp_f16_f16_f16p4vsx2bf16_1x32vs_qmx_dot";
+
+    op.is_cpu_supported = cpu_check<cpu_has_sme, cpu_has_fp16>;
+    op.is_shape_suitable = all_true<   //
+        is_shape_suitable_lhs_vector,  //
+        is_shape_suitable_rhs_kxn_x16p4vsx2bx16_x16_x16_sme>;
+    op.supported_bias_mode_sets = {acc_bias_per_n};
+    op.clamp_mode = MatMulClampMode::OPTIONAL;
+    op.lhs_quant = std::nullopt;
+    op.rhs_quant = std::nullopt;
+    op.bias_quant = std::nullopt;
+    op.lhs_dtype = DataType::FP16;
+    op.rhs_dtype = DataType::FP16;
+    op.bias_dtype = DataType::FP16;
+    op.acc_dtype = DataType::FP32;
+    op.dst_dtype = DataType::FP16;
+
+    op.pack_lhs = std::nullopt;
+    op.pack_rhs = create_matmul_pack_rhs_kxn_x16p4vsx2bx16_x16_x16_sme();
+    op.matmul = create_matmul_clamp_f16_f16_f16p4vsx2bf16_1x32vs_qmx_dot();
+    return op;
+}
 }  // namespace
 
 Span<const MatMulOperator> get_available_matmul_operators() {
     const static std::array operators{
         create_operator_matmul_clamp_f32_qai8dxp2vsx8sf32_qsi4c32p8x8s16s0sbf16bf32_8vsx8_sve_i8mm(),
         create_operator_matmul_clamp_f16_f16_f16p16vsx2bf16_6x16vs_sve2p1_dot(),
+        create_operator_matmul_clamp_f16_f16_f16p4vsx2bf16_1x32vs_qmx_dot(),
         create_operator_matmul_clamp_f16_f16_f16p4vsx2bf16_1x32vs_sme2_dot(),
         create_operator_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_qmx_mopa(),
         create_operator_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_sme2_mopa(),
