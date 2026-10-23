@@ -1,5 +1,6 @@
 //
 // SPDX-FileCopyrightText: Copyright 2025-2026 Arm Limited and/or its affiliates <open-source-office@arm.com>
+// SPDX-FileCopyrightText: Copyright 2026 Fujitsu Limited
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -22,13 +23,13 @@
 #include "test/common/buffer.hpp"
 #include "test/common/compare.hpp"
 #include "test/common/data_type.hpp"
+#include "test/common/memory.hpp"
 #include "test/nextgen/common/poly.hpp"
 #include "test/nextgen/common/random.hpp"
 #include "test/nextgen/common/shape.hpp"
 #include "test/nextgen/format/fill.hpp"
 #include "test/nextgen/format/format.hpp"
 #include "test/nextgen/format/plain_format.hpp"
-#include "test/nextgen/harness/kernel_wrapper.hpp"
 #include "test/nextgen/harness/tensor_cache.hpp"
 #include "test/nextgen/operators/matmul/matmul_config.hpp"
 #include "test/nextgen/operators/matmul/matmul_dims.hpp"
@@ -70,11 +71,11 @@ void MatMulTb::generate_test_data(Rng& rng) {
         (*matmul)->populate_constant_info(m_tensors);
     }
 
-    if (const std::optional<MatPackKernelPtr>& pack_lhs = m_op->pack_lhs) {
+    if (const std::optional<MatMulPackKernelPtr>& pack_lhs = m_op->pack_lhs) {
         (*pack_lhs)->populate_constant_info(m_tensors);
     }
 
-    if (const std::optional<MatPackKernelPtr>& pack_rhs = m_op->pack_rhs) {
+    if (const std::optional<MatMulPackKernelPtr>& pack_rhs = m_op->pack_rhs) {
         (*pack_rhs)->populate_constant_info(m_tensors);
     }
 
@@ -102,6 +103,8 @@ void MatMulTb::generate_test_data(Rng& rng) {
     compute_rhs_t_qdata_sign(false);
     compute_rhs_t_qdata_sign_t(false);
     compute_rhs_t_qdata_sign_sum(false);
+    compute_rhs_t_qscale_rescaled(false);
+    compute_rhs_t_qdata_sign_sum_scaled(false);
 
     quantize_bias(rng, false);
     compute_dst_quantization_info(false);
@@ -432,7 +435,7 @@ void MatMulTb::compute_lhs_qdata_sum(bool required) {
     constexpr DataType dst_dtype = DataType::I32;
 
     const ReduceFn reduce_fn = make_reduce_add(src_dtype, dst_dtype);
-    Buffer data = reduce_fn(0, std::array{num_blocks, block_length}, lhs_qdata.data());
+    Buffer data = reduce_fn(1, std::array{num_blocks, block_length}, lhs_qdata.data());
 
     // Reduction produces one sum per block, logically [num_blocks, 1]. Use qscale_shape because each sum
     // corresponds to one scale, preserving the [row, K-block] layout.
@@ -836,7 +839,7 @@ void MatMulTb::compute_acc_bias_n_qdata_minus_lhs_qzp_mul_rhs_t_qdata_row_sum(Rn
     const BinaryElementwiseFn multiply_fn = make_multiply_2d(acc_bias_n_qdata_dt);
     const ReduceFn reduce_fn = make_reduce_add(rhs_t_qdata_dt, lhs_qzp_dt);
 
-    const Buffer row_sum = reduce_fn(0, rhs_t_qdata_shape, rhs_t_qdata.data());
+    const Buffer row_sum = reduce_fn(1, rhs_t_qdata_shape, rhs_t_qdata.data());
     const std::string row_sum_id = "reduce_add(" + std::string(rhs_t_qdata.id()) + ")";
     const size_t row_sum_len = rhs_t_qdata_shape.at(0);
 
@@ -879,6 +882,9 @@ void MatMulTb::compute_rhs_t_qdata_sign(bool required) {
         case DataType::I2:
             dst_dtype = DataType::U2;
             break;
+        case DataType::I8:
+            dst_dtype = DataType::I8;
+            break;
         default:
             KAI_TEST_ERROR("Not supported.");
     }
@@ -912,9 +918,80 @@ void MatMulTb::compute_rhs_t_qdata_sign_sum(bool required) {
     const DataType dst_dtype = rhs_t_qdata_sign_sum.format()->dtype();
 
     const ReduceFn fn = make_reduce_add(src_dtype, dst_dtype);
-    Buffer data = fn(0, rhs_t_shape, rhs_t_qdata_sign.data());
+    Buffer data = fn(1, rhs_t_shape, rhs_t_qdata_sign.data());
 
     rhs_t_qdata_sign_sum.set_shape(rhs_t_rowsum_shape).set_data(std::move(data));
+}
+
+void MatMulTb::compute_rhs_t_qscale_rescaled(bool required) {
+    if (!required && !is_tensor_required(MatMulSlot::RHS_T_QSCALE_RESCALED)) {
+        return;
+    }
+
+    if (is_tensor_generated(MatMulSlot::RHS_T_QSCALE_RESCALED)) {
+        return;
+    }
+
+    quantize_rhs_t(true);
+
+    const Tensor& rhs_t_qscale = get_tensor(MatMulSlot::RHS_T_QSCALE);
+    Tensor& rhs_t_qscale_rescaled = get_tensor(MatMulSlot::RHS_T_QSCALE_RESCALED);
+
+    const Shape shape = rhs_t_qscale.shape();
+    const size_t height = shape.at(0);
+    const size_t width = shape.at(1);
+
+    const Buffer scale_f32 = cast(rhs_t_qscale.data_ptr(), DataType::BF16, DataType::FP32, height, width);
+
+    Buffer factor_buffer(sizeof(float));
+    write_array<float>(factor_buffer, 0, 1.0F / 16.0F);
+
+    const BinaryElementwiseFn multiply_fn = make_multiply_2d(DataType::FP32);
+    const Buffer rescaled_f32 = multiply_fn(height, width, scale_f32.view(), 1, 1, factor_buffer.view());
+
+    Buffer rescaled_bf16 = cast(rescaled_f32.data(), DataType::FP32, DataType::BF16, height, width);
+
+    const Poly<Format> format(std::in_place_type<PlainFormat>, DataType::BF16);
+    rhs_t_qscale_rescaled.set_shape(shape).set_format(format).set_data(std::move(rescaled_bf16));
+}
+
+void MatMulTb::compute_rhs_t_qdata_sign_sum_scaled(bool required) {
+    if (!required && !is_tensor_required(MatMulSlot::RHS_T_QDATA_SIGN_SUM_SCALED)) {
+        return;
+    }
+
+    if (is_tensor_generated(MatMulSlot::RHS_T_QDATA_SIGN_SUM_SCALED)) {
+        return;
+    }
+
+    compute_rhs_t_qdata_sign(true);
+    quantize_rhs_t(true);
+
+    const Tensor& rhs_t_qdata_sign = get_tensor(MatMulSlot::RHS_T_QDATA_SIGN);
+    const Tensor& rhs_t_qscale = get_tensor(MatMulSlot::RHS_T_QSCALE);
+    Tensor& rhs_t_qdata_sign_sum_scaled = get_tensor(MatMulSlot::RHS_T_QDATA_SIGN_SUM_SCALED);
+
+    const size_t num_blocks = rhs_t_qscale.shape().at(1);
+    const DataType src_dtype = rhs_t_qdata_sign.format()->dtype();
+
+    const std::array block_shape{m_shape_n * num_blocks, m_shape_k / num_blocks};
+    const ReduceFn reduce_i32_fn = make_reduce_add(src_dtype, DataType::I32);
+    const Buffer block_sum_i32 = reduce_i32_fn(1, block_shape, rhs_t_qdata_sign.data());
+
+    const Buffer block_sum_f32 = cast(block_sum_i32.data(), DataType::I32, DataType::FP32, m_shape_n, num_blocks);
+    const Buffer qscale_f32 = cast(rhs_t_qscale.data_ptr(), DataType::BF16, DataType::FP32, m_shape_n, num_blocks);
+
+    const BinaryElementwiseFn multiply_fn = make_multiply_2d(DataType::FP32);
+    const Buffer weighted_sum_f32 =
+        multiply_fn(m_shape_n, num_blocks, block_sum_f32.view(), m_shape_n, num_blocks, qscale_f32.view());
+
+    const std::array row_shape{m_shape_n, num_blocks};
+    const ReduceFn reduce_f32_fn = make_reduce_add(DataType::FP32, DataType::FP32);
+    Buffer sum_f32 = reduce_f32_fn(1, row_shape, weighted_sum_f32.view());
+
+    const std::array shape{m_shape_n};
+    const Poly<Format> format(std::in_place_type<PlainFormat>, DataType::FP32);
+    rhs_t_qdata_sign_sum_scaled.set_shape(shape).set_format(format).set_data(std::move(sum_f32));
 }
 
 void MatMulTb::compute_ref_packed_lhs() {
@@ -923,7 +1000,7 @@ void MatMulTb::compute_ref_packed_lhs() {
     }
 
     KAI_TEST_ASSERT_MSG(m_op->pack_lhs.has_value(), "LHS packing is not supported by this operator.");
-    const KernelWrapper<MatShape>& pack_lhs = *m_op->pack_lhs.value();
+    const MatMulPackKernel& pack_lhs = *m_op->pack_lhs.value();
 
     const std::array lhs_shape{m_shape_m, m_shape_k};
     pack_lhs.compute_reference(lhs_shape, m_tensors);
@@ -935,7 +1012,7 @@ void MatMulTb::compute_ref_packed_rhs() {
     }
 
     KAI_TEST_ASSERT_MSG(m_op->pack_rhs.has_value(), "RHS packing is not supported by this operator.");
-    const KernelWrapper<MatShape>& pack_rhs = *m_op->pack_rhs.value();
+    const MatMulPackKernel& pack_rhs = *m_op->pack_rhs.value();
 
     const std::array rhs_t_shape{m_shape_n, m_shape_k};
     pack_rhs.compute_reference(rhs_t_shape, m_tensors);
@@ -1193,13 +1270,13 @@ void MatMulTb::compute_ref_matmul(Rng& rng) {
 }
 
 std::tuple<size_t, size_t> MatMulTb::lhs_packing_steps() const {
-    const KernelWrapper<MatShape>& pack_lhs = *m_op->pack_lhs.value();
+    const MatMulPackKernel& pack_lhs = *m_op->pack_lhs.value();
     const std::vector<size_t> steps = pack_lhs.steps({m_shape_m, m_shape_k}, m_tensors);
     return {steps.at(as_idx(MatDim::R)), steps.at(as_idx(MatDim::C))};
 }
 
 void MatMulTb::test_lhs_packing(size_t start_m, size_t start_k, size_t size_m, size_t size_k) {
-    const KernelWrapper<MatShape>& pack_lhs = *m_op->pack_lhs.value();
+    const MatMulPackKernel& pack_lhs = *m_op->pack_lhs.value();
 
     const std::array full_shape{m_shape_m, m_shape_k};
     const std::array tile_coords{start_m, start_k};
@@ -1218,13 +1295,13 @@ void MatMulTb::test_lhs_packing(size_t start_m, size_t start_k, size_t size_m, s
 }
 
 std::tuple<size_t, size_t> MatMulTb::rhs_packing_steps() const {
-    const KernelWrapper<MatShape>& pack_rhs = *m_op->pack_rhs.value();
+    const MatMulPackKernel& pack_rhs = *m_op->pack_rhs.value();
     const std::vector<size_t> steps = pack_rhs.steps({m_shape_n, m_shape_k}, m_tensors);
     return {steps.at(as_idx(MatDim::R)), steps.at(as_idx(MatDim::C))};
 }
 
 void MatMulTb::test_rhs_packing(size_t start_n, size_t start_k, size_t size_n, size_t size_k) {
-    const KernelWrapper<MatShape>& pack_rhs = *m_op->pack_rhs.value();
+    const MatMulPackKernel& pack_rhs = *m_op->pack_rhs.value();
 
     const std::array full_shape{m_shape_n, m_shape_k};
     const std::array tile_coords{start_n, start_k};
@@ -1243,13 +1320,13 @@ void MatMulTb::test_rhs_packing(size_t start_n, size_t start_k, size_t size_n, s
 }
 
 std::tuple<size_t, size_t> MatMulTb::matmul_steps() const {
-    const KernelWrapper<MatMulShape>& matmul = *m_op->matmul.value();
+    const MatMulKernel& matmul = *m_op->matmul.value();
     const std::vector<size_t> steps = matmul.steps({m_shape_m, m_shape_n, m_shape_k}, m_tensors);
     return {steps.at(as_idx(MatMulDim::M)), steps.at(as_idx(MatMulDim::N))};
 }
 
 void MatMulTb::test_matmul(size_t start_m, size_t start_n, size_t size_m, size_t size_n) {
-    const KernelWrapper<MatMulShape>& matmul = *m_op->matmul.value();
+    const MatMulKernel& matmul = *m_op->matmul.value();
 
     const std::array matmul_full_shape{m_shape_m, m_shape_n, m_shape_k};
     const std::array matmul_tile_coords{start_m, start_n, static_cast<size_t>(0)};

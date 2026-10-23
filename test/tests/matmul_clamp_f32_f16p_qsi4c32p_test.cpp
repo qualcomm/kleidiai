@@ -6,15 +6,18 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <sstream>
 #include <string>
 #include <tuple>
 
+#include "kai/ukernels/matmul/kai_matmul.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_f16p_qsi4c32p/kai_matmul_clamp_f32_f16p1vlx2_qsi4c32p4vlx2_1vlx4vl_sme2_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_f16p_qsi4c32p/kai_matmul_clamp_f32_f16p1vlx2_qsi4c32p4vlx2_1vlx4vl_qmx_mopa.h"
 #include "kai/ukernels/matmul/matmul_clamp_f32_f16p_qsi4c32p/kai_matmul_clamp_f32_f16p_qsi4c32p_interface.h"
@@ -92,20 +95,21 @@ F32F16pQsi4c32pCacheData ReferenceGenerator<F32F16pQsi4c32pCacheDataId, F32F16pQ
     return test_reference;
 }
 
-using MatMulTestParams_f32_f16p_qsi4c32p = std::tuple<size_t, MatMulShape, MatrixPortion, float, size_t>;
+using MatMulTestParams_f32_f16p_qsi4c32p = std::tuple<size_t, MatMulShape, MatrixPortion, std::optional<float>, size_t>;
 
 [[maybe_unused]] static void PrintTo(const MatMulTestParams_f32_f16p_qsi4c32p& param, std::ostream* os) {
     const auto variant_idx = std::get<0>(param);
     const auto shape = std::get<1>(param);
     const auto portion = std::get<2>(param);
-    const auto clamp_ratio = std::get<3>(param);
+    const auto clamp_keep_ratio = std::get<3>(param);
     const auto bl = std::get<4>(param);
 
     *os << "variant_" << variant_idx << "__";
     PrintTo(shape, os);
     *os << "__";
     PrintTo(portion, os);
-    *os << "__clamp_ratio_" << static_cast<int>(clamp_ratio * 100);
+    *os << "__";
+    PrintToClamp(clamp_keep_ratio, os);
     *os << "__Bias";
     *os << "__bl_" << bl;
 }
@@ -186,7 +190,7 @@ Buffer pack_f16pmrx2_ref(const void* src, size_t nb_rows, size_t nb_cols, size_t
 }
 
 TEST_P(MatMulTest_f32_f16p_qsi4c32p, Offset_RHS_LHS) {
-    const auto& [variant_index, matmul_shape, portion, clamp_ratio, bl] = GetParam();
+    const auto& [variant_index, matmul_shape, portion, clamp_keep_ratio, bl] = GetParam();
     const auto& ukernel_variant = variants_kai_matmul_clamp_f32_f16p_qsi4c32p.at(variant_index);
 
     if (!ukernel_variant.ukernel.fn_is_supported()) {
@@ -204,10 +208,12 @@ TEST_P(MatMulTest_f32_f16p_qsi4c32p, Offset_RHS_LHS) {
     const auto kr = ukernel_variant.ukernel.interface.get_kr();
     const auto sr = ukernel_variant.ukernel.interface.get_sr();
 
-    auto n_step = ukernel_variant.ukernel.interface.get_n_step();
-    auto m_step = ukernel_variant.ukernel.interface.get_m_step();
+    const auto m_step = ukernel_variant.ukernel.interface.get_m_step();
+    const auto n_step = ukernel_variant.ukernel.interface.get_n_step();
+    const auto tile_m = std::max(m_step, mr);
+    const auto tile_n = std::max(n_step, nr);
 
-    const auto rect = portion.compute_portion(M, N, m_step, n_step);
+    const auto rect = portion.compute_portion(M, N, tile_m, tile_n);
 
     const auto rhs_start_row = rect.start_col();
     const auto lhs_start_row = rect.start_row();
@@ -222,7 +228,7 @@ TEST_P(MatMulTest_f32_f16p_qsi4c32p, Offset_RHS_LHS) {
 }
 
 TEST_P(MatMulTest_f32_f16p_qsi4c32p, LHS) {
-    const auto& [variant_index, matmul_shape, portion, clamp_ratio, bl] = GetParam();
+    const auto& [variant_index, matmul_shape, portion, clamp_keep_ratio, bl] = GetParam();
     const auto& ukernel_variant = variants_kai_matmul_clamp_f32_f16p_qsi4c32p.at(variant_index);
 
     if (!ukernel_variant.ukernel.fn_is_supported()) {
@@ -270,7 +276,7 @@ TEST_P(MatMulTest_f32_f16p_qsi4c32p, LHS) {
 }
 
 TEST_P(MatMulTest_f32_f16p_qsi4c32p, EndToEnd) {
-    const auto& [variant_index, matmul_shape, portion, clamp_ratio, bl] = GetParam();
+    const auto& [variant_index, matmul_shape, portion, clamp_keep_ratio, bl] = GetParam();
     const auto& ukernel_variant = variants_kai_matmul_clamp_f32_f16p_qsi4c32p.at(variant_index);
 
     if (!ukernel_variant.ukernel.fn_is_supported()) {
@@ -348,7 +354,7 @@ TEST_P(MatMulTest_f32_f16p_qsi4c32p, EndToEnd) {
     ASSERT_EQ(dst_offset, ref_dst_offset);
 
     // Clamp reference output
-    const auto [min, max] = find_clamp_range(DataType::FP32, test_data.ref_dst.data(), M * N, 1.0F - clamp_ratio);
+    const auto [min, max] = find_clamp_range(DataType::FP32, test_data.ref_dst.data(), M * N, clamp_keep_ratio);
     const auto out_clamped = clamp(DataType::FP32, test_data.ref_dst.data(), M * N, min, max);
 
     // Runs the GEMM micro-kernel.
@@ -366,6 +372,110 @@ TEST_P(MatMulTest_f32_f16p_qsi4c32p, EndToEnd) {
     DataFormat dst_format = DataFormat(DataType::FP32);
     const auto success = compare(imp_dst.data(), out_clamped.data(), dst_format, M, N, rect, handler);
     ASSERT_TRUE(success);
+}
+
+TEST(MatMulClampF32F16pQsi4c32pLut, OptionalLutArgument) {
+    if (!cpu_check<cpu_has_sme2, cpu_has_fp16>()) {
+        GTEST_SKIP() << "SME2 and FP16 are not supported";
+    }
+
+    alignas(16) constexpr std::array<uint32_t, 16> qsi4_lut = {
+        0x0000c800, 0x0000c700, 0x0000c600, 0x0000c500, 0x0000c400, 0x0000c200, 0x0000c000, 0x0000bc00,
+        0x00000000, 0x00003c00, 0x00004000, 0x00004200, 0x00004400, 0x00004500, 0x00004600, 0x00004700,
+    };
+    alignas(16) constexpr std::array<uint32_t, 16> zero_lut = {};
+    struct LutCase {
+        const char* name;
+        const uint32_t* lut;
+        bool uses_default_mapping;
+    };
+    const std::array<LutCase, 3> lut_cases = {{
+        {"null", nullptr, true},
+        {"explicit_default", qsi4_lut.data(), true},
+        {"explicit_zero", zero_lut.data(), false},
+    }};
+    const kai_matmul_uker_api api = kai_matmul_clamp_f32_f16p4vsx2_qsi4c32p16vsx4s1s0sf16_f16p_4vsx16vs_sme2_mopa();
+
+    for (const size_t block_length : {32, 64, 128, 256}) {
+        SCOPED_TRACE("block_length=" + std::to_string(block_length));
+        const kai_matmul_uker_config config{.format = {.bl = block_length}};
+        const auto step = api.get_step(&config);
+        const size_t M = step.m + 1;
+        const size_t N = step.n + 3;
+        const size_t K = 256;
+        const size_t mr = step.m;
+        const size_t nr = step.n;
+        const MatMulShape shape{M, N, K};
+        const F32F16pQsi4c32pCacheDataId id = {
+            shape,                       //
+            DataFormat(DataType::FP32),  //
+            DataFormat(DataType::FP32),
+            block_length,
+        };
+        const auto& test_data = getV<F32F16pQsi4c32pCacheDataId, F32F16pQsi4c32pCacheData>(id);
+
+        const kai_matmul_uker_lhs_dim_args lhs_shape{M, K};
+        const kai_matmul_uker_rhs_dim_args rhs_shape{N, K};
+        const kai_matmul_uker_dst_dim_args dst_shape{M, N};
+        const auto lhs_stride = api.get_lhs_stride(&config, &lhs_shape);
+        const auto rhs_stride = api.get_rhs_stride(&config, &rhs_shape);
+        const auto dst_stride = api.get_dst_stride(&config, &dst_shape);
+        const kai_matmul_uker_lhs_dim_args lhs_index{step.m, 0};
+        const kai_matmul_uker_rhs_dim_args rhs_index{step.n, 0};
+        const kai_matmul_uker_dst_dim_args dst_index{step.m, step.n};
+        ASSERT_EQ(api.get_lhs_offset(&config, &lhs_index, &lhs_stride), lhs_stride.m);
+        ASSERT_EQ(api.get_rhs_offset(&config, &rhs_index, &rhs_stride), rhs_stride.n);
+        ASSERT_EQ(api.get_dst_offset(&config, &dst_index, &dst_stride), step.m * dst_stride.m + step.n * sizeof(float));
+
+        Buffer packed_lhs(kai_get_lhs_packed_size_lhs_pack_f16pmrx2_f32_neon(M, K, block_length, mr, 4, 2));
+        abi_check(
+            kai_run_lhs_pack_f16pmrx2_f32_neon, M, K, block_length, mr, 4, 2, 0, test_data.lhs.data(),
+            K * sizeof(float), packed_lhs.data());
+
+        Buffer packed_rhs(
+            kai_get_rhs_packed_size_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon(N, K, nr, 4, block_length));
+        const kai_rhs_pack_qs4cxs1s0_param pack_params{.lhs_zero_point = 1, .rhs_zero_point = 8};
+        abi_check(
+            kai_run_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon, 1, N, K, nr, 4, 2, block_length,
+            reinterpret_cast<const uint8_t*>(test_data.ref_rhs_qsu4_scale_f16.data()), nullptr, packed_rhs.data(), 0,
+            &pack_params);
+
+        std::array<Buffer, 2> null_outputs;
+        for (const auto& lut_case : lut_cases) {
+            SCOPED_TRACE(std::string("lut=") + lut_case.name);
+            for (const bool enable_clamp : {false, true}) {
+                constexpr float clamp_min = -0.5F;
+                constexpr float clamp_max = 0.5F;
+                Buffer reference(test_data.ref_dst.size());
+                if (!lut_case.uses_default_mapping) {
+                    std::memset(reference.data(), 0, reference.size());
+                } else if (enable_clamp) {
+                    reference = clamp<float>(test_data.ref_dst.data(), M * N, clamp_min, clamp_max);
+                } else {
+                    std::memcpy(reference.data(), test_data.ref_dst.data(), test_data.ref_dst.size());
+                }
+                Buffer output(api.get_dst_size(&config, &dst_shape, &dst_stride));
+                kai_matmul_uker_args args{};
+                args.flags = enable_clamp ? KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP : 0;
+                args.operand.lut.ptr = lut_case.lut;
+                args.shape = {.m = M, .n = N, .k = K};
+                args.operand.lhs = {.ptr = packed_lhs.data(), .stride = lhs_stride};
+                args.operand.rhs = {.ptr = packed_rhs.data(), .stride = rhs_stride};
+                args.operand.dst = {.ptr = output.data(), .stride = dst_stride};
+                args.activation.clamp = {.min_ptr = &clamp_min, .max_ptr = &clamp_max};
+                abi_check(api.run, &config, &args);
+
+                DefaultMismatchHandler handler(0, 0.1, 0, 0.05);
+                const Rect full_rect = MatrixPortion(0, 0, 1, 1).compute_portion(M, N, M, N);
+                ASSERT_TRUE(compare(output.data(), reference.data(), DataType::FP32, M, N, full_rect, handler));
+                if (lut_case.lut == nullptr) {
+                    null_outputs[enable_clamp] = std::move(output);
+                } else if (lut_case.uses_default_mapping) {
+                    ASSERT_EQ(0, std::memcmp(null_outputs[enable_clamp].data(), output.data(), output.size()));
+                }
+            }
+        }
+    }
 }
 
 static constexpr std::array portions{
@@ -386,6 +496,7 @@ static constexpr std::array shapes_k32{
     MatMulShape{1, 3, 32},     //
     MatMulShape{1, 4, 32},     //
     MatMulShape{1, 5, 32},     //
+    MatMulShape{1, 71, 32},    //
     MatMulShape{3, 3, 32},     //
     MatMulShape{4, 4, 32},     //
     MatMulShape{5, 5, 32},     //
@@ -433,43 +544,63 @@ static constexpr std::array shapes_k256{
 };
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul_y_bl32, MatMulTest_f32_f16p_qsi4c32p,
+    MatMul_bl32, MatMulTest_f32_f16p_qsi4c32p,
     testing::Combine(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f32_f16p_qsi4c32p.size()),  //
         testing::ValuesIn(shapes_k32),                                                  //
         testing::ValuesIn(portions),                                                    //
-        testing::ValuesIn(std::initializer_list<float>{0.0F, 0.1F, 0.5F}),              //
-        testing::Values(32)),                                                           //
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping
+            1.0F,          // Clamp to full range
+            0.9F,          // Clamp to 90% range
+            0.5F,          // Clamp to 50% range
+        }),
+        testing::Values(32)),  //
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul_y_bl64, MatMulTest_f32_f16p_qsi4c32p,
+    MatMul_bl64, MatMulTest_f32_f16p_qsi4c32p,
     testing::Combine(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f32_f16p_qsi4c32p.size()),  //
         testing::ValuesIn(shapes_k64),                                                  //
         testing::ValuesIn(portions),                                                    //
-        testing::ValuesIn(std::initializer_list<float>{0.0F, 0.1F, 0.5F}),              //
-        testing::Values(64)),                                                           //
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping
+            1.0F,          // Clamp to full range
+            0.9F,          // Clamp to 90% range
+            0.5F,          // Clamp to 50% range
+        }),
+        testing::Values(64)),  //
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul_y_bl128, MatMulTest_f32_f16p_qsi4c32p,
+    MatMul_bl128, MatMulTest_f32_f16p_qsi4c32p,
     testing::Combine(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f32_f16p_qsi4c32p.size()),  //
         testing::ValuesIn(shapes_k128),                                                 //
         testing::ValuesIn(portions),                                                    //
-        testing::ValuesIn(std::initializer_list<float>{0.0F, 0.1F, 0.5F}),              //
-        testing::Values(128)),                                                          //
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping
+            1.0F,          // Clamp to full range
+            0.9F,          // Clamp to 90% range
+            0.5F,          // Clamp to 50% range
+        }),
+        testing::Values(128)),  //
     testing::PrintToStringParamName());
 
 INSTANTIATE_TEST_SUITE_P(
-    MatMul_y_bl256, MatMulTest_f32_f16p_qsi4c32p,
+    MatMul_bl256, MatMulTest_f32_f16p_qsi4c32p,
     testing::Combine(
         testing::Range<size_t>(0, variants_kai_matmul_clamp_f32_f16p_qsi4c32p.size()),  //
         testing::ValuesIn(shapes_k256),                                                 //
         testing::ValuesIn(portions),                                                    //
-        testing::ValuesIn(std::initializer_list<float>{0.0F, 0.1F, 0.5F}),              //
-        testing::Values(256)),                                                          //
+        testing::ValuesIn(std::initializer_list<std::optional<float>>{
+            std::nullopt,  // Disable clamping
+            1.0F,          // Clamp to full range
+            0.9F,          // Clamp to 90% range
+            0.5F,          // Clamp to 50% range
+        }),
+        testing::Values(128)),  //
     testing::PrintToStringParamName());
 }  // namespace
 }  // namespace kai::test
