@@ -149,7 +149,10 @@ Buffer Block2dRowFormat::pack(Shape shape, Span<const Span<const std::byte>> buf
     Buffer packed_buffer(packed_size, 0);
     Span<std::byte> packed_data(packed_buffer);
 
-    const PackBlock2dFn pack_data_fn = make_pack_block2d(m_dtype);
+    const PackBlock2dFn pack_data_fn =
+        m_layout == Block2dRowPackingLayout::DEFAULT ? make_pack_block2d(m_dtype) : nullptr;
+    const PackBlock2dInterleaveFn pack_interleave_fn =
+        m_layout == Block2dRowPackingLayout::S12S8S4S0 ? make_pack_block2d_interleave(m_dtype) : nullptr;
 
     const size_t num_row_pres = m_row_pre_dtypes.size();
     const size_t num_pres = m_pre_dtypes.size();
@@ -200,9 +203,13 @@ Buffer Block2dRowFormat::pack(Shape shape, Span<const Span<const std::byte>> buf
 
     const size_t data_size = num_block_rows * layout.num_component_blocks * component_data_size;
     Buffer block_data_buffer(data_size, 0);
-    const size_t packed_data_size = pack_data_fn(
-        m_block_height, m_block_width, layout.width_alignment, pad_value, m_pad_bottom_first, data_height, data_width,
-        block_data_buffer, data_buffer);
+    const size_t packed_data_size = m_layout == Block2dRowPackingLayout::S12S8S4S0
+        ? pack_interleave_fn(
+              m_block_height, m_block_width, layout.width_alignment, pad_value, height, width, m_block_width,
+              block_data_buffer, data_buffer)
+        : pack_data_fn(
+              m_block_height, m_block_width, layout.width_alignment, pad_value, m_pad_bottom_first, data_height,
+              data_width, block_data_buffer, data_buffer);
     KAI_TEST_ASSERT(packed_data_size == data_size);
     const Span<const std::byte> block_data = block_data_buffer;
 
@@ -495,6 +502,9 @@ std::string Block2dRowFormat::uid() const {
     if (m_block_length != 0) {
         uid += "_bl" + std::to_string(m_block_length);
     }
+    if (m_layout == Block2dRowPackingLayout::S12S8S4S0) {
+        uid += "_s12s8s4s0";
+    }
     if (m_interleave_width != 1) {
         uid += "_il" + std::to_string(m_interleave_width);
     }
@@ -551,7 +561,8 @@ bool Block2dRowFormat::operator==(const Format& other) const {
         m_row_pre_dtypes == rhs->m_row_pre_dtypes &&      //
         m_row_post_dtypes == rhs->m_row_post_dtypes &&    //
         m_interleave_width == rhs->m_interleave_width &&  //
-        m_pad_bottom_same == rhs->m_pad_bottom_same;
+        m_pad_bottom_same == rhs->m_pad_bottom_same &&    //
+        m_layout == rhs->m_layout;
 }
 
 }  // namespace kai::test
