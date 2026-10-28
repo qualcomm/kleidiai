@@ -139,18 +139,15 @@ KAI_ASM_LABEL(label_4)              //block loop
     scvtf z9.h, p2/m, z9.h
     scvtf z10.h, p2/m, z10.h
     scvtf z11.h, p2/m, z11.h
-    mov z16.d, z24.d
-    mov z17.d, z25.d
-    mov z18.d, z26.d
-    mov z19.d, z27.d
-    fmla z16.h, p2/m, z8.h, z0.h
-    fmla z17.h, p2/m, z9.h, z1.h
-    fmla z18.h, p2/m, z10.h, z2.h
-    fmla z19.h, p2/m, z11.h, z3.h
-    KAI_ASM_INST(0x81b048c0)         // fmopa za0.s, p2/m, p2/m, z6.h, z16.h
-    KAI_ASM_INST(0x81b148c1)         // fmopa za1.s, p2/m, p2/m, z6.h, z17.h
-    KAI_ASM_INST(0x81b248c2)         // fmopa za2.s, p2/m, p2/m, z6.h, z18.h
-    KAI_ASM_INST(0x81b348c3)         // fmopa za3.s, p2/m, p2/m, z6.h, z19.h
+    // fmad: zdn = za + zdn * zm -> value*scale + offset in place, no copy of the offset needed
+    fmad z8.h, p2/m, z0.h, z24.h
+    fmad z9.h, p2/m, z1.h, z25.h
+    fmad z10.h, p2/m, z2.h, z26.h
+    fmad z11.h, p2/m, z3.h, z27.h
+    KAI_ASM_INST(0x81a848c0)         // fmopa za0.s, p2/m, p2/m, z6.h, z8.h
+    KAI_ASM_INST(0x81a948c1)         // fmopa za1.s, p2/m, p2/m, z6.h, z9.h
+    KAI_ASM_INST(0x81aa48c2)         // fmopa za2.s, p2/m, p2/m, z6.h, z10.h
+    KAI_ASM_INST(0x81ab48c3)         // fmopa za3.s, p2/m, p2/m, z6.h, z11.h
 
     // K2/K3: low nibbles of bytes 2/3.
     lsl z20.b, z5.b, #4
@@ -163,18 +160,14 @@ KAI_ASM_LABEL(label_4)              //block loop
     scvtf z9.h, p2/m, z9.h
     scvtf z10.h, p2/m, z10.h
     scvtf z11.h, p2/m, z11.h
-    mov z16.d, z24.d
-    mov z17.d, z25.d
-    mov z18.d, z26.d
-    mov z19.d, z27.d
-    fmla z16.h, p2/m, z8.h, z0.h
-    fmla z17.h, p2/m, z9.h, z1.h
-    fmla z18.h, p2/m, z10.h, z2.h
-    fmla z19.h, p2/m, z11.h, z3.h
-    KAI_ASM_INST(0x81b048e0)         // fmopa za0.s, p2/m, p2/m, z7.h, z16.h
-    KAI_ASM_INST(0x81b148e1)         // fmopa za1.s, p2/m, p2/m, z7.h, z17.h
-    KAI_ASM_INST(0x81b248e2)         // fmopa za2.s, p2/m, p2/m, z7.h, z18.h
-    KAI_ASM_INST(0x81b348e3)         // fmopa za3.s, p2/m, p2/m, z7.h, z19.h
+    fmad z8.h, p2/m, z0.h, z24.h
+    fmad z9.h, p2/m, z1.h, z25.h
+    fmad z10.h, p2/m, z2.h, z26.h
+    fmad z11.h, p2/m, z3.h, z27.h
+    KAI_ASM_INST(0x81a848e0)         // fmopa za0.s, p2/m, p2/m, z7.h, z8.h
+    KAI_ASM_INST(0x81a948e1)         // fmopa za1.s, p2/m, p2/m, z7.h, z9.h
+    KAI_ASM_INST(0x81aa48e2)         // fmopa za2.s, p2/m, p2/m, z7.h, z10.h
+    KAI_ASM_INST(0x81ab48e3)         // fmopa za3.s, p2/m, p2/m, z7.h, z11.h
 
     // K4/K5: high nibbles of bytes 0/1.
     and z20.d, z4.d, z31.d
@@ -187,18 +180,14 @@ KAI_ASM_LABEL(label_4)              //block loop
     scvtf z9.h, p2/m, z9.h
     scvtf z10.h, p2/m, z10.h
     scvtf z11.h, p2/m, z11.h
-    mov z16.d, z24.d
-    mov z17.d, z25.d
-    mov z18.d, z26.d
-    mov z19.d, z27.d
-    fmla z16.h, p2/m, z8.h, z0.h
-    fmla z17.h, p2/m, z9.h, z1.h
-    fmla z18.h, p2/m, z10.h, z2.h
-    fmla z19.h, p2/m, z11.h, z3.h
-    KAI_ASM_INST(0x81b049c0)         // fmopa za0.s, p2/m, p2/m, z14.h, z16.h
-    KAI_ASM_INST(0x81b149c1)         // fmopa za1.s, p2/m, p2/m, z14.h, z17.h
-    KAI_ASM_INST(0x81b249c2)         // fmopa za2.s, p2/m, p2/m, z14.h, z18.h
-    KAI_ASM_INST(0x81b349c3)         // fmopa za3.s, p2/m, p2/m, z14.h, z19.h
+    fmad z8.h, p2/m, z0.h, z24.h
+    fmad z9.h, p2/m, z1.h, z25.h
+    fmad z10.h, p2/m, z2.h, z26.h
+    fmad z11.h, p2/m, z3.h, z27.h
+    KAI_ASM_INST(0x81a849c0)         // fmopa za0.s, p2/m, p2/m, z14.h, z8.h
+    KAI_ASM_INST(0x81a949c1)         // fmopa za1.s, p2/m, p2/m, z14.h, z9.h
+    KAI_ASM_INST(0x81aa49c2)         // fmopa za2.s, p2/m, p2/m, z14.h, z10.h
+    KAI_ASM_INST(0x81ab49c3)         // fmopa za3.s, p2/m, p2/m, z14.h, z11.h
 
     // K6/K7: high nibbles of bytes 2/3.
     and z20.d, z5.d, z31.d
@@ -211,18 +200,14 @@ KAI_ASM_LABEL(label_4)              //block loop
     scvtf z9.h, p2/m, z9.h
     scvtf z10.h, p2/m, z10.h
     scvtf z11.h, p2/m, z11.h
-    mov z16.d, z24.d
-    mov z17.d, z25.d
-    mov z18.d, z26.d
-    mov z19.d, z27.d
-    fmla z16.h, p2/m, z8.h, z0.h
-    fmla z17.h, p2/m, z9.h, z1.h
-    fmla z18.h, p2/m, z10.h, z2.h
-    fmla z19.h, p2/m, z11.h, z3.h
-    KAI_ASM_INST(0x81b049e0)         // fmopa za0.s, p2/m, p2/m, z15.h, z16.h
-    KAI_ASM_INST(0x81b149e1)         // fmopa za1.s, p2/m, p2/m, z15.h, z17.h
-    KAI_ASM_INST(0x81b249e2)         // fmopa za2.s, p2/m, p2/m, z15.h, z18.h
-    KAI_ASM_INST(0x81b349e3)         // fmopa za3.s, p2/m, p2/m, z15.h, z19.h
+    fmad z8.h, p2/m, z0.h, z24.h
+    fmad z9.h, p2/m, z1.h, z25.h
+    fmad z10.h, p2/m, z2.h, z26.h
+    fmad z11.h, p2/m, z3.h, z27.h
+    KAI_ASM_INST(0x81a849e0)         // fmopa za0.s, p2/m, p2/m, z15.h, z8.h
+    KAI_ASM_INST(0x81a949e1)         // fmopa za1.s, p2/m, p2/m, z15.h, z9.h
+    KAI_ASM_INST(0x81aa49e2)         // fmopa za2.s, p2/m, p2/m, z15.h, z10.h
+    KAI_ASM_INST(0x81ab49e3)         // fmopa za3.s, p2/m, p2/m, z15.h, z11.h
 
     subs x11, x11, #8
     b.gt label_4
