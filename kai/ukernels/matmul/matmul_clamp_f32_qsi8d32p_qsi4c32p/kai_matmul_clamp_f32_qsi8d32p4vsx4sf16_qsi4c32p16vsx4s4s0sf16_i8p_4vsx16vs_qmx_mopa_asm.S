@@ -1,0 +1,338 @@
+//
+// SPDX-FileCopyrightText: Copyright 2024-2026 Arm Limited and/or its affiliates <open-source-office@arm.com>
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// + Changes from Qualcomm Technologies, Inc. are provided under the following license:
+// + Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+// + SPDX-License-Identifier: BSD-3-Clause-Clear
+//
+
+// QMX (FEAT_SME) port of kai_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s1s0sf16_i8p_4vsx16vs_sme2_mopa.
+// The RHS is packed with kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon: each 32-bit lane holds K+0..3 in the
+// low nibbles and K+4..7 in the high nibbles (XOR 0x88, scales pre-multiplied by 1/16), so no zip is needed.
+// The SME2-only instructions are replaced as follows:
+//   * luti4 (ZT0)              -> lsl #4 / and 0xF0 for the default table, and 0x0f / lsr #4 + tbl for a caller table.
+//   * multi-vector ld1w/st1w   -> per-vector ld1w/st1w with p1, p2, p5, p6 column predicates.
+//   * whilelt pn9 (VLx4)       -> four whilelt instructions, p1 last so the flags reflect the first vector.
+//   * zip/mova/scvtf/fclamp x2 -> single-vector zip1/zip2 (once per block), mova, scvtf, fmax/fmin.
+
+// Loads 8 K values: RHS into z2, z3, z9, z10 and LHS into z8 (K+0..3) and z11 (K+4..7).
+.macro load_k8
+    add x2, x16, x20, lsl #2
+    ld1w {z2.s}, p0/z, [x2]
+    ld1w {z3.s}, p0/z, [x2, #1, mul vl]
+    ld1w {z9.s}, p0/z, [x2, #2, mul vl]
+    ld1w {z10.s}, p0/z, [x2, #3, mul vl]
+    add x2, x22, x20, lsl #1
+    ld1h {z8.h}, p0/z, [x2]
+    ld1h {z11.h}, p0/z, [x2, #1, mul vl]
+    incw x20, all, mul #4
+.endm
+
+// Replaces: whilelt pn9.s, start, end, VLx4
+// Sets the flags from p1 (first vector of the group).
+.macro whilelt_x4 start, end, tmp
+    incw \tmp, all, mul #3
+    whilelt p6.s, \tmp, \end
+    decw \tmp
+    whilelt p5.s, \tmp, \end
+    decw \tmp
+    whilelt p2.s, \tmp, \end
+    whilelt p1.s, \start, \end
+.endm
+
+#if defined(_MSC_VER)
+    #define KAI_ASM_GLOBAL(name) GLOBAL name
+    #define KAI_ASM_FUNCTION_TYPE(name)
+    #define KAI_ASM_FUNCTION_LABEL(name) name PROC
+    #define KAI_ASM_FUNCTION_END(name) ENDP
+    #define KAI_ASM_CODE(name) AREA name, CODE, READONLY
+    #define KAI_ASM_ALIGN
+    #define KAI_ASM_LABEL(name) name
+    #define KAI_ASM_INST(hex) DCD hex
+    #define KAI_ASM_END END
+#else
+    #if defined(__APPLE__)
+        #define KAI_ASM_GLOBAL(name) .globl _##name
+        #define KAI_ASM_FUNCTION_TYPE(name)
+        #define KAI_ASM_FUNCTION_LABEL(name) _##name:
+        #define KAI_ASM_FUNCTION_END(name)
+    #else
+        #define KAI_ASM_GLOBAL(name) .global name
+        #define KAI_ASM_FUNCTION_TYPE(name) .type name, %function
+        #define KAI_ASM_FUNCTION_LABEL(name) name:
+        #define KAI_ASM_FUNCTION_END(name) .size name, .-name
+    #endif
+    #define KAI_ASM_CODE(name) .text
+    #define KAI_ASM_ALIGN .p2align 4,,11
+    #define KAI_ASM_LABEL(name) name:
+    #define KAI_ASM_INST(hex) .inst hex
+    #define KAI_ASM_END
+#endif
+
+.macro smopa_k4_lo
+    KAI_ASM_INST(0xa0840100)  // smopa za0.s, p0/m, p0/m, z8.b, z4.b
+    KAI_ASM_INST(0xa0850101)  // smopa za1.s, p0/m, p0/m, z8.b, z5.b
+    KAI_ASM_INST(0xa0860102)  // smopa za2.s, p0/m, p0/m, z8.b, z6.b
+    KAI_ASM_INST(0xa0870103)  // smopa za3.s, p0/m, p0/m, z8.b, z7.b
+.endm
+
+.macro smopa_k4_hi
+    KAI_ASM_INST(0xa0840160)  // smopa za0.s, p0/m, p0/m, z11.b, z4.b
+    KAI_ASM_INST(0xa0850161)  // smopa za1.s, p0/m, p0/m, z11.b, z5.b
+    KAI_ASM_INST(0xa0860162)  // smopa za2.s, p0/m, p0/m, z11.b, z6.b
+    KAI_ASM_INST(0xa0870163)  // smopa za3.s, p0/m, p0/m, z11.b, z7.b
+.endm
+
+    KAI_ASM_CODE(matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa)
+    KAI_ASM_ALIGN
+    KAI_ASM_GLOBAL(kai_kernel_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa)
+
+KAI_ASM_FUNCTION_TYPE(kai_kernel_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa)
+KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa)
+    stp x20, x21, [sp, #-112]!
+    stp x22, x23, [sp, #16]
+    stp x24, x25, [sp, #32]
+    stp d8, d9, [sp, #48]
+    stp d10, d11, [sp, #64]
+    stp d12, d13, [sp, #80]
+    stp d14, d15, [sp, #96]
+
+    mov x13, x0
+    KAI_ASM_INST(0xd503477f)  // smstart
+    cntw x14
+    ptrue p0.b, all
+
+    ldr x5, [x13, #0x10]
+    lsl x5, x5, #1
+    whilelt p4.b, xzr, x5
+
+    // x3 == 0: default {-8..7} table. Otherwise x3 points to a 16-byte table indexed by the packed nibble.
+    ldr x3, [x13, #0x78]
+    dup z22.b, #0xf0
+    cbz x3, 1f
+    ld1rqb {z14.b}, p0/z, [x3]
+    dup z12.b, #0x0f
+    fmov z13.h, #16.0  // The table values are not pre-multiplied by 16
+1:
+
+    ldr x16, [x13, #0x50]
+    ldr x17, [x13, #0x60]
+    ldr w5, [x13, #0x20]
+    dup z15.s, w5
+    ldr w5, [x13, #0x24]
+    dup z17.s, w5
+    ldr x4, [x13, #0x70]  // dst_stride_row
+    dup z18.s, #0
+
+    mov x8, #0
+    ldr x0, [x13, #0x38]
+    ldr x7, [x13, #0x68]
+    mov x1, x8
+    whilelt_x4 x8, x0, x1
+    b.none n_end
+
+    // N_LOOP START
+KAI_ASM_LABEL(n_loop)
+    ldr x9, [x13, #0x30]
+    ldr x22, [x13, #0x48]
+    ldr x23, [x13, #0x58]
+    mov x24, x7
+
+    // M_LOOP START
+KAI_ASM_LABEL(m_loop)
+    mov x20, #0
+    mov x21, #0
+    cmp x9, x14
+    csel x15, x9, x14, lo
+    lsl x15, x15, #2
+    ldr x10, [x13, #0x40]
+
+    // K_LOOP START
+KAI_ASM_LABEL(k_loop)
+    KAI_ASM_INST(0xc00800ff)  // zero {za}
+    add x2, x17, x21, lsl #2
+    ld1w {z0.s}, p0/z, [x2]
+    ld1w {z1.s}, p0/z, [x2, #1, mul vl]
+    zip1 z20.h, z0.h, z1.h
+    zip2 z21.h, z0.h, z1.h
+    ldr x11, [x13, #0x18]
+    cbnz x3, block_loop_lut
+
+    // BL_LOOP START
+KAI_ASM_LABEL(block_loop)
+    load_k8
+    lsl z4.b, z2.b, #4
+    lsl z5.b, z3.b, #4
+    lsl z6.b, z9.b, #4
+    lsl z7.b, z10.b, #4
+    smopa_k4_lo
+    and z4.d, z2.d, z22.d
+    and z5.d, z3.d, z22.d
+    and z6.d, z9.d, z22.d
+    and z7.d, z10.d, z22.d
+    smopa_k4_hi
+    subs x11, x11, #8
+    b.gt block_loop
+    b block_loop_end
+    // BL_LOOP END
+
+KAI_ASM_LABEL(block_loop_lut)
+    fmul z20.h, z20.h, z13.h
+    fmul z21.h, z21.h, z13.h
+
+    // BL_LOOP (caller table) START
+KAI_ASM_LABEL(block_loop_lut_k8)
+    load_k8
+    and z4.d, z2.d, z12.d
+    and z5.d, z3.d, z12.d
+    and z6.d, z9.d, z12.d
+    and z7.d, z10.d, z12.d
+    tbl z4.b, {z14.b}, z4.b
+    tbl z5.b, {z14.b}, z5.b
+    tbl z6.b, {z14.b}, z6.b
+    tbl z7.b, {z14.b}, z7.b
+    smopa_k4_lo
+    lsr z4.b, z2.b, #4
+    lsr z5.b, z3.b, #4
+    lsr z6.b, z9.b, #4
+    lsr z7.b, z10.b, #4
+    tbl z4.b, {z14.b}, z4.b
+    tbl z5.b, {z14.b}, z5.b
+    tbl z6.b, {z14.b}, z6.b
+    tbl z7.b, {z14.b}, z7.b
+    smopa_k4_hi
+    subs x11, x11, #8
+    b.gt block_loop_lut_k8
+    // BL_LOOP (caller table) END
+
+KAI_ASM_LABEL(block_loop_end)
+    mov w12, #0
+    mov x25, x24
+    ld1b {z16.b}, p4/z, [x23, x21]
+    inch x21, all
+    pfalse p3.b
+    ldr x5, [x13, #0x40]
+    cmp x10, x5
+    cset x6, ne  // x6 != 0: not the first block, accumulate into dst
+
+    // ZA_LOOP START
+KAI_ASM_LABEL(accumulator_loop)
+    pnext p3.h, p0, p3.h
+    clastb z19.h, p3, z19.h, z16.h
+    KAI_ASM_INST(0xc002001c)  // mova z28.b, p0/m, za0h.b[w12, 0]
+    KAI_ASM_INST(0xc002003d)  // mova z29.b, p0/m, za0h.b[w12, 1]
+    KAI_ASM_INST(0xc002005e)  // mova z30.b, p0/m, za0h.b[w12, 2]
+    KAI_ASM_INST(0xc002007f)  // mova z31.b, p0/m, za0h.b[w12, 3]
+    add w12, w12, #4
+    scvtf z28.s, p0/m, z28.s
+    scvtf z29.s, p0/m, z29.s
+    scvtf z30.s, p0/m, z30.s
+    scvtf z31.s, p0/m, z31.s
+
+    movprfx z8, z18
+    fmlalb z8.s, z19.h, z20.h
+    movprfx z9, z18
+    fmlalb z9.s, z19.h, z21.h
+    movprfx z10, z18
+    fmlalt z10.s, z19.h, z20.h
+    movprfx z11, z18
+    fmlalt z11.s, z19.h, z21.h
+
+    cbnz x6, accumulate
+    fmul z24.s, z8.s, z28.s
+    fmul z25.s, z9.s, z29.s
+    fmul z26.s, z10.s, z30.s
+    fmul z27.s, z11.s, z31.s
+    b store
+
+KAI_ASM_LABEL(accumulate)
+    ld1w {z24.s}, p1/z, [x25]
+    ld1w {z25.s}, p2/z, [x25, #1, mul vl]
+    ld1w {z26.s}, p5/z, [x25, #2, mul vl]
+    ld1w {z27.s}, p6/z, [x25, #3, mul vl]
+    fmla z24.s, p0/m, z8.s, z28.s
+    fmla z25.s, p0/m, z9.s, z29.s
+    fmla z26.s, p0/m, z10.s, z30.s
+    fmla z27.s, p0/m, z11.s, z31.s
+
+KAI_ASM_LABEL(store)
+    st1w {z24.s}, p1, [x25]
+    st1w {z25.s}, p2, [x25, #1, mul vl]
+    st1w {z26.s}, p5, [x25, #2, mul vl]
+    st1w {z27.s}, p6, [x25, #3, mul vl]
+    add x25, x25, x4
+    cmp x12, x15
+    b.lt accumulator_loop
+    // ZA_LOOP END
+
+    ldr x5, [x13, #0x18]
+    subs x10, x10, x5
+    b.gt k_loop
+    // K_LOOP END
+
+    ldr w5, [x13, #0x28]
+    cbz x5, clamp_end
+    mov x5, x24
+    mov x12, #0
+
+    // CLAMP_LOOP START
+KAI_ASM_LABEL(clamp_loop)
+    ld1w {z24.s}, p1/z, [x24]
+    ld1w {z25.s}, p2/z, [x24, #1, mul vl]
+    ld1w {z26.s}, p5/z, [x24, #2, mul vl]
+    ld1w {z27.s}, p6/z, [x24, #3, mul vl]
+    fmax z24.s, p0/m, z24.s, z15.s
+    fmax z25.s, p0/m, z25.s, z15.s
+    fmax z26.s, p0/m, z26.s, z15.s
+    fmax z27.s, p0/m, z27.s, z15.s
+    fmin z24.s, p0/m, z24.s, z17.s
+    fmin z25.s, p0/m, z25.s, z17.s
+    fmin z26.s, p0/m, z26.s, z17.s
+    fmin z27.s, p0/m, z27.s, z17.s
+    st1w {z24.s}, p1, [x24]
+    st1w {z25.s}, p2, [x24, #1, mul vl]
+    st1w {z26.s}, p5, [x24, #2, mul vl]
+    st1w {z27.s}, p6, [x24, #3, mul vl]
+    add x24, x24, x4
+    add x12, x12, #4
+    cmp x12, x15
+    b.lt clamp_loop
+    // CLAMP_LOOP END
+
+    mov x24, x5
+KAI_ASM_LABEL(clamp_end)
+    ldr x5, [x13, #0x00]
+    add x22, x22, x5
+    add x23, x23, x5
+    mov x24, x25
+    decw x9, all
+    cmp x9, #0
+    b.gt m_loop
+    // M_LOOP END
+
+    incb x7, all, mul #4
+    ldr x5, [x13, #0x08]
+    add x16, x16, x5
+    add x17, x17, x5
+    incb x8, all
+    ldr x0, [x13, #0x38]
+    mov x1, x8
+    whilelt_x4 x8, x0, x1
+    b.mi n_loop
+    // N_LOOP END
+
+KAI_ASM_LABEL(n_end)
+    KAI_ASM_INST(0xd503467f)  // smstop
+    ldp d14, d15, [sp, #96]
+    ldp d12, d13, [sp, #80]
+    ldp d10, d11, [sp, #64]
+    ldp d8, d9, [sp, #48]
+    ldp x24, x25, [sp, #32]
+    ldp x22, x23, [sp, #16]
+    ldp x20, x21, [sp], #112
+    ret
+    KAI_ASM_FUNCTION_END(kai_kernel_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa)
+
+    KAI_ASM_END
