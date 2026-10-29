@@ -526,10 +526,12 @@ TEST(MatMulClampF32Qsi8d32pQsi4c32pLut, OptionalLutArgument) {
         bool sme2_order;
         bool gemv;
     };
-    const std::array<Variant, 2> variants = {{
+    const std::array<Variant, 4> variants = {{
         {kai_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s1s0sf16_i8p_1x16vs_sme2_dot, cpu_has_sme2, true, true},
         {kai_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s1s0sf16_i8p_4vsx16vs_sme2_mopa, cpu_has_sme2, true,
          false},
+        {kai_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s4s0sf16_i8p_1x16vs_qmx_dot, cpu_has_sme, false, true},
+        {kai_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa, cpu_has_sme, false, false},
     }};
     alignas(16) constexpr std::array<int32_t, 16> qsi4_lut = {-8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7};
     alignas(16) constexpr std::array<int32_t, 16> zero_lut = {};
