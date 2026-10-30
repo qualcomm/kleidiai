@@ -525,13 +525,17 @@ TEST(MatMulClampF32Qsi8d32pQsi4c32pLut, OptionalLutArgument) {
         bool (*supported)(void);
         bool sme2_order;
         bool gemv;
+        bool supports_lut;  // QMX (FEAT_SME) has no FEAT_LUT, so it only runs the NULL LUT case.
     };
     const std::array<Variant, 4> variants = {{
-        {kai_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s1s0sf16_i8p_1x16vs_sme2_dot, cpu_has_sme2, true, true},
+        {kai_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s1s0sf16_i8p_1x16vs_sme2_dot, cpu_has_sme2, true, true,
+         true},
         {kai_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s1s0sf16_i8p_4vsx16vs_sme2_mopa, cpu_has_sme2, true,
+         false, true},
+        {kai_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s4s0sf16_i8p_1x16vs_qmx_dot, cpu_has_sme, false, true,
          false},
-        {kai_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s4s0sf16_i8p_1x16vs_qmx_dot, cpu_has_sme, false, true},
-        {kai_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa, cpu_has_sme, false, false},
+        {kai_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa, cpu_has_sme, false, false,
+         false},
     }};
     alignas(16) constexpr std::array<int32_t, 16> qsi4_lut = {-8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7};
     alignas(16) constexpr std::array<int32_t, 16> zero_lut = {};
@@ -623,6 +627,9 @@ TEST(MatMulClampF32Qsi8d32pQsi4c32pLut, OptionalLutArgument) {
 
             std::array<Buffer, clamp_cases.size()> null_outputs;
             for (const auto& lut_case : lut_cases) {
+                if (!variant.supports_lut && lut_case.lut != nullptr) {
+                    continue;
+                }
                 SCOPED_TRACE(std::string("lut=") + lut_case.name);
                 Buffer decoded_rhs(N * K * sizeof(int8_t));
                 for (size_t index = 0; index < N * K; ++index) {
@@ -678,7 +685,7 @@ TEST(MatMulClampF32Qsi8d32pQsi4c32pLut, OptionalLutArgument) {
         }
     }
     if (exercised == 0) {
-        GTEST_SKIP() << "SME2 is not supported";
+        GTEST_SKIP() << "SME is not supported";
     }
 }
 

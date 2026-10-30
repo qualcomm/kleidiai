@@ -16,31 +16,23 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "kai/kai_common.h"
 #include "kai/ukernels/matmul/kai_matmul.h"
 #include "kai/ukernels/matmul/kai_matmul_types.h"
 
-#if defined(_MSC_VER)
-#define KAI_ALIGNED_AS(N) __declspec(align(N))
-#else
-#define KAI_ALIGNED_AS(N) __attribute__((aligned(N)))
-#endif
-
 typedef struct {
-    float* dst;
-    const void* rhs_packed;
-    const uint16_t* rhs_scales;
-    const void* lhs_packed;
-    const uint16_t* lhs_scales;
-    size_t rhs_packed_stride;
-    size_t n;
-    size_t k;
-    size_t bl;
-    const int8_t* lut;
-    float scalar_min;
-    float scalar_max;
+    float* dst;                  // 0x00
+    const void* rhs_packed;      // 0x08
+    const uint16_t* rhs_scales;  // 0x10
+    const void* lhs_packed;      // 0x18
+    const uint16_t* lhs_scales;  // 0x20
+    size_t rhs_packed_stride;    // 0x28
+    size_t n;                    // 0x30
+    size_t k;                    // 0x38
+    size_t bl;                   // 0x40
+    float scalar_min;            // 0x48
+    float scalar_max;            // 0x4c
 } KernelArgs;
 
 void kai_kernel_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s4s0sf16_i8p_1x16vs_qmx_dot(const KernelArgs* args);
@@ -64,9 +56,6 @@ static const size_t kai_bl = 32;
 
 static size_t kai_get_mr_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s4s0sf16_i8p_1x16vs_qmx_dot(void);
 static size_t kai_get_nr_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s4s0sf16_i8p_1x16vs_qmx_dot(void);
-
-// Look-up table used for int4->int8 convert
-KAI_ALIGNED_AS(16) static const int32_t default_lut[16] = {-8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7};
 
 inline static size_t kai_get_num_bytes_per_block_lhs(size_t bl) {
     return (bl * kai_num_bytes_qvalue_lhs) + kai_num_bytes_multiplier_lhs;
@@ -179,7 +168,6 @@ static void run(const struct kai_matmul_uker_config* config, const struct kai_ma
     KAI_ASSUME(args->operand.lhs.ptr != NULL);
     KAI_ASSUME(args->operand.rhs.ptr != NULL);
     KAI_ASSUME(args->operand.dst.ptr != NULL);
-    KAI_ASSUME(args->operand.lut.ptr == NULL || ((uintptr_t)args->operand.lut.ptr % 16) == 0);
     KAI_ASSUME((args->flags & ~((uint64_t)KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP)) == 0);
     const bool clamp = (args->flags & KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP) != 0;
     KAI_ASSUME(!clamp || args->activation.clamp.min_ptr != NULL);
@@ -204,19 +192,6 @@ static void run(const struct kai_matmul_uker_config* config, const struct kai_ma
     const uint16_t* rhs_scales = (const uint16_t*)((const uint8_t*)args->operand.rhs.ptr + rhs_packed_stride -
                                                    (nr * num_blocks) * kai_num_bytes_multiplier_rhs);
 
-    // The RHS is packed by kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon, whose nibbles are already signed
-    // (u ^ 8). The default table is decoded without a table lookup (lut == NULL). Any other table is applied with
-    // SVE TBL on the low byte of each entry, re-indexed by the packed nibble.
-    const int32_t* lut = (const int32_t*)args->operand.lut.ptr;
-    KAI_ALIGNED_AS(16) int8_t lut8[16];
-    const int8_t* kernel_lut = NULL;
-    if (lut != NULL && memcmp(lut, default_lut, sizeof(default_lut)) != 0) {
-        for (size_t i = 0; i < 16; ++i) {
-            lut8[i] = (int8_t)lut[i ^ 8];
-        }
-        kernel_lut = lut8;
-    }
-
     const KernelArgs kernel_args = {
         .dst = (float*)args->operand.dst.ptr,
         .rhs_packed = args->operand.rhs.ptr,
@@ -227,7 +202,6 @@ static void run(const struct kai_matmul_uker_config* config, const struct kai_ma
         .n = args->shape.n,
         .k = args->shape.k,
         .bl = bl,
-        .lut = kernel_lut,
         .scalar_min = min,
         .scalar_max = max,
     };

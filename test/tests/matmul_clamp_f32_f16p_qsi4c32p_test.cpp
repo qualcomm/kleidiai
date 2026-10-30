@@ -375,10 +375,19 @@ TEST_P(MatMulTest_f32_f16p_qsi4c32p, EndToEnd) {
 }
 
 TEST(MatMulClampF32F16pQsi4c32pLut, OptionalLutArgument) {
-    if (!cpu_check<cpu_has_sme2, cpu_has_fp16>()) {
-        GTEST_SKIP() << "SME2 and FP16 are not supported";
-    }
-
+    struct Variant {
+        const char* name;
+        kai_matmul_uker_api (*factory)(void);
+        bool (*supported)(void);
+        bool sme2_order;
+        bool supports_lut;  // QMX (FEAT_SME) has no FEAT_LUT, so it only runs the NULL LUT case.
+    };
+    const std::array<Variant, 2> variants = {{
+        {"sme2_mopa", kai_matmul_clamp_f32_f16p4vsx2_qsi4c32p16vsx4s1s0sf16_f16p_4vsx16vs_sme2_mopa,
+         cpu_check<cpu_has_sme2, cpu_has_fp16>, true, true},
+        {"qmx_mopa", kai_matmul_clamp_f32_f16p4vsx2_qsi4c32p16vsx4s4s0sf16_f16p_4vsx16vs_qmx_mopa,
+         cpu_check<cpu_has_sme, cpu_has_fp16>, false, false},
+    }};
     alignas(16) constexpr std::array<uint32_t, 16> qsi4_lut = {
         0x0000c800, 0x0000c700, 0x0000c600, 0x0000c500, 0x0000c400, 0x0000c200, 0x0000c000, 0x0000bc00,
         0x00000000, 0x00003c00, 0x00004000, 0x00004200, 0x00004400, 0x00004500, 0x00004600, 0x00004700,
@@ -394,87 +403,122 @@ TEST(MatMulClampF32F16pQsi4c32pLut, OptionalLutArgument) {
         {"explicit_default", qsi4_lut.data(), true},
         {"explicit_zero", zero_lut.data(), false},
     }};
-    const kai_matmul_uker_api api = kai_matmul_clamp_f32_f16p4vsx2_qsi4c32p16vsx4s1s0sf16_f16p_4vsx16vs_sme2_mopa();
 
-    for (const size_t block_length : {32, 64, 128, 256}) {
-        SCOPED_TRACE("block_length=" + std::to_string(block_length));
-        const kai_matmul_uker_config config{.format = {.bl = block_length}};
-        const auto step = api.get_step(&config);
-        const size_t M = step.m + 1;
-        const size_t N = step.n + 3;
-        const size_t K = 256;
-        const size_t mr = step.m;
-        const size_t nr = step.n;
-        const MatMulShape shape{M, N, K};
-        const F32F16pQsi4c32pCacheDataId id = {
-            shape,                       //
-            DataFormat(DataType::FP32),  //
-            DataFormat(DataType::FP32),
-            block_length,
-        };
-        const auto& test_data = getV<F32F16pQsi4c32pCacheDataId, F32F16pQsi4c32pCacheData>(id);
+    size_t exercised = 0;
+    for (const auto& variant : variants) {
+        if (!variant.supported()) {
+            continue;
+        }
+        ++exercised;
+        SCOPED_TRACE(std::string("variant=") + variant.name);
+        const kai_matmul_uker_api api = variant.factory();
+        for (const size_t block_length : {32, 64, 128, 256}) {
+            SCOPED_TRACE("block_length=" + std::to_string(block_length));
+            const kai_matmul_uker_config config{.format = {.bl = block_length}};
+            const auto step = api.get_step(&config);
+            const size_t K = 256;
+            const size_t mr = step.m;
+            const size_t nr = step.n;
+            const std::array<MatMulShape, 3> shapes = {{
+                {step.m + 1, step.n + 3, K},                           // Partial last M and N panels.
+                {1, step.n / 2 + 1, K},                                // Single row, N ends in the 3rd vector.
+                {2 * step.m + 3, 2 * step.n + 3 * step.n / 4 + 1, K},  // Three M and N panels.
+            }};
+            for (const auto& shape : shapes) {
+                const size_t M = shape.m;
+                const size_t N = shape.n;
+                SCOPED_TRACE("M=" + std::to_string(M) + " N=" + std::to_string(N));
+                const F32F16pQsi4c32pCacheDataId id = {
+                    shape,                       //
+                    DataFormat(DataType::FP32),  //
+                    DataFormat(DataType::FP32),
+                    block_length,
+                };
+                const auto& test_data = getV<F32F16pQsi4c32pCacheDataId, F32F16pQsi4c32pCacheData>(id);
 
-        const kai_matmul_uker_lhs_dim_args lhs_shape{M, K};
-        const kai_matmul_uker_rhs_dim_args rhs_shape{N, K};
-        const kai_matmul_uker_dst_dim_args dst_shape{M, N};
-        const auto lhs_stride = api.get_lhs_stride(&config, &lhs_shape);
-        const auto rhs_stride = api.get_rhs_stride(&config, &rhs_shape);
-        const auto dst_stride = api.get_dst_stride(&config, &dst_shape);
-        const kai_matmul_uker_lhs_dim_args lhs_index{step.m, 0};
-        const kai_matmul_uker_rhs_dim_args rhs_index{step.n, 0};
-        const kai_matmul_uker_dst_dim_args dst_index{step.m, step.n};
-        ASSERT_EQ(api.get_lhs_offset(&config, &lhs_index, &lhs_stride), lhs_stride.m);
-        ASSERT_EQ(api.get_rhs_offset(&config, &rhs_index, &rhs_stride), rhs_stride.n);
-        ASSERT_EQ(api.get_dst_offset(&config, &dst_index, &dst_stride), step.m * dst_stride.m + step.n * sizeof(float));
+                const kai_matmul_uker_lhs_dim_args lhs_shape{M, K};
+                const kai_matmul_uker_rhs_dim_args rhs_shape{N, K};
+                const kai_matmul_uker_dst_dim_args dst_shape{M, N};
+                const auto lhs_stride = api.get_lhs_stride(&config, &lhs_shape);
+                const auto rhs_stride = api.get_rhs_stride(&config, &rhs_shape);
+                const auto dst_stride = api.get_dst_stride(&config, &dst_shape);
+                const kai_matmul_uker_lhs_dim_args lhs_index{step.m, 0};
+                const kai_matmul_uker_rhs_dim_args rhs_index{step.n, 0};
+                const kai_matmul_uker_dst_dim_args dst_index{step.m, step.n};
+                ASSERT_EQ(api.get_lhs_offset(&config, &lhs_index, &lhs_stride), lhs_stride.m);
+                ASSERT_EQ(api.get_rhs_offset(&config, &rhs_index, &rhs_stride), rhs_stride.n);
+                ASSERT_EQ(
+                    api.get_dst_offset(&config, &dst_index, &dst_stride),
+                    step.m * dst_stride.m + step.n * sizeof(float));
 
-        Buffer packed_lhs(kai_get_lhs_packed_size_lhs_pack_f16pmrx2_f32_neon(M, K, block_length, mr, 4, 2));
-        abi_check(
-            kai_run_lhs_pack_f16pmrx2_f32_neon, M, K, block_length, mr, 4, 2, 0, test_data.lhs.data(),
-            K * sizeof(float), packed_lhs.data());
+                Buffer packed_lhs(kai_get_lhs_packed_size_lhs_pack_f16pmrx2_f32_neon(M, K, block_length, mr, 4, 2));
+                abi_check(
+                    kai_run_lhs_pack_f16pmrx2_f32_neon, M, K, block_length, mr, 4, 2, 0, test_data.lhs.data(),
+                    K * sizeof(float), packed_lhs.data());
 
-        Buffer packed_rhs(
-            kai_get_rhs_packed_size_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon(N, K, nr, 4, block_length));
-        const kai_rhs_pack_qs4cxs1s0_param pack_params{.lhs_zero_point = 1, .rhs_zero_point = 8};
-        abi_check(
-            kai_run_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon, 1, N, K, nr, 4, 2, block_length,
-            reinterpret_cast<const uint8_t*>(test_data.ref_rhs_qsu4_scale_f16.data()), nullptr, packed_rhs.data(), 0,
-            &pack_params);
-
-        std::array<Buffer, 2> null_outputs;
-        for (const auto& lut_case : lut_cases) {
-            SCOPED_TRACE(std::string("lut=") + lut_case.name);
-            for (const bool enable_clamp : {false, true}) {
-                constexpr float clamp_min = -0.5F;
-                constexpr float clamp_max = 0.5F;
-                Buffer reference(test_data.ref_dst.size());
-                if (!lut_case.uses_default_mapping) {
-                    std::memset(reference.data(), 0, reference.size());
-                } else if (enable_clamp) {
-                    reference = clamp<float>(test_data.ref_dst.data(), M * N, clamp_min, clamp_max);
+                const size_t packed_rhs_size = variant.sme2_order
+                    ? kai_get_rhs_packed_size_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon(
+                          N, K, nr, 4, block_length)
+                    : kai_get_rhs_packed_size_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon(
+                          N, K, nr, 4, block_length);
+                ASSERT_EQ(packed_rhs_size, rhs_stride.n * ((N + nr - 1) / nr));
+                Buffer packed_rhs(packed_rhs_size);
+                const kai_rhs_pack_qs4cxs1s0_param pack_params{.lhs_zero_point = 1, .rhs_zero_point = 8};
+                if (variant.sme2_order) {
+                    abi_check(
+                        kai_run_rhs_pack_nxk_qsi4c32ps1s0scalef16_qsu4c32s16s0_neon, 1, N, K, nr, 4, 2, block_length,
+                        reinterpret_cast<const uint8_t*>(test_data.ref_rhs_qsu4_scale_f16.data()), nullptr,
+                        packed_rhs.data(), 0, &pack_params);
                 } else {
-                    std::memcpy(reference.data(), test_data.ref_dst.data(), test_data.ref_dst.size());
+                    abi_check(
+                        kai_run_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon, 1, N, K, nr, 4, 2, block_length,
+                        reinterpret_cast<const uint8_t*>(test_data.ref_rhs_qsu4_scale_f16.data()), nullptr,
+                        packed_rhs.data(), 0, &pack_params);
                 }
-                Buffer output(api.get_dst_size(&config, &dst_shape, &dst_stride));
-                kai_matmul_uker_args args{};
-                args.flags = enable_clamp ? KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP : 0;
-                args.operand.lut.ptr = lut_case.lut;
-                args.shape = {.m = M, .n = N, .k = K};
-                args.operand.lhs = {.ptr = packed_lhs.data(), .stride = lhs_stride};
-                args.operand.rhs = {.ptr = packed_rhs.data(), .stride = rhs_stride};
-                args.operand.dst = {.ptr = output.data(), .stride = dst_stride};
-                args.activation.clamp = {.min_ptr = &clamp_min, .max_ptr = &clamp_max};
-                abi_check(api.run, &config, &args);
 
-                DefaultMismatchHandler handler(0, 0.1, 0, 0.05);
-                const Rect full_rect = MatrixPortion(0, 0, 1, 1).compute_portion(M, N, M, N);
-                ASSERT_TRUE(compare(output.data(), reference.data(), DataType::FP32, M, N, full_rect, handler));
-                if (lut_case.lut == nullptr) {
-                    null_outputs[enable_clamp] = std::move(output);
-                } else if (lut_case.uses_default_mapping) {
-                    ASSERT_EQ(0, std::memcmp(null_outputs[enable_clamp].data(), output.data(), output.size()));
+                std::array<Buffer, 2> null_outputs;
+                for (const auto& lut_case : lut_cases) {
+                    if (!variant.supports_lut && lut_case.lut != nullptr) {
+                        continue;
+                    }
+                    SCOPED_TRACE(std::string("lut=") + lut_case.name);
+                    for (const bool enable_clamp : {false, true}) {
+                        constexpr float clamp_min = -0.5F;
+                        constexpr float clamp_max = 0.5F;
+                        Buffer reference(test_data.ref_dst.size());
+                        if (!lut_case.uses_default_mapping) {
+                            std::memset(reference.data(), 0, reference.size());
+                        } else if (enable_clamp) {
+                            reference = clamp<float>(test_data.ref_dst.data(), M * N, clamp_min, clamp_max);
+                        } else {
+                            std::memcpy(reference.data(), test_data.ref_dst.data(), test_data.ref_dst.size());
+                        }
+                        Buffer output(api.get_dst_size(&config, &dst_shape, &dst_stride));
+                        kai_matmul_uker_args args{};
+                        args.flags = enable_clamp ? KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP : 0;
+                        args.operand.lut.ptr = lut_case.lut;
+                        args.shape = {.m = M, .n = N, .k = K};
+                        args.operand.lhs = {.ptr = packed_lhs.data(), .stride = lhs_stride};
+                        args.operand.rhs = {.ptr = packed_rhs.data(), .stride = rhs_stride};
+                        args.operand.dst = {.ptr = output.data(), .stride = dst_stride};
+                        args.activation.clamp = {.min_ptr = &clamp_min, .max_ptr = &clamp_max};
+                        abi_check(api.run, &config, &args);
+
+                        DefaultMismatchHandler handler(0, 0.1, 0, 0.05);
+                        const Rect full_rect = MatrixPortion(0, 0, 1, 1).compute_portion(M, N, M, N);
+                        ASSERT_TRUE(compare(output.data(), reference.data(), DataType::FP32, M, N, full_rect, handler));
+                        if (lut_case.lut == nullptr) {
+                            null_outputs[enable_clamp] = std::move(output);
+                        } else if (lut_case.uses_default_mapping) {
+                            ASSERT_EQ(0, std::memcmp(null_outputs[enable_clamp].data(), output.data(), output.size()));
+                        }
+                    }
                 }
             }
         }
+    }
+    if (exercised == 0) {
+        GTEST_SKIP() << "SME and FP16 are not supported";
     }
 }
 

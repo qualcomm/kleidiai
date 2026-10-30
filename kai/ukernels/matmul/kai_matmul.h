@@ -94,6 +94,31 @@ struct kai_matmul_uker_api kai_matmul_clamp_f16_f16p4vsx2_f16p4vsx2bf16_8vsx8vs_
 /// @return The micro-kernel API.
 struct kai_matmul_uker_api kai_matmul_clamp_f32_f16p4vsx2_qsi4c32p16vsx4s1s0sf16_f16p_4vsx16vs_sme2_mopa(void);
 
+/// Single-precision floating-point matrix multiplication using QMX MOPA instruction.
+///
+/// Required CPU features:
+///   * FEAT_SME
+///   * FEAT_FP16
+///
+/// Configuration parameters:
+///   * format.bl - Block length. Must be a non-zero multiple of 32.
+///
+/// Required operands:
+///   * lhs - f16p4vsx2 packed FP16 values.
+///   * rhs - qsi4c32p16vsx4s4s0sf16 packed with kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon.
+///   * dst - FP32 output matrix.
+///
+/// S1S0 and S4S0 RHS buffers have matching sizes and strides but are not interchangeable.
+///
+/// Optional arguments:
+///   * clamp - F32 output clamp values if KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP flag is set.
+///
+/// Supported flags:
+///   * KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP - Clamp output data.
+///
+/// @return The micro-kernel API.
+struct kai_matmul_uker_api kai_matmul_clamp_f32_f16p4vsx2_qsi4c32p16vsx4s4s0sf16_f16p_4vsx16vs_qmx_mopa(void);
+
 /// Single-precision floating-point vector-matrix multiplication using SME2 DOT instruction.
 ///
 /// Required CPU features:
@@ -758,8 +783,6 @@ struct kai_matmul_uker_api kai_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s4s0sf
 ///   * dst - FP32 output matrix.
 ///
 /// Optional arguments:
-///   * operand.lut.ptr - 16-byte-aligned buffer of 16 32-bit entries mapping packed 4-bit RHS codes to 8-bit values.
-///     NULL or the default QSI4 mapping uses the fast path. Other tables use a TBL decode, which is slower.
 ///   * clamp - F32 output clamp values if KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP flag is set.
 ///
 /// Supported flags:
@@ -782,8 +805,6 @@ struct kai_matmul_uker_api kai_matmul_clamp_f32_qsi8d32p1x4sf16_qsi4c32p16vsx4s4
 ///   * dst - FP32 output matrix.
 ///
 /// Optional arguments:
-///   * operand.lut.ptr - 16-byte-aligned buffer of 16 32-bit entries mapping packed 4-bit RHS codes to 8-bit values.
-///     NULL or the default QSI4 mapping uses the fast path. Other tables use a TBL decode, which is slower.
 ///   * clamp - F32 output clamp values if KAI_MATMUL_UKER_FLAGS_ARGS_CLAMP flag is set.
 ///
 /// Supported flags:

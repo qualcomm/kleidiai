@@ -12,35 +12,10 @@
 // The RHS is packed with kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon: each 32-bit lane holds K+0..3 in the
 // low nibbles and K+4..7 in the high nibbles (XOR 0x88, scales pre-multiplied by 1/16), so no zip is needed.
 // The SME2-only instructions are replaced as follows:
-//   * luti4 (ZT0)              -> lsl #4 / and 0xF0 for the default table, and 0x0f / lsr #4 + tbl for a caller table.
+//   * luti4 (ZT0)              -> lsl #4 / and 0xF0 (FEAT_SME has no FEAT_LUT, so there is no LUT argument).
 //   * multi-vector ld1w/st1w   -> per-vector ld1w/st1w with p1, p2, p5, p6 column predicates.
 //   * whilelt pn9 (VLx4)       -> four whilelt instructions, p1 last so the flags reflect the first vector.
 //   * zip/mova/scvtf/fclamp x2 -> single-vector zip1/zip2 (once per block), mova, scvtf, fmax/fmin.
-
-// Loads 8 K values: RHS into z2, z3, z9, z10 and LHS into z8 (K+0..3) and z11 (K+4..7).
-.macro load_k8
-    add x2, x16, x20, lsl #2
-    ld1w {z2.s}, p0/z, [x2]
-    ld1w {z3.s}, p0/z, [x2, #1, mul vl]
-    ld1w {z9.s}, p0/z, [x2, #2, mul vl]
-    ld1w {z10.s}, p0/z, [x2, #3, mul vl]
-    add x2, x22, x20, lsl #1
-    ld1h {z8.h}, p0/z, [x2]
-    ld1h {z11.h}, p0/z, [x2, #1, mul vl]
-    incw x20, all, mul #4
-.endm
-
-// Replaces: whilelt pn9.s, start, end, VLx4
-// Sets the flags from p1 (first vector of the group).
-.macro whilelt_x4 start, end, tmp
-    incw \tmp, all, mul #3
-    whilelt p6.s, \tmp, \end
-    decw \tmp
-    whilelt p5.s, \tmp, \end
-    decw \tmp
-    whilelt p2.s, \tmp, \end
-    whilelt p1.s, \start, \end
-.endm
 
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
@@ -71,20 +46,6 @@
     #define KAI_ASM_END
 #endif
 
-.macro smopa_k4_lo
-    KAI_ASM_INST(0xa0840100)  // smopa za0.s, p0/m, p0/m, z8.b, z4.b
-    KAI_ASM_INST(0xa0850101)  // smopa za1.s, p0/m, p0/m, z8.b, z5.b
-    KAI_ASM_INST(0xa0860102)  // smopa za2.s, p0/m, p0/m, z8.b, z6.b
-    KAI_ASM_INST(0xa0870103)  // smopa za3.s, p0/m, p0/m, z8.b, z7.b
-.endm
-
-.macro smopa_k4_hi
-    KAI_ASM_INST(0xa0840160)  // smopa za0.s, p0/m, p0/m, z11.b, z4.b
-    KAI_ASM_INST(0xa0850161)  // smopa za1.s, p0/m, p0/m, z11.b, z5.b
-    KAI_ASM_INST(0xa0860162)  // smopa za2.s, p0/m, p0/m, z11.b, z6.b
-    KAI_ASM_INST(0xa0870163)  // smopa za3.s, p0/m, p0/m, z11.b, z7.b
-.endm
-
     KAI_ASM_CODE(matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa)
     KAI_ASM_ALIGN
     KAI_ASM_GLOBAL(kai_kernel_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s4s0sf16_i8p_4vsx16vs_qmx_mopa)
@@ -108,14 +69,7 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16v
     lsl x5, x5, #1
     whilelt p4.b, xzr, x5
 
-    // x3 == 0: default {-8..7} table. Otherwise x3 points to a 16-byte table indexed by the packed nibble.
-    ldr x3, [x13, #0x78]
-    dup z22.b, #0xf0
-    cbz x3, 1f
-    ld1rqb {z14.b}, p0/z, [x3]
-    dup z12.b, #0x0f
-    fmov z13.h, #16.0  // The table values are not pre-multiplied by 16
-1:
+    dup z22.b, #0xf0  // High-nibble mask (K+4..7)
 
     ldr x16, [x13, #0x50]
     ldr x17, [x13, #0x60]
@@ -129,8 +83,15 @@ KAI_ASM_FUNCTION_LABEL(kai_kernel_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16v
     mov x8, #0
     ldr x0, [x13, #0x38]
     ldr x7, [x13, #0x68]
+    // whilelt pn9.s, x8, x0, VLx4
     mov x1, x8
-    whilelt_x4 x8, x0, x1
+    incw x1, all, mul #3
+    whilelt p6.s, x1, x0
+    decw x1
+    whilelt p5.s, x1, x0
+    decw x1
+    whilelt p2.s, x1, x0
+    whilelt p1.s, x8, x0
     b.none n_end
 
     // N_LOOP START
@@ -158,56 +119,39 @@ KAI_ASM_LABEL(k_loop)
     zip1 z20.h, z0.h, z1.h
     zip2 z21.h, z0.h, z1.h
     ldr x11, [x13, #0x18]
-    cbnz x3, block_loop_lut
 
     // BL_LOOP START
 KAI_ASM_LABEL(block_loop)
-    load_k8
+    // RHS K+0..7 into z2, z3, z9, z10. LHS K+0..3 into z8 and K+4..7 into z11.
+    add x2, x16, x20, lsl #2
+    ld1w {z2.s}, p0/z, [x2]
+    ld1w {z3.s}, p0/z, [x2, #1, mul vl]
+    ld1w {z9.s}, p0/z, [x2, #2, mul vl]
+    ld1w {z10.s}, p0/z, [x2, #3, mul vl]
+    add x2, x22, x20, lsl #1
+    ld1h {z8.h}, p0/z, [x2]
+    ld1h {z11.h}, p0/z, [x2, #1, mul vl]
+    incw x20, all, mul #4
     lsl z4.b, z2.b, #4
     lsl z5.b, z3.b, #4
     lsl z6.b, z9.b, #4
     lsl z7.b, z10.b, #4
-    smopa_k4_lo
+    KAI_ASM_INST(0xa0840100)  // smopa za0.s, p0/m, p0/m, z8.b, z4.b
+    KAI_ASM_INST(0xa0850101)  // smopa za1.s, p0/m, p0/m, z8.b, z5.b
+    KAI_ASM_INST(0xa0860102)  // smopa za2.s, p0/m, p0/m, z8.b, z6.b
+    KAI_ASM_INST(0xa0870103)  // smopa za3.s, p0/m, p0/m, z8.b, z7.b
     and z4.d, z2.d, z22.d
     and z5.d, z3.d, z22.d
     and z6.d, z9.d, z22.d
     and z7.d, z10.d, z22.d
-    smopa_k4_hi
+    KAI_ASM_INST(0xa0840160)  // smopa za0.s, p0/m, p0/m, z11.b, z4.b
+    KAI_ASM_INST(0xa0850161)  // smopa za1.s, p0/m, p0/m, z11.b, z5.b
+    KAI_ASM_INST(0xa0860162)  // smopa za2.s, p0/m, p0/m, z11.b, z6.b
+    KAI_ASM_INST(0xa0870163)  // smopa za3.s, p0/m, p0/m, z11.b, z7.b
     subs x11, x11, #8
     b.gt block_loop
-    b block_loop_end
     // BL_LOOP END
 
-KAI_ASM_LABEL(block_loop_lut)
-    fmul z20.h, z20.h, z13.h
-    fmul z21.h, z21.h, z13.h
-
-    // BL_LOOP (caller table) START
-KAI_ASM_LABEL(block_loop_lut_k8)
-    load_k8
-    and z4.d, z2.d, z12.d
-    and z5.d, z3.d, z12.d
-    and z6.d, z9.d, z12.d
-    and z7.d, z10.d, z12.d
-    tbl z4.b, {z14.b}, z4.b
-    tbl z5.b, {z14.b}, z5.b
-    tbl z6.b, {z14.b}, z6.b
-    tbl z7.b, {z14.b}, z7.b
-    smopa_k4_lo
-    lsr z4.b, z2.b, #4
-    lsr z5.b, z3.b, #4
-    lsr z6.b, z9.b, #4
-    lsr z7.b, z10.b, #4
-    tbl z4.b, {z14.b}, z4.b
-    tbl z5.b, {z14.b}, z5.b
-    tbl z6.b, {z14.b}, z6.b
-    tbl z7.b, {z14.b}, z7.b
-    smopa_k4_hi
-    subs x11, x11, #8
-    b.gt block_loop_lut_k8
-    // BL_LOOP (caller table) END
-
-KAI_ASM_LABEL(block_loop_end)
     mov w12, #0
     mov x25, x24
     ld1b {z16.b}, p4/z, [x23, x21]
@@ -318,8 +262,15 @@ KAI_ASM_LABEL(clamp_end)
     add x17, x17, x5
     incb x8, all
     ldr x0, [x13, #0x38]
+    // whilelt pn9.s, x8, x0, VLx4
     mov x1, x8
-    whilelt_x4 x8, x0, x1
+    incw x1, all, mul #3
+    whilelt p6.s, x1, x0
+    decw x1
+    whilelt p5.s, x1, x0
+    decw x1
+    whilelt p2.s, x1, x0
+    whilelt p1.s, x8, x0
     b.mi n_loop
     // N_LOOP END
 
