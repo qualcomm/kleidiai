@@ -8,15 +8,6 @@
 // + SPDX-License-Identifier: BSD-3-Clause-Clear
 //
 
-// QMX (FEAT_SME) port of kai_matmul_clamp_f32_qsi8d32p4vsx4sf16_qsi4c32p16vsx4s1s0sf16_i8p_4vsx16vs_sme2_mopa.
-// The RHS is packed with kai_rhs_pack_nxk_qsi4c32ps4s0sf16_qsu4c32s16s0_neon: each 32-bit lane holds K+0..3 in the
-// low nibbles and K+4..7 in the high nibbles (XOR 0x88, scales pre-multiplied by 1/16), so no zip is needed.
-// The SME2-only instructions are replaced as follows:
-//   * luti4 (ZT0)              -> lsl #4 / and 0xF0 (FEAT_SME has no FEAT_LUT, so there is no LUT argument).
-//   * multi-vector ld1w/st1w   -> per-vector ld1w/st1w with p1, p2, p5, p6 column predicates.
-//   * whilelt pn9 (VLx4)       -> four whilelt instructions, p1 last so the flags reflect the first vector.
-//   * zip/mova/scvtf/fclamp x2 -> single-vector zip1/zip2 (once per block), mova, scvtf, fmax/fmin.
-
 #if defined(_MSC_VER)
     #define KAI_ASM_GLOBAL(name) GLOBAL name
     #define KAI_ASM_FUNCTION_TYPE(name)
