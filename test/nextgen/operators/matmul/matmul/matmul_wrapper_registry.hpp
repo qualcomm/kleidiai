@@ -45,6 +45,8 @@ namespace kai::test {
 
 /// Creates a wrapper for matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0sf16_4vsx16vs_qmx_mopa kernel.
 [[nodiscard]] MatMulKernelPtr create_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0sf16_4vsx16vs_qmx_mopa();
+/// Creates a wrapper for matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0sf16_8vsx8vs_qmx_mopa kernel.
+[[nodiscard]] MatMulKernelPtr create_matmul_clamp_f32_f16p4vsx2_qai4c32p16vsx4s4s0sf16_8vsx8vs_qmx_mopa();
 
 /// Creates a wrapper for matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot micro-kernel.
 [[nodiscard]] MatMulKernelPtr create_matmul_clamp_f32_qsi8d32p1x4_qai4c32p16vsx4s1s0sf16_1x16vs_sme2_dot();
